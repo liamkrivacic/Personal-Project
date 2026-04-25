@@ -82,21 +82,17 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       const dx = point.x - center.x;
       const dy = point.y - center.y;
       const distance = Math.max(Math.hypot(dx, dy), 1);
-      const eventHorizon = width < 620 ? 54 : 70;
-      const lensRadius = Math.min(640, Math.max(330, width * 0.44));
+      const eventHorizon = width < 620 ? 56 : 74;
+      const lensRadius = Math.min(620, Math.max(360, width * 0.42));
       const gravity = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / lensRadius));
-      const capture = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / 220));
-      const angle = Math.atan2(dy, dx);
-      const angleBend = gravity * gravity * 0.78 + capture * 0.72;
-      const pulledRadius = Math.max(
-        eventHorizon + 8,
-        distance - gravity * 42 - capture * capture * 82,
-      );
+      const capture = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / 170));
+      const radialPull = gravity * 44 + capture * 76;
+      const orbitalBend = gravity * gravity * 74 + capture * 36;
       const cursor = pointerRef.current;
 
-      let x = center.x + Math.cos(angle + angleBend) * pulledRadius;
-      let y = center.y + Math.sin(angle + angleBend) * pulledRadius;
-      let alpha = 0.12 + gravity * 0.3 + capture * 0.22;
+      let x = point.x - (dx / distance) * radialPull + (-dy / distance) * orbitalBend;
+      let y = point.y - (dy / distance) * radialPull + (dx / distance) * orbitalBend * 0.62;
+      let alpha = 0.12 + gravity * 0.22 + capture * 0.18;
 
       if (cursor) {
         const cdx = point.x - cursor.x;
@@ -115,7 +111,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       }
 
       const shimmer = Math.sin(elapsed * 0.9 + point.x * 0.01 + point.y * 0.008) * 0.04;
-      const horizonFade = smoothstep(Math.min(1, Math.max(0, (distance - eventHorizon * 0.76) / 42)));
+      const horizonFade = smoothstep(Math.min(1, Math.max(0, (distance - eventHorizon * 0.9) / 58)));
 
       return { x, y, alpha: Math.max(0.04, Math.min(0.78, (alpha + shimmer) * horizonFade)) };
     };
@@ -127,10 +123,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       total: number,
       accent: "bronze" | "gold" | "ember",
     ) => {
-      const normalized = (index + 0.5) / total;
-      const centered = normalized * 2 - 1;
-      const condensed = Math.sign(centered) * Math.abs(centered) ** 1.7;
-      const baseY = center.y + condensed * height * 0.48;
+      const baseY = (height / (total + 1)) * (index + 1);
       const offset = Math.sin(elapsed * 0.3 + index * 0.62) * 24;
       const points: FieldPoint[] = [];
 
@@ -233,7 +226,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       context.globalCompositeOperation = "screen";
       drawGravityGlow(center);
 
-      const lines = width < 620 ? 20 : 34;
+      const lines = width < 620 ? 14 : 24;
       for (let index = 0; index < lines; index += 1) {
         const accent = index % 7 === 0 ? "ember" : index % 5 === 0 ? "gold" : "bronze";
         drawFieldLine(center, elapsed, index, lines, accent);
@@ -290,19 +283,27 @@ function traceSmoothPath(context: CanvasRenderingContext2D, points: FieldPoint[]
   }
 
   context.beginPath();
-  context.moveTo(points[0].x, points[0].y);
+  let drawing = false;
 
-  for (let index = 1; index < points.length - 1; index += 1) {
+  for (let index = 0; index < points.length - 1; index += 1) {
     const current = points[index];
     const next = points[index + 1];
+
+    if (current.alpha < 0.075 || next.alpha < 0.075) {
+      drawing = false;
+      continue;
+    }
+
     const midX = (current.x + next.x) / 2;
     const midY = (current.y + next.y) / 2;
 
+    if (!drawing) {
+      context.moveTo(current.x, current.y);
+      drawing = true;
+    }
+
     context.quadraticCurveTo(current.x, current.y, midX, midY);
   }
-
-  const last = points[points.length - 1];
-  context.lineTo(last.x, last.y);
 }
 
 function smoothstep(value: number) {
