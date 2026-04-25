@@ -15,6 +15,7 @@ build/
 # local tool/session state
 .claude/
 .superpowers/
+.worktrees/
 ~/
 
 # logs
