@@ -14,6 +14,7 @@ import { projects, type Project } from "@/data/projects";
 import {
   beginDrag,
   createBody,
+  cursorFieldOffset,
   moveDrag,
   releaseDrag,
   stepBody,
@@ -29,14 +30,21 @@ type PointerState = {
   velocity: Point;
 };
 
+type FieldState = {
+  stagePointer: Point | null;
+  stageActive: boolean;
+};
+
 export function OrbitalHero() {
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
+  const pageRef = useRef<HTMLElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const trailRef = useRef<HTMLDivElement | null>(null);
   const bodiesRef = useRef<OrbitBody[]>([]);
   const capsuleRefs = useRef(new Map<string, HTMLButtonElement>());
   const pointerRef = useRef<PointerState | null>(null);
   const pointerEndHandlerRef = useRef<(event: PointerEvent) => void>(() => undefined);
+  const fieldRef = useRef<FieldState>({ stagePointer: null, stageActive: false });
   const animationStartRef = useRef(0);
   const previousFrameRef = useRef(0);
   const reducedMotionRef = useRef(false);
@@ -47,6 +55,11 @@ export function OrbitalHero() {
   );
 
   const positionCapsules = useCallback(() => {
+    const fieldPointer =
+      fieldRef.current.stageActive && !reducedMotionRef.current
+        ? fieldRef.current.stagePointer
+        : null;
+
     for (const body of bodiesRef.current) {
       const capsule = capsuleRefs.current.get(body.id);
 
@@ -54,9 +67,14 @@ export function OrbitalHero() {
         continue;
       }
 
+      const offset = cursorFieldOffset(body, fieldPointer, {
+        radius: 170,
+        strength: 18,
+      });
+
       capsule.style.left = `${body.x}px`;
       capsule.style.top = `${body.y}px`;
-      capsule.style.transform = "translate(-50%, -50%)";
+      capsule.style.transform = `translate(-50%, -50%) translate(${offset.x.toFixed(2)}px, ${offset.y.toFixed(2)}px)`;
       capsule.classList.toggle("is-dragging", body.mode === "drag");
     }
   }, []);
@@ -71,7 +89,7 @@ export function OrbitalHero() {
     const rect = stage.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const orbitScaleX = rect.width < 520 ? 0.46 : rect.width < 760 ? 0.82 : 1;
+    const orbitScaleX = rect.width < 520 ? 0.34 : rect.width < 760 ? 0.82 : 1;
     const orbitScaleY = rect.width < 520 ? 0.95 : 1;
 
     // Derive orbit geometry from the rendered stage so the same data adapts
@@ -167,6 +185,54 @@ export function OrbitalHero() {
     };
   }, []);
 
+  const updateStageField = useCallback(
+    (event: ReactPointerEvent<HTMLElement> | PointerEvent) => {
+      const stage = stageRef.current;
+
+      if (!stage || reducedMotionRef.current) {
+        return;
+      }
+
+      const pointer = localPointer(event);
+      fieldRef.current = {
+        stagePointer: pointer,
+        stageActive: true,
+      };
+
+      stage.classList.add("is-field-active");
+      stage.style.setProperty("--stage-cursor-x", `${pointer.x}px`);
+      stage.style.setProperty("--stage-cursor-y", `${pointer.y}px`);
+    },
+    [localPointer],
+  );
+
+  const clearStageField = useCallback(() => {
+    fieldRef.current = {
+      stagePointer: null,
+      stageActive: false,
+    };
+    stageRef.current?.classList.remove("is-field-active");
+    positionCapsules();
+  }, [positionCapsules]);
+
+  const handlePagePointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    const page = pageRef.current;
+
+    if (!page || reducedMotionRef.current) {
+      return;
+    }
+
+    const rect = page.getBoundingClientRect();
+    page.style.setProperty("--cursor-x", `${event.clientX - rect.left}px`);
+    page.style.setProperty("--cursor-y", `${event.clientY - rect.top}px`);
+    page.style.setProperty("--cursor-energy", "1");
+  }, []);
+
+  const handlePagePointerLeave = useCallback(() => {
+    pageRef.current?.style.setProperty("--cursor-energy", "0");
+    clearStageField();
+  }, [clearStageField]);
+
   const showThrowTrail = useCallback((body: OrbitBody | undefined, velocity: Point) => {
     const trail = trailRef.current;
     const speed = Math.hypot(velocity.x, velocity.y);
@@ -197,6 +263,7 @@ export function OrbitalHero() {
       const now = performance.now();
       const pointer = localPointer(event);
       const dt = Math.max((now - pointerState.lastPointerTime) / 1000, 1 / 120);
+      updateStageField(event);
 
       pointerState.velocity = {
         x: (pointer.x - pointerState.lastPointer.x) / dt,
@@ -210,7 +277,7 @@ export function OrbitalHero() {
       pointerState.lastPointer = pointer;
       pointerState.lastPointerTime = now;
     },
-    [localPointer],
+    [localPointer, updateStageField],
   );
 
   const handleGlobalPointerEnd = useCallback((event: PointerEvent) => {
@@ -275,7 +342,15 @@ export function OrbitalHero() {
   );
 
   return (
-    <main className="orbital-page" aria-labelledby="hero-title">
+    <main
+      ref={pageRef}
+      className="orbital-page"
+      aria-labelledby="hero-title"
+      onPointerMove={handlePagePointerMove}
+      onPointerLeave={handlePagePointerLeave}
+    >
+      <div className="plasma-field" aria-hidden="true" />
+      <div className="cursor-lens" aria-hidden="true" />
       <div className="field-line line-1" aria-hidden="true" />
       <div className="field-line line-2" aria-hidden="true" />
       <div className="field-line line-3" aria-hidden="true" />
@@ -310,7 +385,15 @@ export function OrbitalHero() {
           </p>
         </div>
 
-        <section ref={stageRef} className="orbit-stage" id="projects" aria-label="Interactive project orbit">
+        <section
+          ref={stageRef}
+          className="orbit-stage"
+          id="project-orbit"
+          aria-label="Interactive project orbit"
+          onPointerMove={updateStageField}
+          onPointerLeave={clearStageField}
+        >
+          <div className="gravity-wake" aria-hidden="true" />
           <div className="orbit-ring ring-1" aria-hidden="true" />
           <div className="orbit-ring ring-2" aria-hidden="true" />
           <div className="orbit-ring ring-3" aria-hidden="true" />
@@ -363,17 +446,72 @@ export function OrbitalHero() {
         </div>
       </section>
 
-      <section className="content-band" id="about">
-        <span>About Liam</span>
-        <p>
-          I like building the parts of a system that have to work together under real
-          constraints: simulation, hardware, software, infrastructure, documentation,
-          and the handoff between people doing the work.
-        </p>
+      <section className="portfolio-section about-section" id="about" aria-labelledby="about-title">
+        <div className="section-heading">
+          <span>About Liam</span>
+          <h2 id="about-title">Systems thinking across hardware and software.</h2>
+        </div>
+        <div className="about-layout">
+          <p>
+            I like building the parts of a system that have to work together under real
+            constraints: simulation, hardware, software, infrastructure, documentation,
+            and the handoff between people doing the work.
+          </p>
+          <dl className="signal-stats">
+            <div>
+              <dt>WAM</dt>
+              <dd>90.3</dd>
+            </div>
+            <div>
+              <dt>RF Team</dt>
+              <dd>9 engineers</dd>
+            </div>
+            <div>
+              <dt>Robotics</dt>
+              <dd>1st place</dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
-      <section className="content-band contact-band" id="contact">
-        <span>Contact</span>
+      <section className="portfolio-section project-section" id="projects" aria-labelledby="projects-title">
+        <div className="section-heading">
+          <span>Selected Work</span>
+          <h2 id="projects-title">Project bodies with real engineering weight.</h2>
+        </div>
+        <div className="project-grid">
+          {projects.map((project) => (
+            <article
+              key={project.id}
+              className="project-card"
+              style={
+                {
+                  "--orb-color": project.color,
+                  "--orb-glow": hexToRgba(project.color, 0.3),
+                } as CSSProperties
+              }
+            >
+              <div className="project-card-top">
+                <span>{project.category}</span>
+                <strong>{project.name}</strong>
+              </div>
+              <p>{project.focus}</p>
+              <p className="project-impact">{project.impact}</p>
+              <div className="tool-list" aria-label={`${project.name} tools and skills`}>
+                {project.tools.map((tool) => (
+                  <span key={tool}>{tool}</span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="portfolio-section contact-section" id="contact" aria-labelledby="contact-title">
+        <div className="section-heading">
+          <span>Contact</span>
+          <h2 id="contact-title">Open channel for engineering work.</h2>
+        </div>
         <p>
           Open to engineering projects, technical internships, and systems work where
           electrical engineering and software meet.

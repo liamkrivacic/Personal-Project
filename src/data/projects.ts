@@ -9,6 +9,9 @@ export type Project = {
   speed: number;
   summary: string;
   meta: string;
+  focus: string;
+  impact: string;
+  tools: string[];
 };
 
 export const projects: Project[] = [
@@ -24,6 +27,10 @@ export const projects: Project[] = [
     summary:
       "High-power RF system design, HFSS waveguide simulation, impedance matching, measurement planning, and safety documentation.",
     meta: "AtomCraft / Team Lead",
+    focus: "RF design, simulation, measurement planning, and high-voltage safety.",
+    impact:
+      "Led a multidisciplinary team of 9 engineers from requirements through faculty-reviewed experimental planning.",
+    tools: ["HFSS", "RF systems", "Risk assessment"],
   },
   {
     id: "fmcg-web",
@@ -37,6 +44,10 @@ export const projects: Project[] = [
     summary:
       "Two company websites plus DNS, hosting, SSL, performance work, and NAS-hosted infrastructure that reduced IT costs.",
     meta: "FMCG Industry Solutions",
+    focus: "Web infrastructure, hosting, DNS, SSL, and internal cloud storage.",
+    impact:
+      "Reduced IT costs by 40% while improving security, reliability, and public-facing company systems.",
+    tools: ["WordPress", "DNS", "NAS infrastructure"],
   },
   {
     id: "sumobot",
@@ -50,6 +61,10 @@ export const projects: Project[] = [
     summary:
       "Autonomous sumo robot with sensors, control algorithms, and competition-first mechanical decisions.",
     meta: "UNSW SumoBots / 1st Place",
+    focus: "Sensor integration, control logic, mechanical decisions, and autonomous behavior.",
+    impact:
+      "Built a competition-winning robot that outperformed 10+ teams in the advanced stream.",
+    tools: ["Embedded control", "Sensors", "Robotics"],
   },
   {
     id: "lab-demo",
@@ -63,5 +78,9 @@ export const projects: Project[] = [
     summary:
       "Coordinated laboratory sessions, guided undergraduates, and supported safe operation of electrical equipment.",
     meta: "UNSW / 25+ Students",
+    focus: "Teaching support, lab supervision, equipment safety, and concept explanation.",
+    impact:
+      "Helped undergraduate students connect electrical engineering theory with careful experimental practice.",
+    tools: ["Lab equipment", "Safety", "Teaching"],
   },
 ];

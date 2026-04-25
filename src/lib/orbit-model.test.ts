@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   beginDrag,
+  cursorFieldOffset,
   createBody,
   moveDrag,
   orbitPosition,
@@ -89,5 +90,25 @@ describe("orbit model", () => {
     expect(next.mode).toBe("return");
     expect(next.x).toBeGreaterThan(body.x);
     expect(next.vx).toBeGreaterThan(0);
+  });
+
+  it("creates a subtle nearby cursor field offset without changing distant capsules", () => {
+    const body = createBody({
+      id: "rf-plasma",
+      orbitX: 200,
+      orbitY: 100,
+      radiusX: 80,
+      radiusY: 40,
+      angle: 0,
+      speed: 0,
+    });
+
+    const nearby = cursorFieldOffset(body, { x: 250, y: 120 }, { radius: 120, strength: 16 });
+    const distant = cursorFieldOffset(body, { x: -500, y: -500 }, { radius: 120, strength: 16 });
+
+    expect(nearby.x).toBeGreaterThan(0);
+    expect(nearby.y).toBeLessThan(0);
+    expect(Math.hypot(nearby.x, nearby.y)).toBeLessThanOrEqual(16);
+    expect(distant).toEqual({ x: 0, y: 0 });
   });
 });
