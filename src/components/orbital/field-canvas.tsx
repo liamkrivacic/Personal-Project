@@ -22,6 +22,8 @@ type Star = {
   warmth: number;
 };
 
+type StrandTone = "bronze" | "gold" | "ember" | "white";
+
 export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointerRef = useRef<Point | null>(null);
@@ -78,80 +80,174 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       };
     };
 
-    const warpPoint = (point: Point, center: Point, elapsed: number): FieldPoint => {
-      const dx = point.x - center.x;
-      const dy = point.y - center.y;
-      const distance = Math.max(Math.hypot(dx, dy), 1);
-      const eventHorizon = width < 620 ? 56 : 74;
-      const lensRadius = Math.min(620, Math.max(360, width * 0.42));
-      const gravity = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / lensRadius));
-      const capture = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / 170));
-      const radialPull = gravity * 44 + capture * 76;
-      const orbitalBend = gravity * gravity * 74 + capture * 36;
+    const eventHorizon = () => (width < 620 ? 52 : 70);
+
+    const applyCursorWake = (point: FieldPoint): FieldPoint => {
       const cursor = pointerRef.current;
 
-      let x = point.x - (dx / distance) * radialPull + (-dy / distance) * orbitalBend;
-      let y = point.y - (dy / distance) * radialPull + (dx / distance) * orbitalBend * 0.62;
-      let alpha = 0.12 + gravity * 0.22 + capture * 0.18;
-
-      if (cursor) {
-        const cdx = point.x - cursor.x;
-        const cdy = point.y - cursor.y;
-        const cursorDistance = Math.max(Math.hypot(cdx, cdy), 1);
-        const cursorLens = smoothstep(Math.max(0, 1 - cursorDistance / 360));
-        const centerEase = smoothstep(Math.min(1, cursorDistance / 110));
-        const cursorPush = cursorLens * centerEase * 42;
-        const cursorDrift = cursorLens * cursorLens * 12;
-
-        x += (cdx / cursorDistance) * cursorPush;
-        y += (cdy / cursorDistance) * cursorPush;
-        x += (-cdy / cursorDistance) * cursorDrift;
-        y += (cdx / cursorDistance) * cursorDrift;
-        alpha += cursorLens * 0.1;
+      if (!cursor) {
+        return point;
       }
 
-      const shimmer = Math.sin(elapsed * 0.9 + point.x * 0.01 + point.y * 0.008) * 0.04;
-      const horizonFade = smoothstep(Math.min(1, Math.max(0, (distance - eventHorizon * 0.9) / 58)));
+      const dx = point.x - cursor.x;
+      const dy = point.y - cursor.y;
+      const distance = Math.max(Math.hypot(dx, dy), 1);
+      const influence = smoothstep(Math.max(0, 1 - distance / 340));
 
-      return { x, y, alpha: Math.max(0.04, Math.min(0.78, (alpha + shimmer) * horizonFade)) };
+      if (influence <= 0.001) {
+        return point;
+      }
+
+      // A soft exclusion zone keeps the cursor from creating sharp corners in nearby strands.
+      const centerEase = smoothstep(Math.min(1, distance / 96));
+      const push = influence * centerEase * 34;
+      const orbit = influence * influence * 11;
+
+      return {
+        x: point.x + (dx / distance) * push + (-dy / distance) * orbit,
+        y: point.y + (dy / distance) * push + (dx / distance) * orbit,
+        alpha: Math.min(0.9, point.alpha + influence * 0.08),
+      };
     };
 
-    const drawFieldLine = (
+    const projectOrbitalPoint = (
+      center: Point,
+      angle: number,
+      radius: number,
+      laneOffset: number,
+    ): Point => {
+      const perspectiveX = width < 620 ? 1.42 : 1.78;
+      const perspectiveY = width < 620 ? 0.56 : 0.5;
+      const rotation = -0.14;
+      const localX = Math.cos(angle) * radius * perspectiveX;
+      const localY = Math.sin(angle) * radius * perspectiveY + laneOffset;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+
+      return {
+        x: center.x + localX * cos - localY * sin,
+        y: center.y + localX * sin + localY * cos,
+      };
+    };
+
+    const drawPhotonStrand = (
       center: Point,
       elapsed: number,
       index: number,
       total: number,
-      accent: "bronze" | "gold" | "ember",
+      tone: StrandTone,
     ) => {
-      const baseY = (height / (total + 1)) * (index + 1);
-      const offset = Math.sin(elapsed * 0.3 + index * 0.62) * 24;
+      const horizon = eventHorizon();
+      const seed = index + 1;
+      const lane = (index - (total - 1) / 2) / total;
+      const laneStrength = 1 - Math.min(Math.abs(lane) * 1.65, 0.92);
+      const randomA = pseudoRandom(seed * 17);
+      const randomB = pseudoRandom(seed * 29);
+      const randomC = pseudoRandom(seed * 43);
+      const direction = randomA > 0.5 ? 1 : -1;
+      const captured = randomB < 0.38;
+      const longReach = index % 5 === 0;
+      const steps = width < 620 ? 76 : 104;
+      const nearRadius =
+        horizon +
+        12 +
+        Math.abs(lane) * (width < 620 ? 46 : 94) +
+        randomC * (width < 620 ? 10 : 16);
+      const reach =
+        (longReach ? width * 0.5 : width * 0.27) +
+        randomA * (width < 620 ? 72 : 160);
+      const baseAngle =
+        -Math.PI * (0.88 + lane * 0.48) +
+        randomC * 0.7 +
+        direction * elapsed * (0.035 + randomB * 0.025);
+      const sweep = Math.PI * (captured ? 1.55 + randomA * 0.72 : 2.05 + randomB * 0.92);
+      const laneOffset = lane * (width < 620 ? 34 : 58);
       const points: FieldPoint[] = [];
 
-      for (let x = -100; x <= width + 100; x += 18) {
-        const wave =
-          Math.sin(x * 0.007 + elapsed * 0.38 + index * 0.72) * 24 +
-          Math.sin(x * 0.014 - elapsed * 0.22 + index) * 9;
-        points.push(warpPoint({ x, y: baseY + offset + wave }, center, elapsed));
+      for (let step = 0; step <= steps; step += 1) {
+        const t = step / steps;
+        const eased = smoothstep(t);
+        const fadeIn = smoothstep(Math.min(1, t / 0.14));
+        const fadeOut = smoothstep(Math.min(1, (1 - t) / 0.2));
+        const angle =
+          baseAngle +
+          direction * sweep * eased +
+          Math.sin(elapsed * 0.12 + seed + t * Math.PI) * 0.018;
+        const radius = captured
+          ? lerp(nearRadius + reach, horizon + 7 + randomC * 8, eased)
+          : nearRadius +
+            reach * Math.pow(Math.abs(t - 0.5) * 2, 1.34) +
+            Math.sin(t * Math.PI * 2 + seed) * 6;
+        const projected = projectOrbitalPoint(center, angle, radius, laneOffset);
+        const horizonFade = smoothstep(Math.min(1, Math.max(0, (radius - horizon - 2) / 34)));
+        const captureFade = captured ? smoothstep(Math.min(1, (1 - t) / 0.34)) : fadeOut;
+        const pulse = Math.sin(elapsed * 0.75 + seed * 0.9) * 0.045;
+        const alpha =
+          (0.16 + laneStrength * 0.5 + (tone === "white" ? 0.2 : 0)) *
+          fadeIn *
+          captureFade *
+          horizonFade +
+          pulse * fadeIn * fadeOut * 0.2;
+
+        points.push(applyCursorWake({ ...projected, alpha: Math.max(0.03, alpha) }));
       }
 
-      traceSmoothPath(context, points);
+      strokeStrand(context, points, tone, {
+        width: tone === "white" ? 1.75 : index % 7 === 0 ? 1.45 : 0.92,
+        glow: tone === "white" ? 24 : tone === "gold" ? 18 : 10,
+      });
+    };
 
-      const averageAlpha = points.reduce((sum, point) => sum + point.alpha, 0) / points.length;
-      const color =
-        accent === "gold"
-          ? `rgba(255, 210, 118, ${averageAlpha * 0.7})`
-          : accent === "ember"
-            ? `rgba(222, 116, 32, ${averageAlpha * 0.48})`
-            : `rgba(142, 125, 84, ${averageAlpha * 0.46})`;
+    const drawAccretionDisk = (center: Point, elapsed: number) => {
+      const count = width < 620 ? 44 : 78;
+      const horizon = eventHorizon();
 
-      context.strokeStyle = color;
-      context.lineWidth = index % 5 === 0 ? 1.12 : 0.68;
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.shadowColor = color;
-      context.shadowBlur = index % 6 === 0 ? 13 : 4;
-      context.stroke();
-      context.shadowBlur = 0;
+      for (let index = 0; index < count; index += 1) {
+        const randomA = pseudoRandom(index + 701);
+        const randomB = pseudoRandom(index + 809);
+        const randomC = pseudoRandom(index + 887);
+        const tone: StrandTone =
+          index % 13 === 0 ? "white" : index % 5 === 0 ? "gold" : index % 4 === 0 ? "ember" : "bronze";
+        const lane = (index - (count - 1) / 2) / count;
+        const laneWeight = 1 - Math.min(Math.abs(lane) * 1.8, 0.9);
+        const radius =
+          horizon +
+          18 +
+          Math.pow(Math.abs(lane), 1.16) * (width < 620 ? 96 : 174) +
+          randomA * (width < 620 ? 16 : 26);
+        const direction = randomA > 0.52 ? 1 : -1;
+        const start =
+          -Math.PI * 0.08 +
+          randomB * Math.PI * 1.88 +
+          direction * elapsed * (0.025 + randomC * 0.02);
+        const sweep = Math.PI * (0.76 + randomA * 0.9);
+        const laneOffset = lane * (width < 620 ? 24 : 42);
+        const points: FieldPoint[] = [];
+
+        for (let step = 0; step <= 82; step += 1) {
+          const t = step / 82;
+          const eased = smoothstep(t);
+          const angle =
+            start +
+            direction * sweep * eased +
+            Math.sin(elapsed * 0.1 + index + t * Math.PI) * 0.018;
+          const lensPinch = Math.sin(t * Math.PI) * (width < 620 ? 9 : 18);
+          const breathing = Math.sin(elapsed * 0.22 + index * 0.7 + t * Math.PI * 2) * 3;
+          const projected = projectOrbitalPoint(center, angle, radius - lensPinch + breathing, laneOffset);
+          const fade = smoothstep(Math.min(1, t / 0.16)) * smoothstep(Math.min(1, (1 - t) / 0.16));
+          const alpha =
+            (0.14 + laneWeight * 0.38 + (tone === "white" ? 0.18 : 0)) *
+            fade *
+            (0.82 + randomC * 0.36);
+
+          points.push(applyCursorWake({ ...projected, alpha }));
+        }
+
+        strokeStrand(context, points, tone, {
+          width: tone === "white" ? 1.6 : index % 5 === 0 ? 1.15 : 0.72,
+          glow: tone === "white" ? 22 : tone === "gold" ? 15 : 7,
+        });
+      }
     };
 
     const drawStars = (center: Point, elapsed: number) => {
@@ -164,26 +260,26 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
         const dx = x - center.x;
         const dy = y - center.y;
         const distance = Math.max(Math.hypot(dx, dy), 1);
-        const lens = Math.max(0, 1 - distance / 460);
+        const gravity = smoothstep(Math.max(0, 1 - distance / 500));
         const cursor = pointerRef.current;
 
-        x += (-dy / distance) * lens * lens * 13 - (dx / distance) * lens * 4;
-        y += (dx / distance) * lens * lens * 8 - (dy / distance) * lens * 4;
+        x += (-dy / distance) * gravity * gravity * 15 - (dx / distance) * gravity * 4;
+        y += (dx / distance) * gravity * gravity * 9 - (dy / distance) * gravity * 4;
 
         if (cursor) {
           const cdx = x - cursor.x;
           const cdy = y - cursor.y;
           const cursorDistance = Math.max(Math.hypot(cdx, cdy), 1);
-          const cursorLens = smoothstep(Math.max(0, 1 - cursorDistance / 270));
-          const centerEase = smoothstep(Math.min(1, cursorDistance / 90));
-          const cursorPush = cursorLens * centerEase * 16;
+          const cursorLens = smoothstep(Math.max(0, 1 - cursorDistance / 280));
+          const centerEase = smoothstep(Math.min(1, cursorDistance / 88));
+          const cursorPush = cursorLens * centerEase * 18;
 
           x += (cdx / cursorDistance) * cursorPush;
           y += (cdy / cursorDistance) * cursorPush;
         }
 
         const twinkle = Math.sin(elapsed * 1.2 + star.phase) * 0.08;
-        const alpha = Math.max(0.06, Math.min(0.45, 0.12 + star.warmth * 0.18 + twinkle));
+        const alpha = Math.max(0.055, Math.min(0.42, 0.11 + star.warmth * 0.16 + twinkle));
         const green = Math.round(204 + star.warmth * 36);
         const blue = Math.round(128 + star.warmth * 62);
 
@@ -197,11 +293,11 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
     };
 
     const drawGravityGlow = (center: Point) => {
-      const glow = context.createRadialGradient(center.x, center.y, 56, center.x, center.y, 330);
+      const glow = context.createRadialGradient(center.x, center.y, 48, center.x, center.y, 420);
       glow.addColorStop(0, "rgba(0, 0, 0, 0)");
-      glow.addColorStop(0.22, "rgba(255, 159, 28, 0.12)");
-      glow.addColorStop(0.5, "rgba(255, 194, 82, 0.12)");
-      glow.addColorStop(0.78, "rgba(161, 87, 22, 0.07)");
+      glow.addColorStop(0.16, "rgba(255, 180, 62, 0.2)");
+      glow.addColorStop(0.38, "rgba(255, 209, 104, 0.16)");
+      glow.addColorStop(0.66, "rgba(184, 98, 22, 0.08)");
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, width, height);
@@ -214,22 +310,24 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       context.clearRect(0, 0, width, height);
       context.globalCompositeOperation = "source-over";
 
-      const backdrop = context.createRadialGradient(center.x, center.y, 48, center.x, center.y, 430);
-      backdrop.addColorStop(0, "rgba(0, 0, 0, 0.82)");
-      backdrop.addColorStop(0.22, "rgba(24, 12, 4, 0.42)");
-      backdrop.addColorStop(0.58, "rgba(59, 33, 11, 0.17)");
+      const backdrop = context.createRadialGradient(center.x, center.y, 42, center.x, center.y, 520);
+      backdrop.addColorStop(0, "rgba(2, 1, 0, 0.86)");
+      backdrop.addColorStop(0.2, "rgba(30, 14, 3, 0.48)");
+      backdrop.addColorStop(0.5, "rgba(76, 38, 8, 0.16)");
       backdrop.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = backdrop;
       context.fillRect(0, 0, width, height);
 
       drawStars(center, elapsed);
-      context.globalCompositeOperation = "screen";
+      context.globalCompositeOperation = "lighter";
       drawGravityGlow(center);
+      drawAccretionDisk(center, elapsed);
 
-      const lines = width < 620 ? 14 : 24;
-      for (let index = 0; index < lines; index += 1) {
-        const accent = index % 7 === 0 ? "ember" : index % 5 === 0 ? "gold" : "bronze";
-        drawFieldLine(center, elapsed, index, lines, accent);
+      const strands = width < 620 ? 32 : 54;
+      for (let index = 0; index < strands; index += 1) {
+        const tone: StrandTone =
+          index % 11 === 0 ? "white" : index % 5 === 0 ? "gold" : index % 4 === 0 ? "ember" : "bronze";
+        drawPhotonStrand(center, elapsed, index, strands, tone);
       }
 
       context.globalCompositeOperation = "source-over";
@@ -255,7 +353,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       reducedMotionRef.current = mediaQuery.matches;
       startTime = performance.now();
       cancelAnimationFrame(frameId);
-      frameId = requestAnimationFrame(draw);
+      draw(performance.now());
     };
 
     resize();
@@ -263,7 +361,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
     page.addEventListener("pointerleave", handlePointerLeave);
     window.addEventListener("resize", resize);
     mediaQuery.addEventListener("change", handleMotionChange);
-    frameId = requestAnimationFrame(draw);
+    draw(performance.now());
 
     return () => {
       cancelAnimationFrame(frameId);
@@ -277,33 +375,61 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
   return <canvas ref={canvasRef} className="field-canvas" aria-hidden="true" />;
 }
 
-function traceSmoothPath(context: CanvasRenderingContext2D, points: FieldPoint[]) {
+function strokeStrand(
+  context: CanvasRenderingContext2D,
+  points: FieldPoint[],
+  tone: StrandTone,
+  options: { width: number; glow: number },
+) {
   if (points.length < 2) {
     return;
   }
 
-  context.beginPath();
-  let drawing = false;
+  context.save();
+  context.lineCap = "round";
+  context.lineJoin = "round";
 
+  // Segment-level alpha makes strands dissolve as they enter or leave the lens.
   for (let index = 0; index < points.length - 1; index += 1) {
     const current = points[index];
     const next = points[index + 1];
+    const alpha = (current.alpha + next.alpha) / 2;
 
-    if (current.alpha < 0.075 || next.alpha < 0.075) {
-      drawing = false;
+    if (alpha < 0.045) {
       continue;
     }
 
-    const midX = (current.x + next.x) / 2;
-    const midY = (current.y + next.y) / 2;
-
-    if (!drawing) {
-      context.moveTo(current.x, current.y);
-      drawing = true;
-    }
-
-    context.quadraticCurveTo(current.x, current.y, midX, midY);
+    context.beginPath();
+    context.moveTo(current.x, current.y);
+    context.quadraticCurveTo(current.x, current.y, next.x, next.y);
+    context.strokeStyle = strandColor(tone, alpha);
+    context.lineWidth = options.width;
+    context.shadowColor = strandColor(tone, Math.min(0.52, alpha * 0.85));
+    context.shadowBlur = options.glow;
+    context.stroke();
   }
+
+  context.restore();
+}
+
+function strandColor(tone: StrandTone, alpha: number) {
+  if (tone === "white") {
+    return `rgba(255, 246, 201, ${alpha})`;
+  }
+
+  if (tone === "gold") {
+    return `rgba(255, 214, 116, ${alpha})`;
+  }
+
+  if (tone === "ember") {
+    return `rgba(239, 126, 32, ${alpha})`;
+  }
+
+  return `rgba(157, 132, 82, ${alpha})`;
+}
+
+function lerp(start: number, end: number, amount: number) {
+  return start + (end - start) * amount;
 }
 
 function smoothstep(value: number) {
@@ -313,7 +439,7 @@ function smoothstep(value: number) {
 }
 
 function createStarField(): Star[] {
-  return Array.from({ length: 110 }, (_, index) => ({
+  return Array.from({ length: 120 }, (_, index) => ({
     nx: pseudoRandom(index + 1),
     ny: pseudoRandom(index + 53),
     size: 0.35 + pseudoRandom(index + 107) * 1.05,

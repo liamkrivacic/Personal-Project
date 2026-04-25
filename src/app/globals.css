@@ -63,8 +63,8 @@ button {
   overflow: hidden;
   padding: 24px 52px 30px;
   background:
-    radial-gradient(circle at 55% 42%, rgba(245, 158, 11, 0.09), transparent 30%),
-    radial-gradient(circle at 16% 74%, rgba(177, 83, 18, 0.1), transparent 28%),
+    radial-gradient(circle at 72% 45%, rgba(245, 158, 11, 0.16), transparent 31%),
+    radial-gradient(circle at 18% 74%, rgba(177, 83, 18, 0.08), transparent 28%),
     #040302;
   border: 1px solid #302719;
 }
@@ -74,12 +74,22 @@ button {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image:
-    linear-gradient(90deg, rgba(255, 214, 128, 0.018) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255, 214, 128, 0.014) 1px, transparent 1px);
-  background-size: 68px 68px;
-  mask-image: radial-gradient(circle at 58% 45%, black, transparent 82%);
-  opacity: 0.42;
+  background:
+    radial-gradient(circle at 70% 46%, rgba(255, 205, 96, 0.08), transparent 34%),
+    radial-gradient(circle at 84% 30%, rgba(255, 126, 31, 0.055), transparent 28%),
+    linear-gradient(90deg, rgba(4, 3, 2, 0.18), rgba(4, 3, 2, 0) 44%, rgba(4, 3, 2, 0.36));
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.orbital-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 72% 45%, transparent 0 18%, rgba(4, 3, 2, 0.2) 36%, rgba(4, 3, 2, 0.58) 72%),
+    linear-gradient(180deg, rgba(4, 3, 2, 0.2), rgba(4, 3, 2, 0.52));
   pointer-events: none;
 }
 
@@ -95,7 +105,7 @@ button {
   z-index: 1;
   width: 100%;
   height: 100%;
-  opacity: 0.98;
+  opacity: 1;
 }
 
 .cursor-lens {
@@ -104,17 +114,17 @@ button {
   background:
     radial-gradient(
       circle 220px at var(--cursor-x) var(--cursor-y),
-      rgba(255, 196, 88, 0.06),
-      rgba(255, 196, 88, 0.022) 42%,
+      rgba(255, 196, 88, 0.03),
+      rgba(255, 196, 88, 0.012) 42%,
       transparent 74%
     ),
     radial-gradient(
       circle 90px at var(--cursor-x) var(--cursor-y),
-      rgba(255, 239, 188, 0.045),
+      rgba(255, 239, 188, 0.02),
       transparent 72%
     );
   mix-blend-mode: screen;
-  opacity: calc(var(--cursor-energy) * 0.38);
+  opacity: calc(var(--cursor-energy) * 0.28);
   transition: opacity 160ms ease;
 }
 
@@ -220,15 +230,16 @@ button {
   transform: translate(-50%, -50%);
   background: radial-gradient(
     circle at 50% 50%,
-    #000 0 42%,
+    #010100 0 42%,
     rgba(0, 0, 0, 0.98) 49%,
     rgba(0, 0, 0, 0.72) 58%,
     transparent 68%
   );
   box-shadow:
-    0 0 0 1px rgba(255, 232, 174, 0.16),
-    0 0 48px rgba(0, 0, 0, 0.92),
-    0 0 95px rgba(255, 166, 35, 0.36);
+    0 0 0 1px rgba(255, 232, 174, 0.2),
+    0 0 48px rgba(0, 0, 0, 0.95),
+    0 0 92px rgba(255, 166, 35, 0.5),
+    0 0 156px rgba(177, 83, 18, 0.22);
 }
 
 .blackhole::before {
