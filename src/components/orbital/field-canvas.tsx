@@ -82,29 +82,30 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       const dx = point.x - center.x;
       const dy = point.y - center.y;
       const distance = Math.max(Math.hypot(dx, dy), 1);
-      const lens = Math.min(1, 220 / distance);
-      const gravity = lens * lens;
-      const swirl = gravity * 74;
-      const pull = gravity * 28;
+      const gravity = smoothstep(Math.max(0, 1 - distance / 520));
+      const innerGravity = smoothstep(Math.max(0, 1 - distance / 260));
+      const swirl = gravity * gravity * 116 + innerGravity * 36;
+      const pull = gravity * 34 + innerGravity * 24;
       const cursor = pointerRef.current;
 
       let x = point.x + (-dy / distance) * swirl - (dx / distance) * pull;
-      let y = point.y + (dx / distance) * swirl * 0.62 - (dy / distance) * pull;
+      let y = point.y + (dx / distance) * swirl * 0.66 - (dy / distance) * pull;
       let alpha = 0.14 + gravity * 0.42;
 
       if (cursor) {
         const cdx = point.x - cursor.x;
         const cdy = point.y - cursor.y;
         const cursorDistance = Math.max(Math.hypot(cdx, cdy), 1);
-        const cursorLens = Math.max(0, 1 - cursorDistance / 320);
-        const cursorPull = cursorLens * cursorLens * 18;
-        const cursorSwirl = cursorLens * cursorLens * cursorLens * 8;
+        const cursorLens = smoothstep(Math.max(0, 1 - cursorDistance / 360));
+        const centerEase = smoothstep(Math.min(1, cursorDistance / 110));
+        const cursorPush = cursorLens * centerEase * 42;
+        const cursorDrift = cursorLens * cursorLens * 12;
 
-        x -= (cdx / cursorDistance) * cursorPull;
-        y -= (cdy / cursorDistance) * cursorPull;
-        x += (-cdy / cursorDistance) * cursorSwirl;
-        y += (cdx / cursorDistance) * cursorSwirl;
-        alpha += cursorLens * 0.08;
+        x += (cdx / cursorDistance) * cursorPush;
+        y += (cdy / cursorDistance) * cursorPush;
+        x += (-cdy / cursorDistance) * cursorDrift;
+        y += (cdx / cursorDistance) * cursorDrift;
+        alpha += cursorLens * 0.1;
       }
 
       const shimmer = Math.sin(elapsed * 0.9 + point.x * 0.01 + point.y * 0.008) * 0.04;
@@ -123,21 +124,14 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       const offset = Math.sin(elapsed * 0.3 + index * 0.62) * 24;
       const points: FieldPoint[] = [];
 
-      for (let x = -90; x <= width + 90; x += 24) {
+      for (let x = -100; x <= width + 100; x += 18) {
         const wave =
           Math.sin(x * 0.007 + elapsed * 0.38 + index * 0.72) * 24 +
           Math.sin(x * 0.014 - elapsed * 0.22 + index) * 9;
         points.push(warpPoint({ x, y: baseY + offset + wave }, center, elapsed));
       }
 
-      context.beginPath();
-      points.forEach((point, pointIndex) => {
-        if (pointIndex === 0) {
-          context.moveTo(point.x, point.y);
-        } else {
-          context.lineTo(point.x, point.y);
-        }
-      });
+      traceSmoothPath(context, points);
 
       const averageAlpha = points.reduce((sum, point) => sum + point.alpha, 0) / points.length;
       const color =
@@ -149,6 +143,8 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
 
       context.strokeStyle = color;
       context.lineWidth = index % 5 === 0 ? 1.12 : 0.68;
+      context.lineCap = "round";
+      context.lineJoin = "round";
       context.shadowColor = color;
       context.shadowBlur = index % 6 === 0 ? 13 : 4;
       context.stroke();
@@ -172,14 +168,15 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
         y += (dx / distance) * lens * lens * 8 - (dy / distance) * lens * 4;
 
         if (cursor) {
-          const cdx = cursor.x - x;
-          const cdy = cursor.y - y;
+          const cdx = x - cursor.x;
+          const cdy = y - cursor.y;
           const cursorDistance = Math.max(Math.hypot(cdx, cdy), 1);
-          const cursorLens = Math.max(0, 1 - cursorDistance / 240);
-          const cursorPull = cursorLens * cursorLens * 9;
+          const cursorLens = smoothstep(Math.max(0, 1 - cursorDistance / 270));
+          const centerEase = smoothstep(Math.min(1, cursorDistance / 90));
+          const cursorPush = cursorLens * centerEase * 16;
 
-          x += (cdx / cursorDistance) * cursorPull;
-          y += (cdy / cursorDistance) * cursorPull;
+          x += (cdx / cursorDistance) * cursorPush;
+          y += (cdy / cursorDistance) * cursorPush;
         }
 
         const twinkle = Math.sin(elapsed * 1.2 + star.phase) * 0.08;
@@ -211,6 +208,8 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       context.rotate(-0.18 + Math.sin(elapsed * 0.18) * 0.025);
       context.scale(1.72, 0.48);
       context.globalCompositeOperation = "screen";
+      context.lineCap = "round";
+      context.lineJoin = "round";
 
       for (let index = 0; index < 9; index += 1) {
         const radius = 58 + index * 12 + Math.sin(elapsed * 0.38 + index) * 2.5;
@@ -299,6 +298,33 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
   }, [pageRef, stageRef]);
 
   return <canvas ref={canvasRef} className="field-canvas" aria-hidden="true" />;
+}
+
+function traceSmoothPath(context: CanvasRenderingContext2D, points: FieldPoint[]) {
+  if (points.length < 2) {
+    return;
+  }
+
+  context.beginPath();
+  context.moveTo(points[0].x, points[0].y);
+
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    const midX = (current.x + next.x) / 2;
+    const midY = (current.y + next.y) / 2;
+
+    context.quadraticCurveTo(current.x, current.y, midX, midY);
+  }
+
+  const last = points[points.length - 1];
+  context.lineTo(last.x, last.y);
+}
+
+function smoothstep(value: number) {
+  const clamped = Math.min(Math.max(value, 0), 1);
+
+  return clamped * clamped * (3 - 2 * clamped);
 }
 
 function createStarField(): Star[] {
