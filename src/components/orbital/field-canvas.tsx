@@ -82,15 +82,21 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       const dx = point.x - center.x;
       const dy = point.y - center.y;
       const distance = Math.max(Math.hypot(dx, dy), 1);
-      const gravity = smoothstep(Math.max(0, 1 - distance / 520));
-      const innerGravity = smoothstep(Math.max(0, 1 - distance / 260));
-      const swirl = gravity * gravity * 124 + innerGravity * 38;
-      const pull = gravity * 42 + innerGravity * 30;
+      const eventHorizon = width < 620 ? 54 : 70;
+      const lensRadius = Math.min(640, Math.max(330, width * 0.44));
+      const gravity = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / lensRadius));
+      const capture = smoothstep(Math.max(0, 1 - (distance - eventHorizon) / 220));
+      const angle = Math.atan2(dy, dx);
+      const angleBend = gravity * gravity * 0.78 + capture * 0.72;
+      const pulledRadius = Math.max(
+        eventHorizon + 8,
+        distance - gravity * 42 - capture * capture * 82,
+      );
       const cursor = pointerRef.current;
 
-      let x = point.x + (-dy / distance) * swirl - (dx / distance) * pull;
-      let y = point.y + (dx / distance) * swirl * 0.66 - (dy / distance) * pull;
-      let alpha = 0.14 + gravity * 0.42;
+      let x = center.x + Math.cos(angle + angleBend) * pulledRadius;
+      let y = center.y + Math.sin(angle + angleBend) * pulledRadius;
+      let alpha = 0.12 + gravity * 0.3 + capture * 0.22;
 
       if (cursor) {
         const cdx = point.x - cursor.x;
@@ -109,8 +115,9 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       }
 
       const shimmer = Math.sin(elapsed * 0.9 + point.x * 0.01 + point.y * 0.008) * 0.04;
+      const horizonFade = smoothstep(Math.min(1, Math.max(0, (distance - eventHorizon * 0.76) / 42)));
 
-      return { x, y, alpha: Math.max(0.07, Math.min(0.82, alpha + shimmer)) };
+      return { x, y, alpha: Math.max(0.04, Math.min(0.78, (alpha + shimmer) * horizonFade)) };
     };
 
     const drawFieldLine = (
@@ -227,17 +234,10 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       drawGravityGlow(center);
 
       const lines = width < 620 ? 20 : 34;
-      context.save();
-      if (width >= 760) {
-        context.beginPath();
-        context.rect(width * 0.26, 0, width * 0.74, height);
-        context.clip();
-      }
       for (let index = 0; index < lines; index += 1) {
         const accent = index % 7 === 0 ? "ember" : index % 5 === 0 ? "gold" : "bronze";
         drawFieldLine(center, elapsed, index, lines, accent);
       }
-      context.restore();
 
       context.globalCompositeOperation = "source-over";
 
