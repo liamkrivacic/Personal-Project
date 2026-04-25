@@ -84,8 +84,8 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       const distance = Math.max(Math.hypot(dx, dy), 1);
       const gravity = smoothstep(Math.max(0, 1 - distance / 520));
       const innerGravity = smoothstep(Math.max(0, 1 - distance / 260));
-      const swirl = gravity * gravity * 116 + innerGravity * 36;
-      const pull = gravity * 34 + innerGravity * 24;
+      const swirl = gravity * gravity * 124 + innerGravity * 38;
+      const pull = gravity * 42 + innerGravity * 30;
       const cursor = pointerRef.current;
 
       let x = point.x + (-dy / distance) * swirl - (dx / distance) * pull;
@@ -120,7 +120,10 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       total: number,
       accent: "bronze" | "gold" | "ember",
     ) => {
-      const baseY = (height / (total + 1)) * (index + 1);
+      const normalized = (index + 0.5) / total;
+      const centered = normalized * 2 - 1;
+      const condensed = Math.sign(centered) * Math.abs(centered) ** 1.7;
+      const baseY = center.y + condensed * height * 0.48;
       const offset = Math.sin(elapsed * 0.3 + index * 0.62) * 24;
       const points: FieldPoint[] = [];
 
@@ -193,41 +196,15 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       context.restore();
     };
 
-    const drawAccretionRings = (center: Point, elapsed: number) => {
+    const drawGravityGlow = (center: Point) => {
       const glow = context.createRadialGradient(center.x, center.y, 56, center.x, center.y, 330);
       glow.addColorStop(0, "rgba(0, 0, 0, 0)");
-      glow.addColorStop(0.2, "rgba(255, 159, 28, 0.16)");
-      glow.addColorStop(0.48, "rgba(255, 194, 82, 0.18)");
-      glow.addColorStop(0.74, "rgba(161, 87, 22, 0.09)");
+      glow.addColorStop(0.22, "rgba(255, 159, 28, 0.12)");
+      glow.addColorStop(0.5, "rgba(255, 194, 82, 0.12)");
+      glow.addColorStop(0.78, "rgba(161, 87, 22, 0.07)");
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, width, height);
-
-      context.save();
-      context.translate(center.x, center.y);
-      context.rotate(-0.18 + Math.sin(elapsed * 0.18) * 0.025);
-      context.scale(1.72, 0.48);
-      context.globalCompositeOperation = "screen";
-      context.lineCap = "round";
-      context.lineJoin = "round";
-
-      for (let index = 0; index < 9; index += 1) {
-        const radius = 58 + index * 12 + Math.sin(elapsed * 0.38 + index) * 2.5;
-        const alpha = 0.16 + (index % 3) * 0.06;
-
-        context.beginPath();
-        context.arc(0, 0, radius, 0.12 * Math.PI, 1.9 * Math.PI);
-        context.strokeStyle =
-          index % 3 === 0
-            ? `rgba(255, 236, 168, ${alpha + 0.15})`
-            : `rgba(255, 176, 54, ${alpha})`;
-        context.lineWidth = index % 3 === 0 ? 2.6 : 1.25;
-        context.shadowColor = "rgba(255, 181, 57, 0.55)";
-        context.shadowBlur = index % 3 === 0 ? 22 : 10;
-        context.stroke();
-      }
-
-      context.restore();
     };
 
     const draw = (now: number) => {
@@ -247,13 +224,20 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
 
       drawStars(center, elapsed);
       context.globalCompositeOperation = "screen";
-      drawAccretionRings(center, elapsed);
+      drawGravityGlow(center);
 
-      const lines = width < 620 ? 14 : 24;
+      const lines = width < 620 ? 20 : 34;
+      context.save();
+      if (width >= 760) {
+        context.beginPath();
+        context.rect(width * 0.26, 0, width * 0.74, height);
+        context.clip();
+      }
       for (let index = 0; index < lines; index += 1) {
         const accent = index % 7 === 0 ? "ember" : index % 5 === 0 ? "gold" : "bronze";
         drawFieldLine(center, elapsed, index, lines, accent);
       }
+      context.restore();
 
       context.globalCompositeOperation = "source-over";
 

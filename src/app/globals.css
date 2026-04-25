@@ -236,12 +236,7 @@ button {
 }
 
 .blackhole::after {
-  content: "";
-  position: absolute;
-  inset: -34px;
-  border-radius: 999px;
-  background: radial-gradient(circle, transparent 52%, rgba(255, 190, 73, 0.16) 58%, transparent 69%);
-  opacity: 0.95;
+  display: none;
 }
 
 .project-layer {
