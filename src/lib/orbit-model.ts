@@ -159,38 +159,6 @@ export function stepBody(
   };
 }
 
-export function cursorFieldOffset(
-  body: Pick<OrbitBody, "x" | "y" | "mode">,
-  pointer: Point | null,
-  {
-    radius = 150,
-    strength = 14,
-  }: {
-    radius?: number;
-    strength?: number;
-  } = {},
-): Point {
-  if (!pointer || body.mode === "drag") {
-    return { x: 0, y: 0 };
-  }
-
-  const dx = body.x - pointer.x;
-  const dy = body.y - pointer.y;
-  const distance = Math.hypot(dx, dy);
-
-  if (distance <= 0 || distance >= radius) {
-    return { x: 0, y: 0 };
-  }
-
-  const falloff = 1 - distance / radius;
-  const magnitude = strength * falloff * falloff;
-
-  return {
-    x: (dx / distance) * magnitude,
-    y: (dy / distance) * magnitude,
-  };
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }

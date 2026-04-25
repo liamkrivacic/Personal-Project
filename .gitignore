@@ -17,6 +17,7 @@ build/
 .claude/
 .superpowers/
 .worktrees/
+.verification/
 ~/
 
 # logs
