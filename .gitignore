@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# Next.js / builds
+.next/
+out/
+dist/
+build/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# local tool/session state
+.claude/
+.superpowers/
+~/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# private local docs
+Liam.Krivacic.Resume.docx
