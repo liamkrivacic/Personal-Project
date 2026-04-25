@@ -8,17 +8,17 @@
 
 :root {
   color-scheme: dark;
-  --bg: #05070a;
-  --panel: rgba(8, 12, 17, 0.82);
-  --panel-strong: rgba(8, 12, 17, 0.92);
-  --line: rgba(190, 204, 220, 0.16);
-  --text: #f8f0df;
-  --muted: #cbd5e1;
-  --dim: #8ea0b4;
-  --cyan: #67e8f9;
-  --amber: #facc15;
-  --pink: #fb7185;
-  --green: #b9f6ca;
+  --bg: #040302;
+  --panel: rgba(9, 7, 5, 0.82);
+  --panel-strong: rgba(10, 8, 6, 0.93);
+  --line: rgba(226, 189, 118, 0.17);
+  --text: #fff4dc;
+  --muted: #d7c8ad;
+  --dim: #a99777;
+  --cyan: #ffd166;
+  --amber: #f59e0b;
+  --pink: #fb923c;
+  --green: #d4f7a7;
   --display-font: "Bahnschrift", "Arial Narrow", "Segoe UI Variable", sans-serif;
   --body-font: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
   --mono-font: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
@@ -63,10 +63,10 @@ button {
   overflow: hidden;
   padding: 24px 52px 30px;
   background:
-    radial-gradient(circle at 50% 44%, rgba(103, 232, 249, 0.07), transparent 30%),
-    radial-gradient(circle at 16% 74%, rgba(251, 113, 133, 0.08), transparent 28%),
-    #05070a;
-  border: 1px solid #252c37;
+    radial-gradient(circle at 55% 42%, rgba(245, 158, 11, 0.09), transparent 30%),
+    radial-gradient(circle at 16% 74%, rgba(177, 83, 18, 0.1), transparent 28%),
+    #040302;
+  border: 1px solid #302719;
 }
 
 .orbital-page::before {
@@ -75,8 +75,8 @@ button {
   inset: 0;
   z-index: 0;
   background-image:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(255, 214, 128, 0.018) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 214, 128, 0.014) 1px, transparent 1px);
   background-size: 68px 68px;
   mask-image: radial-gradient(circle at 58% 45%, black, transparent 82%);
   opacity: 0.42;
@@ -95,7 +95,7 @@ button {
   z-index: 1;
   width: 100%;
   height: 100%;
-  opacity: 0.9;
+  opacity: 0.98;
 }
 
 .cursor-lens {
@@ -103,18 +103,18 @@ button {
   z-index: 2;
   background:
     radial-gradient(
-      circle 210px at var(--cursor-x) var(--cursor-y),
-      rgba(103, 232, 249, 0.14),
-      rgba(103, 232, 249, 0.045) 42%,
+      circle 220px at var(--cursor-x) var(--cursor-y),
+      rgba(255, 196, 88, 0.06),
+      rgba(255, 196, 88, 0.022) 42%,
       transparent 74%
     ),
     radial-gradient(
       circle 90px at var(--cursor-x) var(--cursor-y),
-      rgba(248, 240, 223, 0.1),
+      rgba(255, 239, 188, 0.045),
       transparent 72%
     );
   mix-blend-mode: screen;
-  opacity: var(--cursor-energy);
+  opacity: calc(var(--cursor-energy) * 0.38);
   transition: opacity 160ms ease;
 }
 
@@ -226,25 +226,13 @@ button {
     transparent 68%
   );
   box-shadow:
-    0 0 0 1px rgba(248, 240, 223, 0.14),
+    0 0 0 1px rgba(255, 232, 174, 0.16),
     0 0 48px rgba(0, 0, 0, 0.92),
-    0 0 86px rgba(103, 232, 249, 0.2);
+    0 0 95px rgba(255, 166, 35, 0.36);
 }
 
 .blackhole::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 260px;
-  height: 72px;
-  border-radius: 999px;
-  transform: translate(-50%, -50%) rotate(-12deg);
-  background:
-    linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.42), rgba(248, 240, 223, 0.14), rgba(251, 113, 133, 0.28), transparent),
-    radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.58) 45%, transparent 62%);
-  filter: blur(0.3px);
-  opacity: 0.72;
+  display: none;
 }
 
 .blackhole::after {
@@ -252,8 +240,8 @@ button {
   position: absolute;
   inset: -34px;
   border-radius: 999px;
-  background: radial-gradient(circle, transparent 54%, rgba(103, 232, 249, 0.12) 58%, transparent 67%);
-  opacity: 0.9;
+  background: radial-gradient(circle, transparent 52%, rgba(255, 190, 73, 0.16) 58%, transparent 69%);
+  opacity: 0.95;
 }
 
 .project-layer {
@@ -333,7 +321,7 @@ button {
   z-index: 4;
   width: 190px;
   height: 1px;
-  background: linear-gradient(90deg, rgba(103, 232, 249, 0.72), transparent);
+  background: linear-gradient(90deg, rgba(255, 210, 118, 0.72), transparent);
   opacity: 0;
   pointer-events: none;
   transform-origin: left center;
@@ -357,9 +345,9 @@ button {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.18), rgba(103, 232, 249, 0.85), rgba(248, 240, 223, 0.98));
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.16), rgba(255, 210, 118, 0.82), rgba(255, 244, 220, 0.98));
   border-radius: inherit;
-  box-shadow: 0 0 16px rgba(103, 232, 249, 0.35);
+  box-shadow: 0 0 16px rgba(255, 181, 57, 0.34);
 }
 
 .signal-path::after {
@@ -373,7 +361,7 @@ button {
   border-radius: 999px;
   box-shadow:
     0 0 16px rgba(248, 240, 223, 0.9),
-    0 0 30px rgba(103, 232, 249, 0.45);
+    0 0 30px rgba(255, 181, 57, 0.42);
 }
 
 .signal-a {
@@ -392,7 +380,7 @@ button {
 }
 
 .signal-b::before {
-  background: linear-gradient(90deg, transparent, rgba(251, 113, 133, 0.18), rgba(251, 113, 133, 0.78), rgba(248, 240, 223, 0.95));
+  background: linear-gradient(90deg, transparent, rgba(177, 83, 18, 0.18), rgba(255, 145, 48, 0.78), rgba(255, 244, 220, 0.95));
 }
 
 .signal-c {
@@ -469,7 +457,7 @@ button {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: rgba(7, 9, 13, 0.68);
-  border: 1px solid rgba(103, 232, 249, 0.26);
+  border: 1px solid rgba(255, 209, 102, 0.3);
   border-radius: 999px;
   transition:
     border-color 160ms ease,
@@ -479,16 +467,16 @@ button {
 
 .readout-link:hover {
   color: var(--cyan);
-  border-color: rgba(103, 232, 249, 0.7);
-  box-shadow: 0 0 18px rgba(103, 232, 249, 0.12);
+  border-color: rgba(255, 209, 102, 0.72);
+  box-shadow: 0 0 18px rgba(255, 181, 57, 0.14);
 }
 
 .project-page {
   min-height: 100dvh;
   padding: 28px 52px 56px;
   background:
-    radial-gradient(circle at 70% 20%, rgba(103, 232, 249, 0.11), transparent 30%),
-    radial-gradient(circle at 20% 72%, rgba(251, 113, 133, 0.1), transparent 30%),
+    radial-gradient(circle at 70% 20%, rgba(245, 158, 11, 0.12), transparent 30%),
+    radial-gradient(circle at 20% 72%, rgba(177, 83, 18, 0.12), transparent 30%),
     var(--bg);
 }
 
@@ -544,8 +532,8 @@ button {
 
 .project-detail-card {
   padding: 16px;
-  background: rgba(8, 12, 17, 0.76);
-  border: 1px solid rgba(190, 204, 220, 0.15);
+  background: rgba(10, 8, 6, 0.76);
+  border: 1px solid rgba(226, 189, 118, 0.15);
   border-radius: 8px;
 }
 
