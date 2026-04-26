@@ -39,6 +39,7 @@ export function OrbitalHero() {
   const bodiesRef = useRef<OrbitBody[]>([]);
   const capsuleRefs = useRef(new Map<string, HTMLButtonElement>());
   const pointerRef = useRef<PointerState | null>(null);
+  const cursorFadeRef = useRef<number | null>(null);
   const pointerEndHandlerRef = useRef<(event: PointerEvent) => void>(() => undefined);
   const animationStartRef = useRef(0);
   const previousFrameRef = useRef(0);
@@ -124,6 +125,10 @@ export function OrbitalHero() {
     window.addEventListener("resize", updateGeometry);
 
     return () => {
+      if (cursorFadeRef.current !== null) {
+        window.clearTimeout(cursorFadeRef.current);
+      }
+
       mediaQuery.removeEventListener("change", handleMotionChange);
       window.removeEventListener("resize", updateGeometry);
     };
@@ -180,10 +185,24 @@ export function OrbitalHero() {
     const rect = page.getBoundingClientRect();
     page.style.setProperty("--cursor-x", `${event.clientX - rect.left}px`);
     page.style.setProperty("--cursor-y", `${event.clientY - rect.top}px`);
-    page.style.setProperty("--cursor-energy", "1");
+    page.style.setProperty("--cursor-energy", "0.62");
+
+    if (cursorFadeRef.current !== null) {
+      window.clearTimeout(cursorFadeRef.current);
+    }
+
+    cursorFadeRef.current = window.setTimeout(() => {
+      page.style.setProperty("--cursor-energy", "0");
+      cursorFadeRef.current = null;
+    }, 240);
   }, []);
 
   const handlePagePointerLeave = useCallback(() => {
+    if (cursorFadeRef.current !== null) {
+      window.clearTimeout(cursorFadeRef.current);
+      cursorFadeRef.current = null;
+    }
+
     pageRef.current?.style.setProperty("--cursor-energy", "0");
   }, []);
 

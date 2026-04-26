@@ -22,11 +22,15 @@ type Star = {
   warmth: number;
 };
 
+type CursorPoint = Point & {
+  lastSeen: number;
+};
+
 type StrandTone = "bronze" | "gold" | "ember" | "white";
 
 export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pointerRef = useRef<Point | null>(null);
+  const pointerRef = useRef<CursorPoint | null>(null);
   const reducedMotionRef = useRef(false);
 
   useEffect(() => {
@@ -50,6 +54,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
     let height = 0;
     let frameId = 0;
     let startTime = performance.now();
+    let frameNow = startTime;
     const stars = createStarField();
 
     const resize = () => {
@@ -89,10 +94,17 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
         return point;
       }
 
+      const age = Math.max(0, frameNow - cursor.lastSeen);
+      const lifetime = 1 - smoothstep(Math.min(1, age / 520));
+
+      if (lifetime <= 0.001) {
+        return point;
+      }
+
       const dx = point.x - cursor.x;
       const dy = point.y - cursor.y;
       const distance = Math.max(Math.hypot(dx, dy), 1);
-      const influence = smoothstep(Math.max(0, 1 - distance / 340));
+      const influence = smoothstep(Math.max(0, 1 - distance / 340)) * lifetime;
 
       if (influence <= 0.001) {
         return point;
@@ -100,8 +112,8 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
 
       // A soft exclusion zone keeps the cursor from creating sharp corners in nearby strands.
       const centerEase = smoothstep(Math.min(1, distance / 96));
-      const push = influence * centerEase * 34;
-      const orbit = influence * influence * 11;
+      const push = influence * centerEase * 30;
+      const orbit = influence * influence * 13;
 
       return {
         x: point.x + (dx / distance) * push + (-dy / distance) * orbit,
@@ -160,21 +172,23 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
         -Math.PI * (0.88 + lane * 0.48) +
         randomC * 0.7 +
         direction * elapsed * (0.035 + randomB * 0.025);
-      const sweep = Math.PI * (captured ? 1.55 + randomA * 0.72 : 2.05 + randomB * 0.92);
+      const sweep = Math.PI * (captured ? 1.82 + randomA * 0.78 : 2.12 + randomB * 0.94);
       const laneOffset = lane * (width < 620 ? 34 : 58);
       const points: FieldPoint[] = [];
 
       for (let step = 0; step <= steps; step += 1) {
         const t = step / steps;
         const eased = smoothstep(t);
+        const orbitalTravel = captured ? smoothstep(Math.min(1, t * 1.12)) : eased;
+        const sink = captured ? smoothstep(Math.min(1, Math.max(0, (t - 0.14) / 0.86))) : eased;
         const fadeIn = smoothstep(Math.min(1, t / 0.14));
         const fadeOut = smoothstep(Math.min(1, (1 - t) / 0.2));
         const angle =
           baseAngle +
-          direction * sweep * eased +
+          direction * sweep * orbitalTravel +
           Math.sin(elapsed * 0.12 + seed + t * Math.PI) * 0.018;
         const radius = captured
-          ? lerp(nearRadius + reach, horizon + 7 + randomC * 8, eased)
+          ? lerp(nearRadius + reach, horizon + 7 + randomC * 8, sink)
           : nearRadius +
             reach * Math.pow(Math.abs(t - 0.5) * 2, 1.34) +
             Math.sin(t * Math.PI * 2 + seed) * 6;
@@ -220,7 +234,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
           -Math.PI * 0.08 +
           randomB * Math.PI * 1.88 +
           direction * elapsed * (0.025 + randomC * 0.02);
-        const sweep = Math.PI * (0.76 + randomA * 0.9);
+        const sweep = Math.PI * (0.88 + randomA * 0.9);
         const laneOffset = lane * (width < 620 ? 24 : 42);
         const points: FieldPoint[] = [];
 
@@ -292,20 +306,26 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       context.restore();
     };
 
-    const drawGravityGlow = (center: Point) => {
+    const drawGravityGlow = (center: Point, elapsed: number) => {
+      const pulse = 0.88 + Math.sin(elapsed * 0.8) * 0.12;
       const glow = context.createRadialGradient(center.x, center.y, 48, center.x, center.y, 420);
       glow.addColorStop(0, "rgba(0, 0, 0, 0)");
-      glow.addColorStop(0.16, "rgba(255, 180, 62, 0.2)");
-      glow.addColorStop(0.38, "rgba(255, 209, 104, 0.16)");
-      glow.addColorStop(0.66, "rgba(184, 98, 22, 0.08)");
+      glow.addColorStop(0.16, `rgba(255, 180, 62, ${0.18 * pulse})`);
+      glow.addColorStop(0.38, `rgba(255, 209, 104, ${0.14 * pulse})`);
+      glow.addColorStop(0.66, `rgba(184, 98, 22, ${0.075 * pulse})`);
       glow.addColorStop(1, "rgba(0, 0, 0, 0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, width, height);
     };
 
     const draw = (now: number) => {
+      frameNow = now;
       const elapsed = reducedMotionRef.current ? 0 : (now - startTime) / 1000;
       const center = blackHoleCenter();
+
+      if (pointerRef.current && now - pointerRef.current.lastSeen > 820) {
+        pointerRef.current = null;
+      }
 
       context.clearRect(0, 0, width, height);
       context.globalCompositeOperation = "source-over";
@@ -320,7 +340,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
 
       drawStars(center, elapsed);
       context.globalCompositeOperation = "lighter";
-      drawGravityGlow(center);
+      drawGravityGlow(center, elapsed);
       drawAccretionDisk(center, elapsed);
 
       const strands = width < 620 ? 32 : 54;
@@ -342,6 +362,7 @@ export function FieldCanvas({ stageRef, pageRef }: FieldCanvasProps) {
       pointerRef.current = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
+        lastSeen: performance.now(),
       };
     };
 

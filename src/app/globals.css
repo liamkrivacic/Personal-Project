@@ -224,6 +224,7 @@ button {
   left: 50%;
   top: 50%;
   z-index: 3;
+  isolation: isolate;
   width: 138px;
   height: 138px;
   border-radius: 999px;
@@ -238,16 +239,75 @@ button {
   box-shadow:
     0 0 0 1px rgba(255, 232, 174, 0.2),
     0 0 48px rgba(0, 0, 0, 0.95),
-    0 0 92px rgba(255, 166, 35, 0.5),
+    0 0 92px rgba(255, 166, 35, 0.46),
     0 0 156px rgba(177, 83, 18, 0.22);
 }
 
 .blackhole::before {
-  display: none;
+  content: "";
+  position: absolute;
+  inset: -13px;
+  z-index: -1;
+  display: block;
+  background: conic-gradient(
+    from 222deg,
+    rgba(255, 176, 45, 0.88) 0deg,
+    rgba(255, 225, 146, 0.48) 38deg,
+    rgba(255, 214, 116, 0.16) 92deg,
+    rgba(255, 218, 143, 0.12) 178deg,
+    rgba(255, 197, 88, 0.2) 248deg,
+    rgba(255, 145, 38, 0.54) 306deg,
+    rgba(255, 176, 45, 0.88) 360deg
+  );
+  border-radius: inherit;
+  filter: blur(1.6px);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 55%, black 62%, black 73%, transparent 79%);
+  mask-image: radial-gradient(circle, transparent 0 55%, black 62%, black 73%, transparent 79%);
+  opacity: 0.82;
+  pointer-events: none;
+  animation: horizon-rim-pulse 6.4s ease-in-out infinite;
 }
 
 .blackhole::after {
-  display: none;
+  content: "";
+  position: absolute;
+  inset: -46px;
+  z-index: -2;
+  display: block;
+  background:
+    radial-gradient(circle at 36% 74%, rgba(255, 166, 35, 0.42), transparent 36%),
+    radial-gradient(circle, rgba(255, 215, 128, 0.13), transparent 58%);
+  border-radius: inherit;
+  filter: blur(9px);
+  opacity: 0.66;
+  pointer-events: none;
+  animation: horizon-bloom-pulse 7.6s ease-in-out infinite;
+}
+
+@keyframes horizon-rim-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.985) rotate(-2deg);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.025) rotate(2deg);
+  }
+}
+
+@keyframes horizon-bloom-pulse {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: scale(0.98);
+  }
+
+  48% {
+    opacity: 0.72;
+    transform: scale(1.04);
+  }
 }
 
 .project-layer {
@@ -666,11 +726,6 @@ button {
   .blackhole {
     width: 106px;
     height: 106px;
-  }
-
-  .blackhole::before {
-    width: 202px;
-    height: 54px;
   }
 
   .project-orb {
