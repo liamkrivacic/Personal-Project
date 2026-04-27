@@ -159,6 +159,65 @@ export function stepBody(
   };
 }
 
+export function resolveBodyCollisions(
+  bodies: OrbitBody[],
+  {
+    minDistance,
+    iterations = 3,
+  }: {
+    minDistance: number;
+    iterations?: number;
+  },
+) {
+  const resolved = bodies.map((body) => ({ ...body }));
+
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    for (let firstIndex = 0; firstIndex < resolved.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < resolved.length; secondIndex += 1) {
+        const first = resolved[firstIndex];
+        const second = resolved[secondIndex];
+        const dx = second.x - first.x;
+        const dy = second.y - first.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance >= minDistance) {
+          continue;
+        }
+
+        const fallbackAngle = (firstIndex + secondIndex + 1) * 2.399963;
+        const directionX = distance > 0.001 ? dx / distance : Math.cos(fallbackAngle);
+        const directionY = distance > 0.001 ? dy / distance : Math.sin(fallbackAngle);
+        const overlap = minDistance - Math.max(distance, 0.001);
+        const firstLocked = first.mode === "drag";
+        const secondLocked = second.mode === "drag";
+
+        if (firstLocked && secondLocked) {
+          continue;
+        }
+
+        if (firstLocked) {
+          second.x += directionX * overlap;
+          second.y += directionY * overlap;
+          continue;
+        }
+
+        if (secondLocked) {
+          first.x -= directionX * overlap;
+          first.y -= directionY * overlap;
+          continue;
+        }
+
+        first.x -= directionX * overlap * 0.5;
+        first.y -= directionY * overlap * 0.5;
+        second.x += directionX * overlap * 0.5;
+        second.y += directionY * overlap * 0.5;
+      }
+    }
+  }
+
+  return resolved;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }

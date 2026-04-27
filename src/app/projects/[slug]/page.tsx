@@ -42,7 +42,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     <main className="project-page">
       <nav className="project-detail-nav" aria-label="Project navigation">
         <Link href="/" className="back-link">
-          Back to orbit
+          Back to home
         </Link>
         <span>{project.category}</span>
       </nav>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Black Hole Fluid Prototype</title>
+    <meta
+      name="description"
+      content="Desktop WebGL prototype for a fluid black-hole light field."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="prototype-shell">
+      <canvas id="fluid-canvas" aria-label="Interactive black-hole fluid prototype"></canvas>
+
+      <section class="control-panel" aria-label="Prototype controls">
+        <div>
+          <p class="eyebrow">WebGL fluid study</p>
+          <h1>Black-hole heat field</h1>
+        </div>
+
+        <label>
+          <span>Rim feed</span>
+          <input id="rimHeat" type="range" min="0" max="2" step="0.01" value="0.34" />
+        </label>
+        <label>
+          <span>Swirl</span>
+          <input id="swirl" type="range" min="0" max="3" step="0.01" value="2.92" />
+        </label>
+        <label>
+          <span>Pull</span>
+          <input id="pull" type="range" min="0" max="3" step="0.01" value="0.98" />
+        </label>
+        <label>
+          <span>Cursor heat</span>
+          <input id="cursorHeat" type="range" min="0" max="3" step="0.01" value="1.08" />
+        </label>
+        <label>
+          <span>Persistence</span>
+          <input id="dissipation" type="range" min="0.94" max="0.999" step="0.001" value="0.984" />
+        </label>
+
+        <div class="actions">
+          <button id="reset" type="button">Reset field</button>
+          <span>Move cursor to pull light streamlets</span>
+        </div>
+      </section>
+
+      <div class="status-line" aria-hidden="true">
+        <span id="status">initializing</span>
+        <span>desktop material prototype</span>
+      </div>
+    </main>
+
+    <script type="module" src="./fluid.js"></script>
+  </body>
+</html>

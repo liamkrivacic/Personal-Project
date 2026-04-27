@@ -6,6 +6,7 @@ import {
   moveDrag,
   orbitPosition,
   releaseDrag,
+  resolveBodyCollisions,
   stepBody,
 } from "@/lib/orbit-model";
 
@@ -89,6 +90,83 @@ describe("orbit model", () => {
     expect(next.mode).toBe("return");
     expect(next.x).toBeGreaterThan(body.x);
     expect(next.vx).toBeGreaterThan(0);
+  });
+
+  it("separates overlapping bodies by their collision distance", () => {
+    const bodies = [
+      {
+        ...createBody({
+          id: "a",
+          orbitX: 200,
+          orbitY: 100,
+          radiusX: 0,
+          radiusY: 0,
+          angle: 0,
+          speed: 0,
+        }),
+        x: 200,
+        y: 100,
+      },
+      {
+        ...createBody({
+          id: "b",
+          orbitX: 200,
+          orbitY: 100,
+          radiusX: 0,
+          radiusY: 0,
+          angle: 0,
+          speed: 0,
+        }),
+        x: 230,
+        y: 100,
+      },
+    ];
+
+    const resolved = resolveBodyCollisions(bodies, { minDistance: 100, iterations: 1 });
+    const distance = Math.hypot(resolved[1].x - resolved[0].x, resolved[1].y - resolved[0].y);
+
+    expect(distance).toBeGreaterThanOrEqual(99.9);
+  });
+
+  it("pushes non-dragged bodies away from the dragged body", () => {
+    const dragged = {
+      ...beginDrag(
+        createBody({
+          id: "dragged",
+          orbitX: 200,
+          orbitY: 100,
+          radiusX: 0,
+          radiusY: 0,
+          angle: 0,
+          speed: 0,
+        }),
+        { x: 200, y: 100 },
+      ),
+      x: 200,
+      y: 100,
+    };
+    const other = {
+      ...createBody({
+        id: "other",
+        orbitX: 200,
+        orbitY: 100,
+        radiusX: 0,
+        radiusY: 0,
+        angle: 0,
+        speed: 0,
+      }),
+      x: 240,
+      y: 100,
+    };
+
+    const [resolvedDragged, resolvedOther] = resolveBodyCollisions([dragged, other], {
+      minDistance: 110,
+      iterations: 1,
+    });
+
+    expect(resolvedDragged.x).toBe(200);
+    expect(resolvedDragged.y).toBe(100);
+    expect(resolvedOther.x).toBeGreaterThan(240);
   });
 
 });
