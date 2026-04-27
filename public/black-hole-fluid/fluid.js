@@ -9,7 +9,7 @@ const controls = {
 };
 
 const FIELD_CENTER = { x: 0.55, y: 0.54 };
-const HORIZON = 0.12;
+const HORIZON = 0.105;
 const MAX_STREAMLETS = 3;
 const STREAM_POINTS = 10;
 
@@ -172,20 +172,20 @@ vec3 rimSource(vec2 uv) {
   float lowerField = -sin(angle);
   float lowerNoise = (fbm(spinP * 3.8 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5) * 0.22;
   float lowerBlend = lowerField + lowerNoise;
-  float lower = 0.52 + 0.48 * smoothstep(-0.28, 0.98, lowerBlend);
-  float lowerCore = 0.64 + 0.36 * smoothstep(0.18, 0.94, lowerBlend);
+  float lower = smoothstep(-0.12, 0.98, lowerBlend);
+  float lowerCore = smoothstep(0.16, 0.98, lowerBlend);
   float sideFade = 1.0 - smoothstep(0.58, 1.0, abs(cos(angle)));
   float noisyRadius = uHorizon * (1.62 + (fbm(vec2(spinAngle * 2.1 - uTime * 0.22, uTime * 0.09)) - 0.5) * 0.34);
   float ring = exp(-pow((d - noisyRadius) / (uHorizon * 0.42), 2.0));
   float spiralPhase = spinAngle + log(max(d / uHorizon, 0.18)) * 2.55 - uTime * 1.18;
   float spiralBands = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 7.0);
   float spiralMask = exp(-pow((d - uHorizon * 2.28) / (uHorizon * 1.55), 2.0));
-  float spiralHeat = spiralBands * spiralMask * (0.42 + lower * 0.58);
+  float spiralHeat = spiralBands * spiralMask * (0.16 + lower * 0.84);
   float circumference = exp(-pow((d - uHorizon * 1.12) / (uHorizon * 0.32), 2.0)) * 0.18;
-  float broad = exp(-pow(length(p - vec2(0.05, -uHorizon * 2.15)) / (uHorizon * 3.15), 2.0));
-  vec2 hotOneCenter = vec2(0.15 + sin(uTime * 0.2) * uHorizon * 0.08, -uHorizon * 1.42);
-  vec2 hotTwoCenter = vec2(-0.12 + cos(uTime * 0.16) * uHorizon * 0.07, -uHorizon * 1.35);
-  vec2 hotThreeCenter = vec2(0.02 + sin(uTime * 0.12) * uHorizon * 0.06, -uHorizon * 1.72);
+  float broad = exp(-pow(length(p - vec2(0.05, -uHorizon * 2.3)) / (uHorizon * 3.05), 2.0));
+  vec2 hotOneCenter = vec2(0.15 + sin(uTime * 0.2) * uHorizon * 0.08, -uHorizon * 1.56);
+  vec2 hotTwoCenter = vec2(-0.12 + cos(uTime * 0.16) * uHorizon * 0.07, -uHorizon * 1.48);
+  vec2 hotThreeCenter = vec2(0.02 + sin(uTime * 0.12) * uHorizon * 0.06, -uHorizon * 1.9);
   float hotOne = exp(-pow(length(p - hotOneCenter) / (uHorizon * 0.36), 2.0));
   float hotTwo = exp(-pow(length(p - hotTwoCenter) / (uHorizon * 0.42), 2.0));
   float hotThree = exp(-pow(length(p - hotThreeCenter) / (uHorizon * 0.62), 2.0));
@@ -243,7 +243,7 @@ void main() {
   float hole = 1.0 - smoothstep(uHorizon * 0.78, uHorizon * 1.18, d);
   float lowerField = -p.y / max(d, 0.001);
   float lowerNoise = (fbm(p * 4.8 + vec2(uTime * 0.04, -uTime * 0.025)) - 0.5) * 0.24;
-  float lowerRim = 0.58 + 0.42 * smoothstep(-0.42, 0.98, lowerField + lowerNoise);
+  float lowerRim = smoothstep(-0.14, 0.95, lowerField + lowerNoise * 0.35);
   float nearRim = smoothstep(uHorizon * 1.7, uHorizon * 0.94, d) * lowerRim;
   float nearField = 1.0 - smoothstep(uHorizon * 1.7, uHorizon * 5.6, d);
   float orbitalWake = (1.0 - smoothstep(uHorizon * 1.12, uHorizon * 4.9, d)) * (0.42 + lowerRim * 0.58);
@@ -726,7 +726,7 @@ void main() {
   float spiralMask = exp(-pow((d - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);
   float lowerField = -sin(angle);
   float lowerNoise = (fbm(p * 4.6 + vec2(uTime * 0.03, -uTime * 0.02)) - 0.5) * 0.24;
-  float lowerBias = smoothstep(-0.56, 0.96, lowerField + lowerNoise);
+  float lowerBias = smoothstep(-0.34, 0.98, lowerField + lowerNoise * 0.4);
   float rimNoise = fbm(vec2(angle * 2.2 - uTime * 0.42, uTime * 0.16 + dive * 0.5));
   float warpedD = d + (rimNoise - 0.5) * horizon * 0.095;
   float rim = smoothstep(horizon * 1.22, horizon * 0.96, warpedD) * (1.0 - hole);
@@ -738,7 +738,7 @@ void main() {
   color = mix(color, vec3(0.002, 0.001, 0.0005), hole);
   float lowerRimField = -p.y / max(d, 0.001);
   float lowerRimNoise = (fbm(p * 5.2 + vec2(uTime * 0.04, uTime * 0.02)) - 0.5) * 0.22;
-  float lowerRim = smoothstep(-0.36, 0.95, lowerRimField + lowerRimNoise);
+  float lowerRim = smoothstep(-0.1, 0.95, lowerRimField + lowerRimNoise * 0.35);
   float spinSpark = 0.45 + 0.55 * sin(angle * 3.0 - uTime * 2.4 + densityNoise * 2.2);
   float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78;
   color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost;
