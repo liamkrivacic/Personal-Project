@@ -58,6 +58,7 @@ button {
 }
 
 .hero-home {
+  position: relative;
   display: flex;
   align-items: stretch;
   justify-content: flex-start;
@@ -112,6 +113,43 @@ button {
 
 .hero-home .hero-summary {
   max-width: 560px;
+}
+
+.hero-dive {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 76% 42%, rgba(152, 57, 10, 0.16), transparent 34%),
+    linear-gradient(120deg, rgba(2, 5, 6, 0.98), rgba(5, 4, 3, 0.94) 54%, rgba(1, 2, 3, 0.98));
+}
+
+.hero-dive-stage {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-dive-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 56% 52%, rgba(1, 1, 1, 0.06), rgba(1, 1, 1, 0.86) 54%, #010202 80%),
+    linear-gradient(180deg, rgba(1, 2, 3, 0), rgba(1, 2, 3, 0.96));
+  opacity: calc(var(--entry-progress) * 0.9);
+}
+
+.hero-dive .hero-copy {
+  opacity: clamp(0, calc(1 - var(--entry-progress) * 1.42), 1);
+  transform:
+    translate3d(calc(var(--entry-progress) * -12px), calc(var(--entry-progress) * -28px), 0)
+    scale(calc(1 - var(--entry-progress) * 0.08));
+  filter: blur(calc(var(--entry-progress) * 1.1px));
 }
 
 .hero-facts {

@@ -55,6 +55,7 @@ uniform float uSwirl;
 uniform float uPull;
 uniform float uCursorHeat;
 uniform float uDissipation;
+uniform float uDiveProgress;
 
 in vec2 vUv;
 out vec4 outColor;
@@ -97,6 +98,20 @@ vec2 aspectPoint(vec2 uv) {
   return vec2((uv.x - uCenter.x) * uAspect, uv.y - uCenter.y);
 }
 
+float diveEase(float progress) {
+  return progress * progress * (3.0 - 2.0 * progress);
+}
+
+float diveSurge() {
+  return smoothstep(0.58, 0.96, diveEase(uDiveProgress));
+}
+
+float diveViolence() {
+  float capture = smoothstep(0.68, 0.96, uDiveProgress);
+  float crossing = smoothstep(0.82, 0.97, uDiveProgress) * (1.0 - smoothstep(0.992, 1.0, uDiveProgress));
+  return capture * 0.5 + crossing;
+}
+
 float uvInside(vec2 uv) {
   vec2 lower = smoothstep(vec2(-0.002), vec2(0.018), uv);
   vec2 upper = smoothstep(vec2(-0.002), vec2(0.018), 1.0 - uv);
@@ -123,16 +138,19 @@ vec2 blackHoleVelocity(vec2 uv) {
   vec2 dir = vec2(dirAspect.x / uAspect, dirAspect.y);
   vec2 tangent = vec2(-dir.y, dir.x);
   float angle = atan(p.y, p.x);
+  float surge = diveSurge();
+  float violence = diveViolence();
   float rim = smoothstep(uHorizon * 8.5, uHorizon * 0.84, d);
   float farReach = 1.0 - smoothstep(uHorizon * 3.2, uHorizon * 9.2, d);
   float captureReach = 1.0 - smoothstep(uHorizon * 2.4, uHorizon * 13.0, d);
   float transportReach = smoothstep(uHorizon * 1.35, uHorizon * 5.8, d) * (1.0 - smoothstep(uHorizon * 10.8, uHorizon * 16.0, d));
   float orbitBand = exp(-pow((d - uHorizon * 2.65) / (uHorizon * 1.85), 2.0));
   float slingBand = exp(-pow((d - uHorizon * 3.45) / (uHorizon * 2.15), 2.0));
+  float horizonShell = exp(-pow((d - uHorizon * 1.42) / (uHorizon * 0.52), 2.0));
   float innerDrop = 1.0 - smoothstep(uHorizon * 0.98, uHorizon * 1.72, d);
   float spinPulse = 0.86 + 0.14 * sin(uTime * 1.55 + angle * 2.4);
-  float pullDrive = 0.72 + uPull * 0.68;
-  float swirlDrive = 0.34 + uSwirl * 0.84;
+  float pullDrive = (0.72 + uPull * 0.68) * (1.0 + surge * 0.24 + violence * 0.46);
+  float swirlDrive = (0.34 + uSwirl * 0.84) * (1.0 + surge * 0.55 + violence * 1.15);
   float pull = pullDrive * (rim * (0.052 / (d * d + 0.034)) + farReach * (0.058 / (d + 0.18)) + captureReach * (0.034 / (d + 0.32)) + transportReach * (0.028 / (d + 0.42))) * (0.68 + innerDrop * 0.68);
   float swirl = swirlDrive * (max(rim, orbitBand * 1.2) * (0.132 / (d + 0.064)) + farReach * (0.024 / (d + 0.24)) + captureReach * (0.011 / (d + 0.34)) + transportReach * (0.0045 / (d + 0.36))) * spinPulse;
   float slingGate = smoothstep(0.18, 1.0, sin(angle * 2.0 + uTime * 0.88 + fbm(p * 2.4) * 2.0));
@@ -140,7 +158,9 @@ vec2 blackHoleVelocity(vec2 uv) {
   float turbulence = fbm(p * 3.4 + vec2(uTime * 0.065, -uTime * 0.04));
   vec2 eddy = vec2(cos(turbulence * 6.283), sin(turbulence * 6.283)) * rim * 0.012;
   vec2 shear = tangent * orbitBand * sin(angle * 3.0 - uTime * 2.1) * 0.032;
-  return dir * (pull - sling * 0.052) + tangent * (swirl + sling * 0.15) + eddy + shear;
+  vec2 torsion = tangent * horizonShell * sin(angle * 5.6 - uTime * (2.4 + violence * 5.8) + turbulence * 5.2) * (0.04 + violence * 0.12);
+  vec2 buckle = dir * horizonShell * cos(angle * 4.2 + uTime * (1.4 + violence * 3.2) - turbulence * 4.0) * (-0.02 - violence * 0.062);
+  return dir * (pull - sling * 0.052) + tangent * (swirl + sling * 0.15) + eddy + shear + torsion + buckle;
 }
 
 vec3 rimSource(vec2 uv) {
@@ -149,15 +169,18 @@ vec3 rimSource(vec2 uv) {
   float angle = atan(p.y, p.x);
   vec2 spinP = rot(uTime * 0.2) * p;
   float spinAngle = atan(spinP.y, spinP.x);
-  float lower = smoothstep(-0.08, 0.98, -sin(angle));
-  float lowerCore = smoothstep(0.48, 1.0, -sin(angle));
+  float lowerField = -sin(angle);
+  float lowerNoise = (fbm(spinP * 3.8 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5) * 0.22;
+  float lowerBlend = lowerField + lowerNoise;
+  float lower = 0.52 + 0.48 * smoothstep(-0.28, 0.98, lowerBlend);
+  float lowerCore = 0.64 + 0.36 * smoothstep(0.18, 0.94, lowerBlend);
   float sideFade = 1.0 - smoothstep(0.58, 1.0, abs(cos(angle)));
   float noisyRadius = uHorizon * (1.62 + (fbm(vec2(spinAngle * 2.1 - uTime * 0.22, uTime * 0.09)) - 0.5) * 0.34);
   float ring = exp(-pow((d - noisyRadius) / (uHorizon * 0.42), 2.0));
   float spiralPhase = spinAngle + log(max(d / uHorizon, 0.18)) * 2.55 - uTime * 1.18;
   float spiralBands = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 7.0);
   float spiralMask = exp(-pow((d - uHorizon * 2.28) / (uHorizon * 1.55), 2.0));
-  float spiralHeat = spiralBands * spiralMask * (0.12 + lower * 0.88);
+  float spiralHeat = spiralBands * spiralMask * (0.42 + lower * 0.58);
   float circumference = exp(-pow((d - uHorizon * 1.12) / (uHorizon * 0.32), 2.0)) * 0.18;
   float broad = exp(-pow(length(p - vec2(0.05, -uHorizon * 2.15)) / (uHorizon * 3.15), 2.0));
   vec2 hotOneCenter = vec2(0.15 + sin(uTime * 0.2) * uHorizon * 0.08, -uHorizon * 1.42);
@@ -218,7 +241,9 @@ void main() {
   vec2 p = aspectPoint(vUv);
   float d = length(p);
   float hole = 1.0 - smoothstep(uHorizon * 0.78, uHorizon * 1.18, d);
-  float lowerRim = smoothstep(-0.15, 0.95, -p.y / max(d, 0.001));
+  float lowerField = -p.y / max(d, 0.001);
+  float lowerNoise = (fbm(p * 4.8 + vec2(uTime * 0.04, -uTime * 0.025)) - 0.5) * 0.24;
+  float lowerRim = 0.58 + 0.42 * smoothstep(-0.42, 0.98, lowerField + lowerNoise);
   float nearRim = smoothstep(uHorizon * 1.7, uHorizon * 0.94, d) * lowerRim;
   float nearField = 1.0 - smoothstep(uHorizon * 1.7, uHorizon * 5.6, d);
   float orbitalWake = (1.0 - smoothstep(uHorizon * 1.12, uHorizon * 4.9, d)) * (0.42 + lowerRim * 0.58);
@@ -267,6 +292,7 @@ uniform float uTime;
 uniform float uHorizon;
 uniform int uStreamCount;
 uniform float uCursorHeat;
+uniform float uDiveProgress;
 
 in vec2 vUv;
 out vec4 outColor;
@@ -307,6 +333,102 @@ mat2 rot(float a) {
 
 vec2 aspectPoint(vec2 uv) {
   return vec2((uv.x - uCenter.x) * uAspect, uv.y - uCenter.y);
+}
+
+float diveEase(float progress) {
+  return progress * progress * (3.0 - 2.0 * progress);
+}
+
+float diveSurge() {
+  return smoothstep(0.58, 0.96, diveEase(uDiveProgress));
+}
+
+float diveViolence() {
+  float capture = smoothstep(0.68, 0.96, uDiveProgress);
+  float crossing = smoothstep(0.82, 0.97, uDiveProgress) * (1.0 - smoothstep(0.992, 1.0, uDiveProgress));
+  return capture * 0.5 + crossing;
+}
+
+float horizonTremor() {
+  float violence = diveViolence();
+  float build = smoothstep(0.62, 0.9, uDiveProgress);
+  float burst = smoothstep(0.78, 0.94, uDiveProgress) * (1.0 - smoothstep(0.965, 1.0, uDiveProgress));
+  return build * 0.45 + burst * 1.45 + violence * 0.35;
+}
+
+float effectiveHorizon() {
+  float eased = diveEase(uDiveProgress);
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float tremor = horizonTremor();
+  float pulse = sin(uTime * mix(4.4, 16.0, tremor) + uDiveProgress * 27.0) * tremor;
+  return uHorizon * (1.0 + eased * 0.66 + surge * 1.92 + violence * 0.28 + pulse * 0.08);
+}
+
+float starFieldVisibility() {
+  float flare = smoothstep(0.3, 0.68, uDiveProgress) * (1.0 - smoothstep(0.82, 0.96, uDiveProgress));
+  float collapse = smoothstep(0.74, 0.992, uDiveProgress);
+  return (1.0 + flare * 0.26) * mix(1.0, 0.015, collapse);
+}
+
+float diveZoom() {
+  float eased = diveEase(uDiveProgress);
+  float surge = diveSurge();
+  float violence = diveViolence();
+  return 1.0 + eased * 15.5 + pow(surge, 1.25) * 50.0 + violence * 8.0;
+}
+
+vec2 viewToWorldUv(vec2 uv) {
+  float zoom = diveZoom();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  vec2 offset = uv - uCenter;
+  float edge = smoothstep(0.16, 0.92, length(offset) * 1.92);
+  offset *= mix(1.0, 0.34, clamp((surge + violence * 0.65) * edge * edge, 0.0, 1.0));
+  return uCenter + offset / zoom;
+}
+
+vec2 diveShake(vec2 uv) {
+  float tremor = horizonTremor();
+  float violence = diveViolence();
+
+  if (tremor < 0.001 && violence < 0.001) {
+    return uv;
+  }
+
+  vec2 offset = uv - uCenter;
+  float radius = smoothstep(0.04, 0.9, length(offset) * 1.64);
+  float phase = uTime * mix(5.6, 18.0, tremor);
+  vec2 radial = normalize(offset + vec2(0.0001, 0.0));
+  vec2 tangent = vec2(-radial.y, radial.x);
+  float noise = fbm(offset * 22.0 + vec2(phase * 0.18, -phase * 0.13)) - 0.5;
+  vec2 jitter = vec2(
+    sin(phase * 1.13 + uDiveProgress * 31.0),
+    cos(phase * 0.97 - uDiveProgress * 28.0)
+  );
+  jitter += radial * noise * 1.8;
+  jitter += tangent * sin(phase * 1.8 + noise * 8.0);
+  float amplitude = (0.002 + tremor * 0.0105 + violence * 0.014) * (0.35 + radius * 0.65);
+  return uv + jitter * amplitude;
+}
+
+vec2 warpBlackHoleField(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  float d = max(length(p), 0.001);
+  float angle = atan(p.y, p.x);
+  float horizon = effectiveHorizon();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float tremor = horizonTremor();
+  vec2 radialAspect = p / d;
+  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
+  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
+  float shellWarp = exp(-pow((d - horizon * 1.05) / (horizon * 0.14), 2.0));
+  float wrapBand = exp(-pow((d - horizon * 1.34) / (horizon * 0.32), 2.0));
+  float pinch = (shellWarp * 0.04 + wrapBand * 0.018) * (1.0 + surge * 0.8 + violence * 1.5);
+  float curl = (shellWarp * 0.03 + wrapBand * 0.014) * (1.0 + surge * 1.0 + violence * 1.8);
+  float buckle = sin(angle * 5.4 - uTime * (2.6 + violence * 6.2) + tremor * 9.0) * (shellWarp * 0.016 + wrapBand * 0.008) * (0.7 + violence);
+  return uv - radialUv * pinch + tangentUv * curl + tangentUv * buckle - radialUv * buckle * 0.42;
 }
 
 float starGrid(vec2 uv, float scale, float threshold, float brightness) {
@@ -353,14 +475,22 @@ vec2 horizonParallaxUv(vec2 uv, vec2 p, float d) {
   vec2 radialAspect = p / max(d, 0.001);
   vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
   vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float innerBand = exp(-pow((d - uHorizon * 1.18) / (uHorizon * 0.16), 2.0));
-  float outerBand = exp(-pow((d - uHorizon * 1.48) / (uHorizon * 0.34), 2.0));
-  float driftPhase = uTime * 0.08;
-  float drift = innerBand * 0.0032 + outerBand * 0.0012;
+  float horizon = effectiveHorizon();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float tremor = horizonTremor();
+  float innerBand = exp(-pow((d - horizon * 1.18) / (horizon * 0.16), 2.0));
+  float outerBand = exp(-pow((d - horizon * 1.48) / (horizon * 0.34), 2.0));
+  float driftPhase = uTime * mix(0.08, 0.22, surge);
+  float drift = (innerBand * 0.0032 + outerBand * 0.0012) * (1.0 + surge * 1.05 + tremor * 0.75 + violence * 0.9);
+  vec2 instability =
+    tangentUv * sin(driftPhase * 3.6 + angle * 4.4) * (innerBand * 0.0042 + outerBand * 0.0015) * (tremor + violence * 0.7) +
+    radialUv * cos(driftPhase * 2.2 - angle * 2.8) * (innerBand * 0.0026 + outerBand * 0.0011) * (tremor + violence * 0.7);
   return
     uv +
     tangentUv * drift * sin(driftPhase + angle * 2.1) +
-    radialUv * drift * 0.42 * cos(driftPhase * 0.74 - angle * 1.3);
+    radialUv * drift * 0.42 * cos(driftPhase * 0.74 - angle * 1.3) +
+    instability;
 }
 
 vec3 cursorLensField(vec2 uv);
@@ -368,17 +498,22 @@ vec3 cursorLensField(vec2 uv);
 vec3 sampleLensedBackground(vec2 uv) {
   vec2 p = aspectPoint(uv);
   float d = max(length(p), 0.001);
+  float horizon = effectiveHorizon();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float visible = starFieldVisibility();
   vec2 radialAspect = p / d;
   vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
   vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float ringBand = exp(-pow((d - uHorizon * 1.28) / (uHorizon * 0.18), 2.0));
-  float outerBand = exp(-pow((d - uHorizon * 1.62) / (uHorizon * 0.36), 2.0));
-  float lensWeight = clamp(ringBand * 1.08 + outerBand * 0.24, 0.0, 1.0);
+  float ringBand = exp(-pow((d - horizon * 1.28) / (horizon * 0.18), 2.0));
+  float outerBand = exp(-pow((d - horizon * 1.62) / (horizon * 0.36), 2.0));
+  float shellWarp = exp(-pow((d - horizon * 1.08) / (horizon * 0.12), 2.0));
+  float lensWeight = clamp(ringBand * 1.18 + outerBand * 0.32 + shellWarp * (0.42 + violence * 0.38), 0.0, 1.0);
   float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
   vec2 parallaxUv = horizonParallaxUv(uv, p, d);
   vec3 cursorLens = cursorLensField(uv);
 
-  vec3 base = baseStarField(parallaxUv + cursorLens.xy * (0.38 + cursorLens.z * 0.26));
+  vec3 base = baseStarField(parallaxUv + cursorLens.xy * (0.38 + cursorLens.z * 0.26)) * visible;
 
   if (lensWeight < 0.001 && cursorLens.z < 0.001) {
     return base;
@@ -386,25 +521,25 @@ vec3 sampleLensedBackground(vec2 uv) {
 
   vec2 warpedUv =
     parallaxUv +
-    radialUv * (ringBand * 0.017 + outerBand * 0.004) +
-    tangentUv * (ringBand * 0.008 + outerBand * 0.006) * spin;
+    radialUv * (ringBand * 0.024 + shellWarp * 0.034 + outerBand * 0.008) * -(1.0 + violence * 0.9) +
+    tangentUv * (ringBand * 0.014 + shellWarp * 0.024 + outerBand * 0.01) * spin * (1.0 + violence * 1.2);
   warpedUv += cursorLens.xy;
   warpedUv += cursorLens.xy * cursorLens.z * 0.72;
-  float smearNear = 0.0028 + ringBand * 0.0065;
-  float smearFar = 0.0012 + outerBand * 0.0028;
+  float smearNear = 0.004 + ringBand * 0.01 + shellWarp * 0.012 * (1.0 + violence);
+  float smearFar = 0.0018 + outerBand * 0.0042;
   vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
-  float cursorSmear = 0.0018 + cursorLens.z * 0.032;
+  float cursorSmear = 0.0024 + cursorLens.z * 0.042;
   vec3 lensed =
     baseStarField(warpedUv) * 0.42 +
-    baseStarField(warpedUv + tangentUv * smearNear) * 0.18 +
-    baseStarField(warpedUv - tangentUv * smearNear * 0.72) * 0.14 +
-    baseStarField(warpedUv + cursorDir * cursorSmear) * 0.14 +
-    baseStarField(warpedUv - cursorDir * cursorSmear * 0.62) * 0.1 +
-    baseStarField(warpedUv + tangentUv * smearFar * 1.4) * 0.08;
+    baseStarField(warpedUv + tangentUv * smearNear) * 0.22 +
+    baseStarField(warpedUv - tangentUv * smearNear * 0.78) * 0.17 +
+    baseStarField(warpedUv + cursorDir * cursorSmear) * 0.16 +
+    baseStarField(warpedUv - cursorDir * cursorSmear * 0.62) * 0.12 +
+    baseStarField(warpedUv + tangentUv * smearFar * 1.65) * 0.1;
   float cursorWeight = clamp(cursorLens.z * 0.82, 0.0, 0.72);
-  lensWeight = clamp(lensWeight + cursorWeight * 0.44, 0.0, 1.0);
+  lensWeight = clamp(lensWeight + surge * ringBand * 0.42 + violence * shellWarp * 0.35 + cursorWeight * 0.44, 0.0, 1.0);
 
-  return mix(base, lensed, lensWeight);
+  return mix(base, lensed * visible, lensWeight);
 }
 
 vec3 cursorLensField(vec2 uv) {
@@ -449,15 +584,20 @@ vec3 cursorLensField(vec2 uv) {
 vec3 sampleForegroundStars(vec2 uv) {
   vec2 p = aspectPoint(uv);
   float d = max(length(p), 0.001);
+  float horizon = effectiveHorizon();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float visible = starFieldVisibility();
   vec2 radialAspect = p / d;
   vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
   vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float ringBand = exp(-pow((d - uHorizon * 1.16) / (uHorizon * 0.07), 2.0));
-  float outerBand = exp(-pow((d - uHorizon * 1.31) / (uHorizon * 0.14), 2.0));
-  float horizonMask = smoothstep(uHorizon * 0.985, uHorizon * 1.05, d);
+  float ringBand = exp(-pow((d - horizon * 1.16) / (horizon * 0.07), 2.0));
+  float outerBand = exp(-pow((d - horizon * 1.31) / (horizon * 0.14), 2.0));
+  float shellWarp = exp(-pow((d - horizon * 1.08) / (horizon * 0.11), 2.0));
+  float horizonMask = smoothstep(horizon * 0.985, horizon * 1.05, d);
   vec2 parallaxUv = horizonParallaxUv(uv, p, d);
   vec3 cursorLens = cursorLensField(uv);
-  float foregroundWeight = clamp((ringBand * 0.62 + outerBand * 0.14) * horizonMask, 0.0, 0.78);
+  float foregroundWeight = clamp((ringBand * 0.72 + outerBand * 0.18 + shellWarp * 0.22) * horizonMask * (1.0 + surge * 0.54 + violence * 0.4), 0.0, 0.92);
   float cursorWeight = clamp(cursorLens.z * 0.24, 0.0, 0.32);
 
   if (foregroundWeight < 0.001 && cursorWeight < 0.001) {
@@ -467,36 +607,53 @@ vec3 sampleForegroundStars(vec2 uv) {
   float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
   vec2 warpedUv =
     parallaxUv +
-    radialUv * (ringBand * 0.02 + outerBand * 0.005) +
-    tangentUv * (ringBand * 0.01 + outerBand * 0.007) * spin;
+    radialUv * (ringBand * 0.026 + shellWarp * 0.034 + outerBand * 0.008) * -(1.0 + violence) +
+    tangentUv * (ringBand * 0.016 + shellWarp * 0.028 + outerBand * 0.01) * spin * (1.0 + violence * 1.2);
   warpedUv += cursorLens.xy;
   warpedUv += cursorLens.xy * cursorLens.z * 0.68;
-  float smearNear = 0.0032 + ringBand * 0.0095;
-  float smearFar = 0.0014 + outerBand * 0.0032;
+  float smearNear = 0.0048 + ringBand * 0.012 + shellWarp * 0.014;
+  float smearFar = 0.0021 + outerBand * 0.0048;
   vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
-  float cursorSmear = 0.0025 + cursorLens.z * 0.038;
+  float cursorSmear = 0.0032 + cursorLens.z * 0.046;
   vec3 ringLensed =
     baseStarField(warpedUv) * 0.22 +
-    baseStarField(warpedUv + tangentUv * smearNear) * 0.18 +
-    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.14 +
-    baseStarField(warpedUv + tangentUv * smearFar * 1.45) * 0.08;
+    baseStarField(warpedUv + tangentUv * smearNear) * 0.22 +
+    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.18 +
+    baseStarField(warpedUv + tangentUv * smearFar * 1.7) * 0.11;
   vec2 cursorUv = parallaxUv + cursorLens.xy * (1.35 + cursorLens.z * 0.8);
   vec3 cursorLensed =
     baseStarField(cursorUv) * 0.18 +
     baseStarField(cursorUv + cursorDir * cursorSmear) * 0.14 +
     baseStarField(cursorUv - cursorDir * cursorSmear * 0.6) * 0.12;
 
-  return ringLensed * foregroundWeight + cursorLensed * cursorWeight;
+  return (ringLensed * foregroundWeight + cursorLensed * cursorWeight) * visible;
+}
+
+float uvEdgeMask(vec2 uv, vec2 margin) {
+  vec2 lower = smoothstep(vec2(0.0), margin, uv);
+  vec2 upper = smoothstep(vec2(0.0), margin, 1.0 - uv);
+  return lower.x * lower.y * upper.x * upper.y;
+}
+
+vec3 sampleDyeTap(vec2 uv, vec2 margin) {
+  float mask = uvEdgeMask(uv, margin);
+
+  if (mask <= 0.0001) {
+    return vec3(0.0);
+  }
+
+  return texture(uDye, clamp(uv, margin, 1.0 - margin)).rgb * mask;
 }
 
 vec3 sampleBloom(vec2 uv) {
-  vec3 color = texture(uDye, uv).rgb;
-  color += texture(uDye, uv + vec2(uTexel.x * 3.0, 0.0)).rgb * 0.42;
-  color += texture(uDye, uv - vec2(uTexel.x * 3.0, 0.0)).rgb * 0.42;
-  color += texture(uDye, uv + vec2(0.0, uTexel.y * 3.0)).rgb * 0.42;
-  color += texture(uDye, uv - vec2(0.0, uTexel.y * 3.0)).rgb * 0.42;
-  color += texture(uDye, uv + vec2(uTexel.x * 9.0, uTexel.y * 5.0)).rgb * 0.18;
-  color += texture(uDye, uv - vec2(uTexel.x * 9.0, uTexel.y * 5.0)).rgb * 0.18;
+  vec2 margin = max(uTexel * 10.0, vec2(0.018));
+  vec3 color = sampleDyeTap(uv, margin);
+  color += sampleDyeTap(uv + vec2(uTexel.x * 3.0, 0.0), margin) * 0.42;
+  color += sampleDyeTap(uv - vec2(uTexel.x * 3.0, 0.0), margin) * 0.42;
+  color += sampleDyeTap(uv + vec2(0.0, uTexel.y * 3.0), margin) * 0.42;
+  color += sampleDyeTap(uv - vec2(0.0, uTexel.y * 3.0), margin) * 0.42;
+  color += sampleDyeTap(uv + vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
+  color += sampleDyeTap(uv - vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
   return color;
 }
 
@@ -538,51 +695,69 @@ vec3 wavefrontVisual(vec2 uv) {
 }
 
 void main() {
-  vec2 p = aspectPoint(vUv);
+  vec2 shakenUv = diveShake(vUv);
+  vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(shakenUv));
+  vec2 worldUv = warpedWorldUv;
+  vec2 p = aspectPoint(worldUv);
   float d = length(p);
   float angle = atan(p.y, p.x);
-  vec3 dye = sampleBloom(vUv);
+  float dive = diveEase(uDiveProgress);
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float tremor = horizonTremor();
+  float collapse = smoothstep(0.76, 1.0, uDiveProgress);
+  float horizon = effectiveHorizon();
+  vec3 dye = sampleBloom(worldUv);
   vec2 spinP = rot(uTime * 0.16) * p;
   float densityNoise = fbm(spinP * 5.4 + vec2(uTime * 0.08, -uTime * 0.045));
-  dye *= 0.76 + densityNoise * 0.5;
+  float orbitCompression = exp(-pow((d - horizon * 1.42) / (horizon * 0.72), 2.0));
+  dye *= (0.76 + densityNoise * 0.5) * (1.0 + orbitCompression * (0.24 + violence * 0.5));
   float intensity = dot(dye, vec3(0.45, 0.36, 0.19));
-  vec3 background = vec3(0.024, 0.012, 0.008);
-  float pulse = 0.76 + 0.24 * sin(uTime * 1.18 + densityNoise * 1.7);
-  float atmospheric = exp(-pow(d / (uHorizon * 4.9), 2.0)) * (0.12 + pulse * 0.082);
+  vec3 background = mix(vec3(0.024, 0.012, 0.008), vec3(0.0009, 0.00045, 0.00018), collapse * 0.94);
+  float pulse = 0.76 + 0.24 * sin(uTime * (1.18 + tremor * 0.85) + densityNoise * 1.7);
+  float atmospheric = exp(-pow(d / (horizon * mix(4.9, 6.8, surge)), 2.0)) * (0.12 + pulse * 0.082) * (1.0 + surge * 1.18 + tremor * 0.24 + violence * 0.22) * mix(1.0, 0.24, collapse);
   vec3 color = background + vec3(0.22, 0.045, 0.006) * atmospheric;
-  color += sampleLensedBackground(vUv);
-  color += dye * (0.98 + intensity * 1.52);
+  color += sampleLensedBackground(worldUv);
+  color += dye * (1.06 + intensity * 1.72 + orbitCompression * violence * 0.8) * mix(1.0, 0.68, collapse);
 
-  float hole = 1.0 - smoothstep(uHorizon * 0.76, uHorizon * 1.08, d);
-  float spiralPhase = angle + log(max(d / uHorizon, 0.18)) * 2.5 - uTime * 1.24;
+  float hole = 1.0 - smoothstep(horizon * 0.76, horizon * 1.08, d);
+  float spiralPhase = angle + log(max(d / horizon, 0.18)) * 2.5 - uTime * 1.24;
   float spiralBand = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 6.0);
-  float spiralMask = exp(-pow((d - uHorizon * 2.22) / (uHorizon * 1.58), 2.0)) * (1.0 - hole);
-  float lowerBias = smoothstep(-0.38, 0.98, -sin(angle));
-  float rimNoise = fbm(vec2(angle * 2.2 - uTime * 0.42, uTime * 0.16));
-  float warpedD = d + (rimNoise - 0.5) * uHorizon * 0.095;
-  float rim = smoothstep(uHorizon * 1.22, uHorizon * 0.96, warpedD) * (1.0 - hole);
-  float softCircumference = exp(-pow((warpedD - uHorizon * 1.1) / (uHorizon * 0.26), 2.0)) * (1.0 - hole);
-  float outerHalo = exp(-pow((warpedD - uHorizon * 1.52) / (uHorizon * 0.72), 2.0)) * (1.0 - hole);
+  float spiralMask = exp(-pow((d - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);
+  float lowerField = -sin(angle);
+  float lowerNoise = (fbm(p * 4.6 + vec2(uTime * 0.03, -uTime * 0.02)) - 0.5) * 0.24;
+  float lowerBias = smoothstep(-0.56, 0.96, lowerField + lowerNoise);
+  float rimNoise = fbm(vec2(angle * 2.2 - uTime * 0.42, uTime * 0.16 + dive * 0.5));
+  float warpedD = d + (rimNoise - 0.5) * horizon * 0.095;
+  float rim = smoothstep(horizon * 1.22, horizon * 0.96, warpedD) * (1.0 - hole);
+  float softCircumference = exp(-pow((warpedD - horizon * 1.1) / (horizon * 0.26), 2.0)) * (1.0 - hole);
+  float outerHalo = exp(-pow((warpedD - horizon * 1.52) / (horizon * 0.72), 2.0)) * (1.0 - hole);
   float rotatingArc = smoothstep(0.72, 1.0, 0.5 + 0.5 * cos(angle * 3.0 - uTime * 2.2 + densityNoise * 2.5));
-  float innerArc = exp(-pow((warpedD - uHorizon * (1.28 + pulse * 0.035)) / (uHorizon * 0.15), 2.0)) * rotatingArc * lowerBias * (1.0 - hole);
-  float outerArc = exp(-pow((warpedD - uHorizon * 2.05) / (uHorizon * 0.35), 2.0)) * spiralBand * (0.25 + lowerBias * 0.75) * (1.0 - hole);
+  float innerArc = exp(-pow((warpedD - horizon * (1.28 + pulse * 0.035)) / (horizon * 0.15), 2.0)) * rotatingArc * lowerBias * (1.0 - hole);
+  float outerArc = exp(-pow((warpedD - horizon * 2.05) / (horizon * 0.35), 2.0)) * spiralBand * (0.25 + lowerBias * 0.75) * (1.0 - hole);
   color = mix(color, vec3(0.002, 0.001, 0.0005), hole);
-  float lowerRim = smoothstep(-0.12, 0.95, -p.y / max(d, 0.001));
+  float lowerRimField = -p.y / max(d, 0.001);
+  float lowerRimNoise = (fbm(p * 5.2 + vec2(uTime * 0.04, uTime * 0.02)) - 0.5) * 0.22;
+  float lowerRim = smoothstep(-0.36, 0.95, lowerRimField + lowerRimNoise);
   float spinSpark = 0.45 + 0.55 * sin(angle * 3.0 - uTime * 2.4 + densityNoise * 2.2);
-  color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42);
-  color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35);
-  color += outerArc * vec3(0.18, 0.052, 0.005) * (0.34 + pulse * 0.4);
-  color += innerArc * vec3(0.42, 0.16, 0.028) * (0.26 + pulse * 0.38);
-  color += outerHalo * vec3(0.052, 0.015, 0.0022) * (0.36 + pulse * 0.45);
-  color += softCircumference * vec3(0.18, 0.07, 0.012) * (0.56 + pulse * 0.68);
-  color += rim * vec3(0.13, 0.048, 0.008) * (0.3 + pulse * 0.34);
-  color += rim * lowerRim * vec3(0.22, 0.095, 0.018) * (0.58 + pulse * 0.42);
-  color = max(color + wavefrontVisual(vUv), vec3(0.0));
-  color += sampleForegroundStars(vUv);
+  float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78;
+  color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost;
+  color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35) * ringBoost;
+  color += outerArc * vec3(0.18, 0.052, 0.005) * (0.34 + pulse * 0.4) * ringBoost;
+  color += innerArc * vec3(0.42, 0.16, 0.028) * (0.26 + pulse * 0.38) * ringBoost;
+  color += outerHalo * vec3(0.052, 0.015, 0.0022) * (0.36 + pulse * 0.45) * (1.0 + surge * 1.18 + tremor * 0.3 + violence * 0.25);
+  color += softCircumference * vec3(0.18, 0.07, 0.012) * (0.56 + pulse * 0.68) * ringBoost;
+  color += rim * vec3(0.13, 0.048, 0.008) * (0.3 + pulse * 0.34) * ringBoost;
+  color += rim * lowerRim * vec3(0.22, 0.095, 0.018) * (0.58 + pulse * 0.42) * ringBoost;
+  color = max(color + wavefrontVisual(worldUv), vec3(0.0));
+  color += sampleForegroundStars(worldUv);
 
-  float vignette = smoothstep(1.05, 0.14, distance(vUv, vec2(0.5)));
-  color *= 0.62 + vignette * 0.5;
-  color = vec3(1.0) - exp(-color * 1.26);
+  float frameRadius = distance(shakenUv, vec2(0.5));
+  float tunnelVignette = smoothstep(0.18, 0.82, frameRadius) * surge;
+  color *= 1.0 - tunnelVignette * (0.38 + collapse * 0.62 + tremor * 0.1 + violence * 0.08);
+  float vignette = smoothstep(1.05, 0.14, frameRadius);
+  color *= 0.54 + vignette * (0.54 + surge * 0.2);
+  color = vec3(1.0) - exp(-color * mix(1.26, 1.92, surge));
   outColor = vec4(color, 1.0);
 }`;
 
@@ -619,6 +794,10 @@ let write = null;
 let lastTime = performance.now();
 let streamletId = 0;
 let pointer = {
+  screenX: 0.5,
+  screenY: 0.5,
+  previousScreenX: 0.5,
+  previousScreenY: 0.5,
   x: 0.5,
   y: 0.5,
   previousX: 0.5,
@@ -627,6 +806,10 @@ let pointer = {
   lastMoveTime: performance.now(),
   lastStreamTime: 0,
   travelSincePoint: 0,
+};
+const diveState = {
+  progress: 0,
+  target: 0,
 };
 let activeStreamlet = null;
 const streamlets = [];
@@ -648,6 +831,73 @@ for (const [key, input] of Object.entries(controls)) {
   });
 }
 
+window.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "black-hole-dive") {
+    return;
+  }
+
+  diveState.target = clamp(Number(event.data.progress) || 0, 0, 1);
+});
+
+let iframeTouchY = null;
+
+function postDiveInput(delta) {
+  window.parent?.postMessage(
+    {
+      type: "black-hole-dive-input",
+      delta,
+    },
+    window.location.origin,
+  );
+}
+
+window.addEventListener(
+  "wheel",
+  (event) => {
+    if (event.ctrlKey) {
+      return;
+    }
+
+    event.preventDefault();
+    const deltaScale =
+      event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+    postDiveInput((event.deltaY * deltaScale) / 1400);
+  },
+  { passive: false },
+);
+
+window.addEventListener(
+  "touchstart",
+  (event) => {
+    if (event.touches.length === 0) {
+      return;
+    }
+
+    iframeTouchY = event.touches[0].clientY;
+  },
+  { passive: true },
+);
+
+window.addEventListener(
+  "touchmove",
+  (event) => {
+    if (event.touches.length === 0 || iframeTouchY === null) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTouchY = event.touches[0].clientY;
+    const delta = iframeTouchY - nextTouchY;
+    iframeTouchY = nextTouchY;
+    postDiveInput(delta / Math.max(window.innerHeight, 1));
+  },
+  { passive: false },
+);
+
+window.addEventListener("touchend", () => {
+  iframeTouchY = null;
+});
+
 document.querySelector("#reset").addEventListener("click", () => {
   streamlets.length = 0;
   activeStreamlet = null;
@@ -658,35 +908,60 @@ document.querySelector("#reset").addEventListener("click", () => {
 canvas.addEventListener("pointermove", (event) => {
   const rect = canvas.getBoundingClientRect();
   const now = performance.now();
-  const nextX = (event.clientX - rect.left) / rect.width;
-  const nextY = 1 - (event.clientY - rect.top) / rect.height;
+  const nextScreenX = (event.clientX - rect.left) / rect.width;
+  const nextScreenY = 1 - (event.clientY - rect.top) / rect.height;
+  const nextWorld = screenToWorld(nextScreenX, nextScreenY);
+  const emissionStrength = diveEmissionStrength();
+  const insideHorizon =
+    emissionStrength <= 0.01 ||
+    diveState.progress >= 0.999 ||
+    insideDiveHorizon(nextWorld.x, nextWorld.y);
 
   if (!pointer.hasPosition) {
-    pointer.x = nextX;
-    pointer.y = nextY;
-    pointer.previousX = nextX;
-    pointer.previousY = nextY;
+    pointer.screenX = nextScreenX;
+    pointer.screenY = nextScreenY;
+    pointer.previousScreenX = nextScreenX;
+    pointer.previousScreenY = nextScreenY;
+    pointer.x = nextWorld.x;
+    pointer.y = nextWorld.y;
+    pointer.previousX = nextWorld.x;
+    pointer.previousY = nextWorld.y;
     pointer.lastMoveTime = now;
     pointer.hasPosition = true;
     return;
   }
 
+  pointer.previousScreenX = pointer.screenX;
+  pointer.previousScreenY = pointer.screenY;
+  pointer.screenX = nextScreenX;
+  pointer.screenY = nextScreenY;
   pointer.previousX = pointer.x;
   pointer.previousY = pointer.y;
-  pointer.x = nextX;
-  pointer.y = nextY;
-  const dx = (pointer.x - pointer.previousX) * rect.width;
-  const dy = (pointer.y - pointer.previousY) * rect.height;
-  const distance = Math.hypot(dx, dy);
+  pointer.x = nextWorld.x;
+  pointer.y = nextWorld.y;
+  const dxScreen = (pointer.screenX - pointer.previousScreenX) * rect.width;
+  const dyScreen = (pointer.screenY - pointer.previousScreenY) * rect.height;
+  const distance = Math.hypot(dxScreen, dyScreen);
   const elapsed = Math.max(16, now - pointer.lastMoveTime);
   const speed = distance / elapsed;
   const speedIntensity = clamp((speed - 0.035) / 0.95, 0, 1);
   const distanceIntensity = clamp(distance / 46, 0, 0.72);
   const intensity = Math.max(speedIntensity, distanceIntensity);
 
-  if (distance > 0.65 && intensity > 0.035) {
+  if (insideHorizon) {
+    activeStreamlet = null;
+    pointer.travelSincePoint = 0;
+    pointer.lastMoveTime = now;
+    return;
+  }
+
+  const dxWorld = pointer.x - pointer.previousX;
+  const dyWorld = pointer.y - pointer.previousY;
+  const emissionIntensity = intensity * emissionStrength;
+
+  if (distance > 0.65 && emissionIntensity > 0.035) {
     pointer.travelSincePoint += distance;
-    pushStreamPoint(pointer.x, pointer.y, dx / rect.width, dy / rect.height, intensity, now);
+    pushStreamPoint(pointer.x, pointer.y, dxWorld, dyWorld, emissionIntensity, now);
   }
 
   pointer.lastMoveTime = now;
@@ -723,6 +998,12 @@ function resize() {
 function frame(now) {
   const dt = Math.min((now - lastTime) / 1000, 1 / 30);
   lastTime = now;
+  const diveFollow = 1 - Math.exp(-dt * 6.4);
+  diveState.progress += (diveState.target - diveState.progress) * diveFollow;
+  if (diveEmissionStrength() <= 0.02) {
+    activeStreamlet = null;
+    pointer.travelSincePoint = 0;
+  }
   updateStreamlets(dt, now / 1000);
 
   if (needsReset) {
@@ -831,9 +1112,12 @@ function createStreamPoint(x, y, motion, intensity, seed) {
 }
 
 function updateStreamlets(dt, time) {
+  const emissionStrength = diveEmissionStrength();
+  const collapse = 1 - emissionStrength;
   const aspect = width / height;
-  const follow = 1 - Math.exp(-dt * 5.4);
-  const damping = Math.exp(-dt * 0.95);
+  const follow = 1 - Math.exp(-dt * (5.4 + collapse * 2.1));
+  const damping = Math.exp(-dt * (0.95 + collapse * 0.42));
+  const waveDecayBoost = 1 + collapse * 2.6;
 
   for (let streamIndex = streamlets.length - 1; streamIndex >= 0; streamIndex--) {
     const streamlet = streamlets[streamIndex];
@@ -842,7 +1126,7 @@ function updateStreamlets(dt, time) {
       streamlet.escapeAge += dt;
     }
     streamlet.waveAge += dt;
-    streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.48 : 0.92));
+    streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.48 : 0.92) * waveDecayBoost);
     streamlet.waveWidth += dt * (0.009 + streamlet.intensity * 0.012);
 
     for (let pointIndex = streamlet.points.length - 1; pointIndex >= 0; pointIndex--) {
@@ -871,7 +1155,7 @@ function updateStreamlets(dt, time) {
       const horizonFade = smoothstep(HORIZON * 0.82, HORIZON * 1.28, force.distance);
       const tailFade = 1 - pointIndex / Math.max(streamlet.points.length - 1, 1) * 0.42;
       const pulse = 0.92 + Math.sin(time * 2.0 + point.phase) * 0.08;
-      point.heat = point.baseHeat * ageFade * horizonFade * tailFade * pulse;
+      point.heat = point.baseHeat * ageFade * horizonFade * tailFade * pulse * (1 - collapse * 0.72);
       point.radius = point.baseRadius * (1 + force.nearHorizon * 0.28 + Math.sin(time * 1.4 + point.phase) * 0.07);
 
       if (
@@ -898,6 +1182,8 @@ function updateStreamlets(dt, time) {
 }
 
 function blackHoleForce(point, aspect, time) {
+  const surge = diveSurge();
+  const violence = diveViolence();
   const p = {
     x: (point.x - FIELD_CENTER.x) * aspect,
     y: point.y - FIELD_CENTER.y,
@@ -913,6 +1199,7 @@ function blackHoleForce(point, aspect, time) {
   const farReach = 1 - smoothstep(HORIZON * 3.2, HORIZON * 9.2, distance);
   const captureReach = 1 - smoothstep(HORIZON * 2.4, HORIZON * 13.0, distance);
   const orbitBand = Math.exp(-Math.pow((distance - HORIZON * 2.65) / (HORIZON * 1.95), 2));
+  const horizonShell = Math.exp(-Math.pow((distance - HORIZON * 1.42) / (HORIZON * 0.52), 2));
   const slingBand = Math.exp(-Math.pow((distance - HORIZON * 3.55) / (HORIZON * 2.15), 2));
   const nearHorizon = 1 - smoothstep(HORIZON * 0.95, HORIZON * 2.0, distance);
   const wobblePhase = time * 1.55 + point.phase + point.age * 0.8;
@@ -921,12 +1208,16 @@ function blackHoleForce(point, aspect, time) {
   const orbitFirst = 0.72 + orbitBand * 0.64;
   const slingGate = smoothstep(0.18, 1, Math.sin(angle * 2.0 + time * 0.72 + point.phase * 0.9));
   const sling = slingBand * slingGate * (0.088 + farReach * 0.066);
-  const pullDrive = 0.72 + params.pull * 0.68;
+  const pullDrive = (0.72 + params.pull * 0.68) * (1 + surge * 0.24 + violence * 0.46);
   const pullStrength =
     pullDrive *
     (gravityRange * (0.046 / (distance + 0.12)) + farReach * (0.052 / (distance + 0.2)) + captureReach * (0.044 / (distance + 0.34))) *
     (0.66 + nearHorizon * 0.68);
-  const swirlStrength = params.swirl * (orbitBand * 0.116 + gravityRange * 0.02 + farReach * 0.017 + captureReach * 0.009) / (distance + 0.16);
+  const swirlStrength =
+    params.swirl *
+    (1 + surge * 0.55 + violence * 1.15) *
+    (orbitBand * 0.116 + gravityRange * 0.02 + farReach * 0.017 + captureReach * 0.009) /
+    (distance + 0.16);
   const escapeRawX = tangent.x - direction.x * 0.58;
   const escapeRawY = tangent.y - direction.y * 0.58;
   const escapeLength = Math.max(Math.hypot(escapeRawX, escapeRawY), 0.0001);
@@ -938,12 +1229,16 @@ function blackHoleForce(point, aspect, time) {
     tangent.x * (swirlStrength * orbitFirst + sling) +
     direction.x * (pullStrength - sling * 0.44) +
     tangent.x * wobble +
-    direction.x * radialWobble;
+    direction.x * radialWobble +
+    tangent.x * horizonShell * Math.sin(angle * 5.6 - time * (2.4 + violence * 5.8) + point.phase * 1.3) * (0.04 + violence * 0.12) +
+    direction.x * horizonShell * Math.cos(angle * 4.2 + time * (1.4 + violence * 3.2) - point.phase * 1.1) * (-0.02 - violence * 0.062);
   const captureY =
     tangent.y * (swirlStrength * orbitFirst + sling) +
     direction.y * (pullStrength - sling * 0.44) +
     tangent.y * wobble +
-    direction.y * radialWobble;
+    direction.y * radialWobble +
+    tangent.y * horizonShell * Math.sin(angle * 5.6 - time * (2.4 + violence * 5.8) + point.phase * 1.3) * (0.04 + violence * 0.12) +
+    direction.y * horizonShell * Math.cos(angle * 4.2 + time * (1.4 + violence * 3.2) - point.phase * 1.1) * (-0.02 - violence * 0.062);
 
   return {
     distance,
@@ -1010,7 +1305,63 @@ function randomSeed(value) {
   return raw - Math.floor(raw);
 }
 
+function diveEase(progress) {
+  return progress * progress * (3 - 2 * progress);
+}
+
+function diveSurge(progress = diveState.progress) {
+  return smoothstep(0.58, 0.96, diveEase(progress));
+}
+
+function diveViolence(progress = diveState.progress) {
+  const capture = smoothstep(0.68, 0.96, progress);
+  const crossing = smoothstep(0.82, 0.97, progress) * (1 - smoothstep(0.992, 1, progress));
+  return capture * 0.5 + crossing;
+}
+
+function effectiveHorizon(progress = diveState.progress) {
+  const eased = diveEase(progress);
+  const surge = diveSurge(progress);
+  const violence = diveViolence(progress);
+  return HORIZON * (1 + eased * 0.66 + surge * 1.92 + violence * 0.28);
+}
+
+function diveEmissionStrength(progress = diveState.progress) {
+  return 1 - smoothstep(0.74, 0.985, progress);
+}
+
+function diveZoom(progress = diveState.progress) {
+  const eased = diveEase(progress);
+  const surge = diveSurge(progress);
+  const violence = diveViolence(progress);
+  return 1 + eased * 15.5 + Math.pow(surge, 1.25) * 50 + violence * 8;
+}
+
+function screenToWorld(screenX, screenY, progress = diveState.progress) {
+  const zoom = diveZoom(progress);
+  const surge = diveSurge(progress);
+  const violence = diveViolence(progress);
+  const offsetX = screenX - FIELD_CENTER.x;
+  const offsetY = screenY - FIELD_CENTER.y;
+  const edge = smoothstep(0.16, 0.92, Math.hypot(offsetX, offsetY) * 1.92);
+  const compression = 1 - 0.68 * Math.min(1, surge + violence * 0.65) * edge * edge;
+  return {
+    x: FIELD_CENTER.x + (offsetX * compression) / zoom,
+    y: FIELD_CENTER.y + (offsetY * compression) / zoom,
+  };
+}
+
+function distanceToFieldCenter(x, y) {
+  const aspect = width / height;
+  return Math.hypot((x - FIELD_CENTER.x) * aspect, y - FIELD_CENTER.y);
+}
+
+function insideDiveHorizon(x, y, progress = diveState.progress) {
+  return distanceToFieldCenter(x, y) <= effectiveHorizon(progress) * 1.02;
+}
+
 function step(dt, time) {
+  const cursorHeat = params.cursorHeat * diveEmissionStrength();
   gl.bindVertexArray(vao);
   gl.useProgram(advectProgram);
   gl.viewport(0, 0, simWidth, simHeight);
@@ -1028,16 +1379,18 @@ function step(dt, time) {
   uniform1f(advectProgram, "uTime", time);
   uniform1f(advectProgram, "uDt", dt);
   uniform1f(advectProgram, "uHorizon", HORIZON);
+  uniform1f(advectProgram, "uDiveProgress", diveState.progress);
   uniform1f(advectProgram, "uRimHeat", params.rimHeat);
   uniform1f(advectProgram, "uSwirl", params.swirl);
   uniform1f(advectProgram, "uPull", params.pull);
-  uniform1f(advectProgram, "uCursorHeat", params.cursorHeat);
+  uniform1f(advectProgram, "uCursorHeat", cursorHeat);
   uniform1f(advectProgram, "uDissipation", params.dissipation);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   [read, write] = [write, read];
 }
 
 function draw(time) {
+  const cursorHeat = params.cursorHeat * diveEmissionStrength();
   gl.bindVertexArray(vao);
   gl.useProgram(displayProgram);
   gl.viewport(0, 0, width, height);
@@ -1053,7 +1406,8 @@ function draw(time) {
   uniform1f(displayProgram, "uAspect", width / height);
   uniform1f(displayProgram, "uTime", time);
   uniform1f(displayProgram, "uHorizon", HORIZON);
-  uniform1f(displayProgram, "uCursorHeat", params.cursorHeat);
+  uniform1f(displayProgram, "uCursorHeat", cursorHeat);
+  uniform1f(displayProgram, "uDiveProgress", diveState.progress);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
