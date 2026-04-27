@@ -1,4 +1,4 @@
-const canvas = document.querySelector("#fluid-canvas");
+﻿const canvas = document.querySelector("#fluid-canvas");
 const status = document.querySelector("#status");
 const controls = {
   rimHeat: document.querySelector("#rimHeat"),
@@ -182,24 +182,26 @@ vec3 wavefrontSource(vec2 uv) {
     }
 
     vec4 meta = uStreamMeta[stream];
+    float escapeSpread = smoothstep(0.04, 0.72, meta.x);
     float seed = meta.y;
     vec4 wave = uStreamWave[stream];
     vec2 waveNormal = normalize(wave.zw + vec2(0.0001, 0.0));
     vec2 waveMotion = vec2(waveNormal.y, -waveNormal.x);
     vec2 waveDelta = vec2((uv.x - wave.x) * uAspect, uv.y - wave.y);
-    float across = dot(waveDelta, waveNormal);
-    float forward = dot(waveDelta, waveMotion);
     float waveWidth = max(meta.z, 0.01);
-    float waveDepth = max(waveWidth * 0.2, 0.007);
-    vec2 shellP = vec2(across, forward * 1.16);
-    float shellRadius = waveWidth * 0.64;
+    float distortion = (fbm(waveDelta * 14.0 + vec2(seed * 8.0, uTime * 0.32)) - 0.5) * waveWidth * escapeSpread * 1.2;
+    float across = dot(waveDelta, waveNormal) + distortion;
+    float forward = dot(waveDelta, waveMotion);
+    float waveDepth = max(waveWidth * mix(0.2, 0.46, escapeSpread), 0.007);
+    vec2 shellP = vec2(across, forward * mix(1.16, 0.88, escapeSpread));
+    float shellRadius = waveWidth * mix(0.64, 1.04, escapeSpread);
     float shellDistance = length(shellP) - shellRadius;
     float frontMask = smoothstep(-waveWidth * 0.5, waveWidth * 0.2, forward);
-    float sideMask = exp(-pow(abs(across) / waveWidth, 4.0));
+    float sideMask = exp(-pow(abs(across) / (waveWidth * mix(1.0, 1.56, escapeSpread)), mix(4.0, 2.3, escapeSpread)));
     float crest = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask * sideMask;
     float glow = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth * 5.4)) * frontMask * sideMask;
     float organic = 0.9 + 0.1 * fbm(waveDelta * 24.0 + vec2(seed * 11.0, uTime * 0.24));
-    float waveHeat = (crest * 0.64 + glow * 0.36) * meta.w * uCursorHeat * organic;
+    float waveHeat = (crest * 0.64 + glow * 0.36) * meta.w * uCursorHeat * organic * mix(1.0, 0.48, escapeSpread);
     float whiteHot = smoothstep(0.74, 1.5, waveHeat) * 0.18;
     source = max(source, colorRamp(clamp(waveHeat, 0.0, 0.9), whiteHot) * waveHeat * 0.19);
 
@@ -234,9 +236,14 @@ void main() {
   float hotPacket = smoothstep(0.13, 0.46, dyeMax);
   float packetField = max(retainedField, hotPacket * 0.66);
   float lowEnergyResidue = (1.0 - retainedField) * (1.0 - hotPacket);
+  float leftMask = 1.0 - smoothstep(0.2, 0.44, vUv.x);
+  float leftStaleDye = (1.0 - retainedField) * (1.0 - smoothstep(0.34, 0.72, dyeMax));
+  float leftResidueDrain = leftMask * max(lowEnergyResidue, leftStaleDye);
   dye *= mix(0.9, 1.0, 1.0 - lowEnergyResidue);
+  dye *= 1.0 - leftResidueDrain * 0.72;
+  dye = max(dye - vec3(0.0022, 0.00275, 0.00305) * leftResidueDrain, vec3(0.0));
   dyeMax = max(max(dye.r, dye.g), dye.b);
-  float stainCap = mix(0.035, 0.9, packetField);
+  float stainCap = mix(0.018, 0.9, packetField) * mix(0.44, 1.0, 1.0 - leftResidueDrain);
   float capScale = min(1.0, stainCap / max(dyeMax, 0.001));
   dye *= mix(capScale, 1.0, packetField);
   dye += rimSource(vUv);
@@ -302,6 +309,186 @@ vec2 aspectPoint(vec2 uv) {
   return vec2((uv.x - uCenter.x) * uAspect, uv.y - uCenter.y);
 }
 
+float starGrid(vec2 uv, float scale, float threshold, float brightness) {
+  vec2 scaled = uv * scale;
+  vec2 cell = floor(scaled);
+  vec2 local = fract(scaled);
+  float seed = hash(cell);
+
+  if (seed < threshold) {
+    return 0.0;
+  }
+
+  vec2 starPos = vec2(hash(cell + vec2(7.31, 2.17)), hash(cell + vec2(1.73, 8.91)));
+  vec2 deltaUv = (local - starPos) / scale;
+  vec2 starUv = (cell + starPos) / scale;
+  vec2 starP = aspectPoint(starUv);
+  float starD = max(length(starP), 0.001);
+  vec2 radial = starP / starD;
+  vec2 tangent = vec2(-radial.y, radial.x);
+  vec2 delta = vec2(deltaUv.x * uAspect, deltaUv.y);
+  float radialDistance = dot(delta, radial);
+  float tangentDistance = dot(delta, tangent);
+  float coreWidth = 0.0000016;
+  float haloWidth = 0.0000065;
+  float core = exp(-(delta.x * delta.x + delta.y * delta.y) / coreWidth);
+  float halo = exp(-(radialDistance * radialDistance + tangentDistance * tangentDistance) / haloWidth);
+  float star = max(core * 1.6, halo * 0.44);
+  float twinkle = 0.94 + 0.06 * sin(uTime * (0.1 + seed * 0.06) + seed * 17.0);
+  return star * brightness * twinkle * smoothstep(threshold, 1.0, seed);
+}
+
+vec3 baseStarField(vec2 uv) {
+  float bright = starGrid(uv, 84.0, 0.978, 1.16);
+  float medium = starGrid(uv + vec2(3.7, 1.9), 144.0, 0.991, 0.88);
+  float fine = starGrid(uv + vec2(8.2, -2.4), 238.0, 0.9966, 0.48);
+  float warm = starGrid(uv + vec2(5.6, -3.8), 118.0, 0.993, 0.42);
+  vec3 cool = vec3(0.95, 0.97, 1.0) * (bright + medium * 0.84 + fine * 0.42);
+  vec3 gold = vec3(1.0, 0.95, 0.72) * (warm * 0.44);
+  return cool + gold;
+}
+
+vec2 horizonParallaxUv(vec2 uv, vec2 p, float d) {
+  float angle = atan(p.y, p.x);
+  vec2 radialAspect = p / max(d, 0.001);
+  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
+  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
+  float innerBand = exp(-pow((d - uHorizon * 1.18) / (uHorizon * 0.16), 2.0));
+  float outerBand = exp(-pow((d - uHorizon * 1.48) / (uHorizon * 0.34), 2.0));
+  float driftPhase = uTime * 0.08;
+  float drift = innerBand * 0.0032 + outerBand * 0.0012;
+  return
+    uv +
+    tangentUv * drift * sin(driftPhase + angle * 2.1) +
+    radialUv * drift * 0.42 * cos(driftPhase * 0.74 - angle * 1.3);
+}
+
+vec3 cursorLensField(vec2 uv);
+
+vec3 sampleLensedBackground(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  float d = max(length(p), 0.001);
+  vec2 radialAspect = p / d;
+  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
+  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
+  float ringBand = exp(-pow((d - uHorizon * 1.28) / (uHorizon * 0.18), 2.0));
+  float outerBand = exp(-pow((d - uHorizon * 1.62) / (uHorizon * 0.36), 2.0));
+  float lensWeight = clamp(ringBand * 1.08 + outerBand * 0.24, 0.0, 1.0);
+  float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
+  vec2 parallaxUv = horizonParallaxUv(uv, p, d);
+  vec3 cursorLens = cursorLensField(uv);
+
+  vec3 base = baseStarField(parallaxUv + cursorLens.xy * (0.38 + cursorLens.z * 0.26));
+
+  if (lensWeight < 0.001 && cursorLens.z < 0.001) {
+    return base;
+  }
+
+  vec2 warpedUv =
+    parallaxUv +
+    radialUv * (ringBand * 0.017 + outerBand * 0.004) +
+    tangentUv * (ringBand * 0.008 + outerBand * 0.006) * spin;
+  warpedUv += cursorLens.xy;
+  warpedUv += cursorLens.xy * cursorLens.z * 0.72;
+  float smearNear = 0.0028 + ringBand * 0.0065;
+  float smearFar = 0.0012 + outerBand * 0.0028;
+  vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
+  float cursorSmear = 0.0018 + cursorLens.z * 0.032;
+  vec3 lensed =
+    baseStarField(warpedUv) * 0.42 +
+    baseStarField(warpedUv + tangentUv * smearNear) * 0.18 +
+    baseStarField(warpedUv - tangentUv * smearNear * 0.72) * 0.14 +
+    baseStarField(warpedUv + cursorDir * cursorSmear) * 0.14 +
+    baseStarField(warpedUv - cursorDir * cursorSmear * 0.62) * 0.1 +
+    baseStarField(warpedUv + tangentUv * smearFar * 1.4) * 0.08;
+  float cursorWeight = clamp(cursorLens.z * 0.82, 0.0, 0.72);
+  lensWeight = clamp(lensWeight + cursorWeight * 0.44, 0.0, 1.0);
+
+  return mix(base, lensed, lensWeight);
+}
+
+vec3 cursorLensField(vec2 uv) {
+  vec2 totalOffset = vec2(0.0);
+  float totalField = 0.0;
+
+  for (int stream = 0; stream < 3; stream++) {
+    if (stream >= uStreamCount) {
+      break;
+    }
+
+    vec4 meta = uStreamMeta[stream];
+    float escapeSpread = smoothstep(0.04, 0.72, meta.x);
+    vec4 wave = uStreamWave[stream];
+    vec2 waveNormal = normalize(wave.zw + vec2(0.0001, 0.0));
+    vec2 waveMotion = vec2(waveNormal.y, -waveNormal.x);
+    vec2 waveDelta = vec2((uv.x - wave.x) * uAspect, uv.y - wave.y);
+    float waveWidth = max(meta.z, 0.01);
+    float distortion = (fbm(waveDelta * 10.0 + vec2(meta.y * 9.0, uTime * 0.34)) - 0.5) * waveWidth * (0.65 + escapeSpread * 0.5);
+    float across = dot(waveDelta, waveNormal) + distortion;
+    float forward = dot(waveDelta, waveMotion);
+    float waveDepth = max(waveWidth * mix(0.14, 0.32, escapeSpread), 0.0055);
+    float shellRadius = waveWidth * mix(0.54, 0.9, escapeSpread);
+    vec2 shellP = vec2(across, forward * mix(1.08, 0.86, escapeSpread));
+    float shellDistance = length(shellP) - shellRadius;
+    float frontMask = smoothstep(-waveWidth * 0.52, waveWidth * 0.18, forward);
+    float shell = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask;
+    float body = exp(-dot(waveDelta, waveDelta) / max(waveWidth * waveWidth * 6.8, 0.0001));
+    float lane = exp(-(across * across) / max(waveWidth * waveWidth * 1.9, 0.0001)) * smoothstep(-waveWidth * 1.1, waveWidth * 0.78, forward);
+    float streamField = (shell * 1.06 + body * 0.52 + lane * 0.42) * meta.w * (0.24 + uCursorHeat * 0.38) * mix(1.0, 0.64, escapeSpread);
+    vec2 normalUv = vec2(waveNormal.x / max(uAspect, 0.001), waveNormal.y);
+    vec2 motionUv = vec2(waveMotion.x / max(uAspect, 0.001), waveMotion.y);
+    float bendPulse = 0.72 + 0.28 * sin(uTime * 2.2 + meta.y * 17.0);
+    totalOffset += normalUv * sign(across + 0.0001) * streamField * (0.016 + shell * 0.028 + body * 0.01);
+    totalOffset += motionUv * streamField * bendPulse * (0.022 + shell * 0.034 + body * 0.015);
+    totalField = max(totalField, streamField);
+  }
+
+  return vec3(totalOffset, clamp(totalField, 0.0, 1.0));
+}
+
+vec3 sampleForegroundStars(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  float d = max(length(p), 0.001);
+  vec2 radialAspect = p / d;
+  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
+  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
+  float ringBand = exp(-pow((d - uHorizon * 1.16) / (uHorizon * 0.07), 2.0));
+  float outerBand = exp(-pow((d - uHorizon * 1.31) / (uHorizon * 0.14), 2.0));
+  float horizonMask = smoothstep(uHorizon * 0.985, uHorizon * 1.05, d);
+  vec2 parallaxUv = horizonParallaxUv(uv, p, d);
+  vec3 cursorLens = cursorLensField(uv);
+  float foregroundWeight = clamp((ringBand * 0.62 + outerBand * 0.14) * horizonMask, 0.0, 0.78);
+  float cursorWeight = clamp(cursorLens.z * 0.24, 0.0, 0.32);
+
+  if (foregroundWeight < 0.001 && cursorWeight < 0.001) {
+    return vec3(0.0);
+  }
+
+  float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
+  vec2 warpedUv =
+    parallaxUv +
+    radialUv * (ringBand * 0.02 + outerBand * 0.005) +
+    tangentUv * (ringBand * 0.01 + outerBand * 0.007) * spin;
+  warpedUv += cursorLens.xy;
+  warpedUv += cursorLens.xy * cursorLens.z * 0.68;
+  float smearNear = 0.0032 + ringBand * 0.0095;
+  float smearFar = 0.0014 + outerBand * 0.0032;
+  vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
+  float cursorSmear = 0.0025 + cursorLens.z * 0.038;
+  vec3 ringLensed =
+    baseStarField(warpedUv) * 0.22 +
+    baseStarField(warpedUv + tangentUv * smearNear) * 0.18 +
+    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.14 +
+    baseStarField(warpedUv + tangentUv * smearFar * 1.45) * 0.08;
+  vec2 cursorUv = parallaxUv + cursorLens.xy * (1.35 + cursorLens.z * 0.8);
+  vec3 cursorLensed =
+    baseStarField(cursorUv) * 0.18 +
+    baseStarField(cursorUv + cursorDir * cursorSmear) * 0.14 +
+    baseStarField(cursorUv - cursorDir * cursorSmear * 0.6) * 0.12;
+
+  return ringLensed * foregroundWeight + cursorLensed * cursorWeight;
+}
+
 vec3 sampleBloom(vec2 uv) {
   vec3 color = texture(uDye, uv).rgb;
   color += texture(uDye, uv + vec2(uTexel.x * 3.0, 0.0)).rgb * 0.42;
@@ -322,27 +509,29 @@ vec3 wavefrontVisual(vec2 uv) {
     }
 
     vec4 meta = uStreamMeta[stream];
+    float escapeSpread = smoothstep(0.04, 0.72, meta.x);
     vec4 wave = uStreamWave[stream];
     vec2 waveNormal = normalize(wave.zw + vec2(0.0001, 0.0));
     vec2 waveMotion = vec2(waveNormal.y, -waveNormal.x);
     vec2 waveDelta = vec2((uv.x - wave.x) * uAspect, uv.y - wave.y);
-    float across = dot(waveDelta, waveNormal);
-    float forward = dot(waveDelta, waveMotion);
     float waveWidth = max(meta.z, 0.01);
-    float waveDepth = max(waveWidth * 0.16, 0.006);
-    vec2 shellP = vec2(across, forward * 1.18);
-    float shellRadius = waveWidth * 0.62;
+    float distortion = (fbm(waveDelta * 12.0 + vec2(meta.y * 7.0, uTime * 0.28)) - 0.5) * waveWidth * escapeSpread * 1.05;
+    float across = dot(waveDelta, waveNormal) + distortion;
+    float forward = dot(waveDelta, waveMotion);
+    float waveDepth = max(waveWidth * mix(0.16, 0.4, escapeSpread), 0.006);
+    vec2 shellP = vec2(across, forward * mix(1.18, 0.9, escapeSpread));
+    float shellRadius = waveWidth * mix(0.62, 1.0, escapeSpread);
     float shellDistance = length(shellP) - shellRadius;
     float frontMask = smoothstep(-waveWidth * 0.48, waveWidth * 0.2, forward);
-    float sideMask = exp(-pow(abs(across) / waveWidth, 4.0));
+    float sideMask = exp(-pow(abs(across) / (waveWidth * mix(1.0, 1.5, escapeSpread)), mix(4.0, 2.35, escapeSpread)));
     float crest = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask * sideMask;
     float glow = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth * 5.0)) * frontMask * sideMask;
     float trough = exp(-pow((shellDistance + waveDepth * 1.55) / (waveDepth * 1.35), 2.0)) * frontMask * sideMask;
     float organic = 0.9 + 0.1 * sin(meta.y * 12.0 + uTime * 1.8);
-    float waveHeat = (crest * 0.84 + glow * 0.16) * meta.w * uCursorHeat * organic;
+    float waveHeat = (crest * 0.84 + glow * 0.16) * meta.w * uCursorHeat * organic * mix(1.0, 0.5, escapeSpread);
     vec3 waveColor = mix(vec3(0.75, 0.1, 0.006), vec3(1.0, 0.48, 0.08), crest);
     effect += waveColor * waveHeat * 0.22;
-    effect -= vec3(0.04, 0.019, 0.006) * trough * meta.w * (0.2 + uCursorHeat * 0.045);
+    effect -= vec3(0.04, 0.019, 0.006) * trough * meta.w * (0.2 + uCursorHeat * 0.045) * mix(1.0, 0.58, escapeSpread);
   }
 
   return effect;
@@ -361,6 +550,7 @@ void main() {
   float pulse = 0.76 + 0.24 * sin(uTime * 1.18 + densityNoise * 1.7);
   float atmospheric = exp(-pow(d / (uHorizon * 4.9), 2.0)) * (0.12 + pulse * 0.082);
   vec3 color = background + vec3(0.22, 0.045, 0.006) * atmospheric;
+  color += sampleLensedBackground(vUv);
   color += dye * (0.98 + intensity * 1.52);
 
   float hole = 1.0 - smoothstep(uHorizon * 0.76, uHorizon * 1.08, d);
@@ -388,6 +578,7 @@ void main() {
   color += rim * vec3(0.13, 0.048, 0.008) * (0.3 + pulse * 0.34);
   color += rim * lowerRim * vec3(0.22, 0.095, 0.018) * (0.58 + pulse * 0.42);
   color = max(color + wavefrontVisual(vUv), vec3(0.0));
+  color += sampleForegroundStars(vUv);
 
   float vignette = smoothstep(1.05, 0.14, distance(vUv, vec2(0.5)));
   color *= 0.62 + vignette * 0.5;
@@ -595,6 +786,7 @@ function createStreamlet(x, y, motion, intensity, now) {
   const streamlet = {
     age: 0,
     escape: false,
+    escapeAge: 0,
     intensity,
     lastInputTime: now,
     life: 3.6 + seed * 0.85,
@@ -646,6 +838,9 @@ function updateStreamlets(dt, time) {
   for (let streamIndex = streamlets.length - 1; streamIndex >= 0; streamIndex--) {
     const streamlet = streamlets[streamIndex];
     streamlet.age += dt;
+    if (streamlet.escape) {
+      streamlet.escapeAge += dt;
+    }
     streamlet.waveAge += dt;
     streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.48 : 0.92));
     streamlet.waveWidth += dt * (0.009 + streamlet.intensity * 0.012);
@@ -656,7 +851,10 @@ function updateStreamlets(dt, time) {
       if (!point.escape && point.age > 0.18 && force.sling > 0.065) {
         point.escape = true;
         point.escapeAge = 0;
-        streamlet.escape = true;
+        if (!streamlet.escape) {
+          streamlet.escape = true;
+          streamlet.escapeAge = 0;
+        }
         point.vx += force.escapeX * (0.035 + force.sling * 1.6);
         point.vy += force.escapeY * (0.035 + force.sling * 1.6);
       }
@@ -765,7 +963,7 @@ function writeStreamUniforms() {
   for (let streamIndex = 0; streamIndex < streamlets.length; streamIndex++) {
     const streamlet = streamlets[streamIndex];
     const metaOffset = streamIndex * 4;
-    streamMetaUniforms[metaOffset] = streamlet.points.length;
+    streamMetaUniforms[metaOffset] = streamlet.escape ? streamlet.escapeAge : 0;
     streamMetaUniforms[metaOffset + 1] = streamlet.seed;
     streamMetaUniforms[metaOffset + 2] = streamlet.waveWidth;
     streamMetaUniforms[metaOffset + 3] = streamlet.waveStrength;

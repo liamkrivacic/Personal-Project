@@ -11,7 +11,7 @@ export function OrbitalHero() {
       <div className="hero-background" aria-hidden="true">
         <iframe
           className="hero-background-frame"
-          src="/black-hole-fluid/index.html?embed=1"
+          src="/black-hole-fluid/index.html?embed=1&v=star-lens-filter-7"
           tabIndex={-1}
           title=""
         />
