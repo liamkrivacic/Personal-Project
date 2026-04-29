@@ -559,8 +559,8 @@ vec3 sampleLensedBackground(vec2 uv) {
     spin,
     violence
   );
-  warpedUv += cursorLens.xy;
-  warpedUv += cursorLens.xy * cursorLens.z * 0.72;
+  warpedUv += cursorLens.xy * 0.5;
+  warpedUv += cursorLens.xy * cursorLens.z * 0.36;
   float smearNear = 0.004 + ringBand * 0.01 + shellWarp * 0.012 * (1.0 + violence);
   float smearFar = 0.0018 + outerBand * 0.0042;
   vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
@@ -630,10 +630,11 @@ vec3 sampleForegroundStars(vec2 uv) {
   float ringBand = exp(-pow((d - horizon * 1.16) / (horizon * 0.07), 2.0));
   float outerBand = exp(-pow((d - horizon * 1.31) / (horizon * 0.14), 2.0));
   float shellWarp = exp(-pow((d - horizon * 1.08) / (horizon * 0.11), 2.0));
-  float horizonMask = smoothstep(horizon * 0.985, horizon * 1.05, d);
+  float edgeBand = exp(-pow((d - horizon * 1.018) / (horizon * 0.038), 2.0));
+  float horizonMask = smoothstep(horizon * 0.972, horizon * 1.004, d);
   vec2 parallaxUv = horizonParallaxUv(uv, p, d);
   vec3 cursorLens = cursorLensField(uv);
-  float foregroundWeight = clamp((ringBand * 0.72 + outerBand * 0.18 + shellWarp * 0.22) * horizonMask * (1.0 + surge * 0.54 + violence * 0.4), 0.0, 0.92);
+  float foregroundWeight = clamp((ringBand * 0.82 + outerBand * 0.22 + shellWarp * 0.32 + edgeBand * 1.1) * horizonMask * (1.0 + surge * 0.54 + violence * 0.4), 0.0, 0.96);
   float cursorWeight = clamp(cursorLens.z * 0.24, 0.0, 0.32);
 
   if (foregroundWeight < 0.001 && cursorWeight < 0.001) {
@@ -650,16 +651,17 @@ vec3 sampleForegroundStars(vec2 uv) {
     spin,
     violence
   ) * 1.14;
-  warpedUv += cursorLens.xy;
-  warpedUv += cursorLens.xy * cursorLens.z * 0.68;
-  float smearNear = 0.0048 + ringBand * 0.012 + shellWarp * 0.014;
-  float smearFar = 0.0021 + outerBand * 0.0048;
+  warpedUv += cursorLens.xy * 0.5;
+  warpedUv += cursorLens.xy * cursorLens.z * 0.34;
+  float smearNear = 0.0058 + ringBand * 0.014 + shellWarp * 0.016 + edgeBand * 0.018;
+  float smearFar = 0.0024 + outerBand * 0.0055;
   vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
   float cursorSmear = 0.0032 + cursorLens.z * 0.046;
   vec3 ringLensed =
     baseStarField(warpedUv) * 0.22 +
-    baseStarField(warpedUv + tangentUv * smearNear) * 0.22 +
-    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.18 +
+    baseStarField(warpedUv + tangentUv * smearNear) * 0.24 +
+    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.19 +
+    baseStarField(warpedUv + tangentUv * smearNear * 1.85) * 0.13 +
     baseStarField(warpedUv + tangentUv * smearFar * 1.7) * 0.11;
   vec2 cursorUv = parallaxUv + cursorLens.xy * (1.35 + cursorLens.z * 0.8);
   vec3 cursorLensed =
@@ -750,19 +752,19 @@ vec3 wavefrontVisual(vec2 uv) {
     float distortion = (fbm(waveDelta * 12.0 + vec2(meta.y * 7.0, uTime * 0.28)) - 0.5) * waveWidth * escapeSpread * 1.05;
     float across = dot(waveDelta, waveNormal) + distortion;
     float forward = dot(waveDelta, waveMotion);
-    float waveDepth = max(waveWidth * mix(0.16, 0.4, escapeSpread), 0.006);
+    float waveDepth = max(waveWidth * mix(0.22, 0.5, escapeSpread), 0.014);
     vec2 shellP = vec2(across, forward * mix(1.18, 0.9, escapeSpread));
     float shellRadius = waveWidth * mix(0.62, 1.0, escapeSpread);
     float shellDistance = length(shellP) - shellRadius;
-    float frontMask = smoothstep(-waveWidth * 0.48, waveWidth * 0.2, forward);
+    float frontMask = smoothstep(-waveWidth * 1.4, waveWidth * 1.0, forward);
     float sideMask = exp(-pow(abs(across) / (waveWidth * mix(1.0, 1.5, escapeSpread)), mix(4.0, 2.35, escapeSpread)));
     float crest = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask * sideMask;
     float glow = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth * 5.0)) * frontMask * sideMask;
     float trough = exp(-pow((shellDistance + waveDepth * 1.55) / (waveDepth * 1.35), 2.0)) * frontMask * sideMask;
     float organic = 0.9 + 0.1 * sin(meta.y * 12.0 + uTime * 1.8);
-    float waveHeat = (crest * 0.84 + glow * 0.16) * meta.w * uCursorHeat * organic * mix(1.0, 0.5, escapeSpread);
-    vec3 waveColor = mix(vec3(0.75, 0.1, 0.006), vec3(1.0, 0.48, 0.08), crest);
-    effect += waveColor * waveHeat * 0.22;
+    float waveHeat = (crest * 0.62 + glow * 0.38) * meta.w * uCursorHeat * organic * mix(1.0, 0.5, escapeSpread);
+    vec3 waveColor = mix(vec3(0.85, 0.14, 0.008), vec3(1.0, 0.55, 0.1), crest);
+    effect += waveColor * waveHeat * 0.38;
     effect -= vec3(0.04, 0.019, 0.006) * trough * meta.w * (0.2 + uCursorHeat * 0.045) * mix(1.0, 0.58, escapeSpread);
   }
 
@@ -843,6 +845,28 @@ void main() {
     discDirectional *
     (0.32 + 0.68 * (1.0 - smoothstep(horizon * 1.14, horizon * 1.96, abs(discP.x))));
   float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78;
+  // Foreground disc: near-side disc material crossing the horizon
+  float nearSide = smoothstep(-0.15, 0.88, lowerField + lowerNoise * 0.4);
+  float foreDiscNoise = fbm(vec2(angle * 1.4 - uTime * 0.18, uTime * 0.09));
+  float foreDiscR = horizon * (1.28 + (foreDiscNoise - 0.5) * 0.14);
+  float foreDiscCross = exp(-pow((d - foreDiscR) / (horizon * 0.38), 2.0)) * nearSide;
+  float foreDiscLumpy = 0.42 + 0.58 * fbm(spinP * 5.8 + vec2(uTime * 0.19, -uTime * 0.11));
+  float foreDiscFade = 1.0 - collapse;
+  float foreDiscBoost = 1.0 + surge * 2.0 + tremor * 0.4;
+  color += foreDiscCross * vec3(0.52, 0.19, 0.03) * (0.32 + pulse * 0.46) * foreDiscLumpy * foreDiscBoost * foreDiscFade * 0.65;
+  // Doppler beaming: disc orbiting left-to-right, left side is blueshifted/brighter
+  float dopplerAngle = cos(angle);
+  float dopplerBright = smoothstep(0.0, 1.0, dopplerAngle);
+  float dopplerMask  = exp(-pow((d - horizon * 1.6) / (horizon * 1.4), 2.0));
+  color += dopplerMask * dopplerBright * vec3(0.14, 0.06, 0.008) * ringBoost * 0.45;
+  // Relativistic jet: faint bipolar column perpendicular to the disc
+  float jetX = abs(p.x);
+  float jetNarrow = exp(-pow(jetX / (horizon * 0.28), 2.0));
+  float jetReach = exp(-pow(d / (horizon * 5.2), 1.2)) * (1.0 - hole);
+  float jetNoise = 0.72 + 0.28 * fbm(vec2(d * 6.2 - uTime * 0.55, angle * 0.4 + uTime * 0.08));
+  float jetCone = jetNarrow * jetReach * jetNoise;
+  float jetVertical = smoothstep(horizon * 0.9, horizon * 1.6, d);
+  color += jetCone * jetVertical * vec3(0.12, 0.07, 0.18) * (0.18 + pulse * 0.14);
   color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost;
   color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35) * ringBoost;
   color += outerArc * vec3(0.18, 0.052, 0.005) * (0.34 + pulse * 0.4) * ringBoost;
@@ -864,6 +888,7 @@ void main() {
   float vignette = smoothstep(1.05, 0.14, frameRadius);
   color *= 0.54 + vignette * (0.54 + surge * 0.2);
   color = vec3(1.0) - exp(-color * mix(1.26, 1.92, surge));
+  color *= 1.0 - smoothstep(0.86, 0.965, uDiveProgress);
   outColor = vec4(color, 1.0);
 }`;
 
@@ -1118,6 +1143,14 @@ function frame(now) {
     needsReset = false;
   }
 
+  if (diveState.progress >= 0.992) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    requestAnimationFrame(frame);
+    return;
+  }
+
   step(dt, now / 1000);
   draw(now / 1000);
   requestAnimationFrame(frame);
@@ -1182,7 +1215,7 @@ function createStreamlet(x, y, motion, intensity, now) {
     points: [],
     seed,
     waveAge: 0,
-    waveStrength: 0.14 + intensity * 0.22,
+    waveStrength: 0.24 + intensity * 0.32,
     waveWidth: 0.03 + intensity * 0.066,
   };
   streamlet.points.push(createStreamPoint(x, y, motion, intensity, seed));
@@ -1210,8 +1243,8 @@ function createStreamPoint(x, y, motion, intensity, seed) {
     escapeAge: 0,
     phase: seed * 9.0 + wobble * 4.0,
     radius: 0.018 + intensity * 0.018 + wobble * 0.003,
-    vx: motion.flowX * (0.032 + intensity * 0.035) + motion.rawX * (1.72 + intensity * 1.85),
-    vy: motion.flowY * (0.032 + intensity * 0.035) + motion.rawY * (1.72 + intensity * 1.85),
+    vx: motion.flowX * (0.022 + intensity * 0.025) + motion.rawX * (0.72 + intensity * 0.85),
+    vy: motion.flowY * (0.022 + intensity * 0.025) + motion.rawY * (0.72 + intensity * 0.85),
     x,
     y,
   };
@@ -1232,8 +1265,8 @@ function updateStreamlets(dt, time) {
       streamlet.escapeAge += dt;
     }
     streamlet.waveAge += dt;
-    streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.48 : 0.92) * waveDecayBoost);
-    streamlet.waveWidth += dt * (0.009 + streamlet.intensity * 0.012);
+    streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.38 : 0.52) * waveDecayBoost);
+    streamlet.waveWidth += dt * (0.0018 + streamlet.intensity * 0.003);
 
     for (let pointIndex = streamlet.points.length - 1; pointIndex >= 0; pointIndex--) {
       const point = streamlet.points[pointIndex];
