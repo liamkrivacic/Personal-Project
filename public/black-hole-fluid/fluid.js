@@ -365,6 +365,23 @@ float effectiveHorizon() {
   return uHorizon * (1.0 + eased * 0.66 + surge * 1.92 + violence * 0.28 + pulse * 0.08);
 }
 
+float discOrbitProgress() {
+  return smoothstep(0.08, 0.94, uDiveProgress);
+}
+
+float discSideView() {
+  float orbit = discOrbitProgress();
+  return exp(-pow((orbit - 0.38) / 0.16, 2.0));
+}
+
+float discSweepAngle() {
+  return mix(-0.42, 3.08, discOrbitProgress());
+}
+
+float discTiltCompression() {
+  return mix(1.0, 0.18, discSideView());
+}
+
 float starFieldVisibility() {
   float flare = smoothstep(0.3, 0.68, uDiveProgress) * (1.0 - smoothstep(0.82, 0.96, uDiveProgress));
   float collapse = smoothstep(0.74, 0.992, uDiveProgress);
@@ -375,7 +392,7 @@ float diveZoom() {
   float eased = diveEase(uDiveProgress);
   float surge = diveSurge();
   float violence = diveViolence();
-  return 1.0 + eased * 15.5 + pow(surge, 1.25) * 50.0 + violence * 8.0;
+  return 1.0 + eased * 6.8 + pow(surge, 1.45) * 60.0 + violence * 12.0;
 }
 
 vec2 viewToWorldUv(vec2 uv) {
@@ -493,6 +510,20 @@ vec2 horizonParallaxUv(vec2 uv, vec2 p, float d) {
     instability;
 }
 
+vec2 ringAberrationOffset(
+  vec2 radialUv,
+  vec2 tangentUv,
+  float ringBand,
+  float shellWarp,
+  float outerBand,
+  float spin,
+  float violence
+) {
+  return
+    radialUv * (ringBand * 0.014 + shellWarp * 0.022 + outerBand * 0.006) * -(0.92 + violence * 0.78) +
+    tangentUv * (ringBand * 0.01 + shellWarp * 0.016 + outerBand * 0.008) * spin * (0.94 + violence * 0.84);
+}
+
 vec3 cursorLensField(vec2 uv);
 
 vec3 sampleLensedBackground(vec2 uv) {
@@ -519,10 +550,15 @@ vec3 sampleLensedBackground(vec2 uv) {
     return base;
   }
 
-  vec2 warpedUv =
-    parallaxUv +
-    radialUv * (ringBand * 0.024 + shellWarp * 0.034 + outerBand * 0.008) * -(1.0 + violence * 0.9) +
-    tangentUv * (ringBand * 0.014 + shellWarp * 0.024 + outerBand * 0.01) * spin * (1.0 + violence * 1.2);
+  vec2 warpedUv = parallaxUv + ringAberrationOffset(
+    radialUv,
+    tangentUv,
+    ringBand,
+    shellWarp,
+    outerBand,
+    spin,
+    violence
+  );
   warpedUv += cursorLens.xy;
   warpedUv += cursorLens.xy * cursorLens.z * 0.72;
   float smearNear = 0.004 + ringBand * 0.01 + shellWarp * 0.012 * (1.0 + violence);
@@ -605,10 +641,15 @@ vec3 sampleForegroundStars(vec2 uv) {
   }
 
   float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
-  vec2 warpedUv =
-    parallaxUv +
-    radialUv * (ringBand * 0.026 + shellWarp * 0.034 + outerBand * 0.008) * -(1.0 + violence) +
-    tangentUv * (ringBand * 0.016 + shellWarp * 0.028 + outerBand * 0.01) * spin * (1.0 + violence * 1.2);
+  vec2 warpedUv = parallaxUv + ringAberrationOffset(
+    radialUv,
+    tangentUv,
+    ringBand,
+    shellWarp,
+    outerBand,
+    spin,
+    violence
+  ) * 1.14;
   warpedUv += cursorLens.xy;
   warpedUv += cursorLens.xy * cursorLens.z * 0.68;
   float smearNear = 0.0048 + ringBand * 0.012 + shellWarp * 0.014;
@@ -655,6 +696,40 @@ vec3 sampleBloom(vec2 uv) {
   color += sampleDyeTap(uv + vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
   color += sampleDyeTap(uv - vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
   return color;
+}
+
+float discBandSoftness(float horizon, float sideView) {
+  return mix(horizon * 1.34, horizon * 0.22, sideView);
+}
+
+float discDirectionalMask(vec2 discP, float horizon, float sideView, float lowerBias) {
+  float verticalBias = smoothstep(-0.08, 0.82, -discP.y / max(horizon, 0.001));
+  float lateralFade = 1.0 - smoothstep(horizon * 1.18, horizon * 2.1, abs(discP.x));
+  float directional = verticalBias * lateralFade * (0.38 + lowerBias * 0.62);
+  return mix(1.0, directional, sideView);
+}
+
+vec3 sampleDiveGlow(
+  vec2 uv,
+  float frameRadius,
+  float horizon,
+  float surge,
+  float collapse,
+  float tremor,
+  float violence
+) {
+  vec2 centered = uv - uCenter;
+  float tunnel = smoothstep(0.22, 0.86, frameRadius) * surge;
+  float streak = pow(max(0.0, 1.0 - abs(centered.y) * 2.2), 6.0);
+  float haloRadius = horizon * mix(2.8, 1.42, surge);
+  float haloWidth = max(horizon * mix(0.88, 0.32, surge), horizon * 0.24);
+  float halo = exp(-pow((length(centered) - haloRadius) / haloWidth, 2.0));
+  float shimmer = 0.76 + 0.24 * sin(uTime * 1.6 + frameRadius * 16.0 + tremor * 2.8);
+  vec3 glow =
+    vec3(0.16, 0.058, 0.014) * halo * (0.34 + surge * 0.86 + violence * 0.34) * shimmer +
+    vec3(0.06, 0.02, 0.004) * streak * tunnel * (0.34 + violence * 0.82) +
+    vec3(0.024, 0.008, 0.002) * smoothstep(0.18, 0.94, frameRadius) * tunnel * (0.44 + tremor * 0.32);
+  return glow * (1.0 - collapse * 0.32);
 }
 
 vec3 wavefrontVisual(vec2 uv) {
@@ -707,7 +782,16 @@ void main() {
   float tremor = horizonTremor();
   float collapse = smoothstep(0.76, 1.0, uDiveProgress);
   float horizon = effectiveHorizon();
-  vec3 dye = sampleBloom(worldUv);
+  float orbit = discOrbitProgress();
+  float sideView = discSideView();
+  float tiltCompression = discTiltCompression();
+  float sweepAngle = discSweepAngle();
+  vec2 discRotP = rot(sweepAngle) * p;
+  vec2 discP = vec2(discRotP.x, discRotP.y / max(tiltCompression, 0.16));
+  float discMix = smoothstep(0.04, 0.72, uDiveProgress);
+  float discFieldBlend = discMix * exp(-pow((d - horizon * 1.72) / (horizon * 1.08), 2.0));
+  vec2 dyeUv = mix(worldUv, shakenUv, smoothstep(0.54, 0.96, surge + violence * 0.65));
+  vec3 dye = sampleBloom(dyeUv);
   vec2 spinP = rot(uTime * 0.16) * p;
   float densityNoise = fbm(spinP * 5.4 + vec2(uTime * 0.08, -uTime * 0.045));
   float orbitCompression = exp(-pow((d - horizon * 1.42) / (horizon * 0.72), 2.0));
@@ -740,6 +824,24 @@ void main() {
   float lowerRimNoise = (fbm(p * 5.2 + vec2(uTime * 0.04, uTime * 0.02)) - 0.5) * 0.22;
   float lowerRim = smoothstep(-0.1, 0.95, lowerRimField + lowerRimNoise * 0.35);
   float spinSpark = 0.45 + 0.55 * sin(angle * 3.0 - uTime * 2.4 + densityNoise * 2.2);
+  float sideBand = exp(-pow(discP.y / max(horizon * mix(0.78, 0.12, sideView), horizon * 0.12), 2.0));
+  float sideLane = exp(-pow((abs(discP.x) - horizon * 1.52) / (horizon * mix(0.82, 0.48, sideView)), 2.0));
+  float discBand = exp(-pow(discP.y / max(discBandSoftness(horizon, sideView), horizon * 0.12), 2.0));
+  float discEdge = exp(-pow((abs(discP.x) - horizon * mix(1.76, 1.48, sideView)) / max(horizon * mix(1.08, 0.38, sideView), horizon * 0.16), 2.0));
+  float discDirectional = discDirectionalMask(discP, horizon, sideView, lowerBias);
+  float discGlowMask = discFieldBlend * smoothstep(horizon * 0.42, horizon * 1.48, d);
+  float discMidGlow =
+    exp(-pow(discP.x / (horizon * 1.18), 2.0)) *
+    discBand *
+    smoothstep(horizon * 0.48, horizon * 1.24, d) *
+    mix(1.0, discDirectional, 0.72);
+  float discBackscatter = discBand * discEdge * (0.32 + lowerBias * 0.68) * discDirectional;
+  float wrappedDiscGlow =
+    sideBand *
+    sideLane *
+    smoothstep(horizon * 0.56, horizon * 1.34, d) *
+    discDirectional *
+    (0.32 + 0.68 * (1.0 - smoothstep(horizon * 1.14, horizon * 1.96, abs(discP.x))));
   float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78;
   color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost;
   color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35) * ringBoost;
@@ -749,10 +851,14 @@ void main() {
   color += softCircumference * vec3(0.18, 0.07, 0.012) * (0.56 + pulse * 0.68) * ringBoost;
   color += rim * vec3(0.13, 0.048, 0.008) * (0.3 + pulse * 0.34) * ringBoost;
   color += rim * lowerRim * vec3(0.22, 0.095, 0.018) * (0.58 + pulse * 0.42) * ringBoost;
-  color = max(color + wavefrontVisual(worldUv), vec3(0.0));
+  color += discBackscatter * discGlowMask * vec3(0.36, 0.12, 0.018) * sideView * (0.16 + orbit * 0.34) * ringBoost;
+  color += discMidGlow * discGlowMask * vec3(0.62, 0.28, 0.05) * sideView * (0.08 + orbit * 0.22) * ringBoost;
+  color += wrappedDiscGlow * discGlowMask * vec3(0.42, 0.16, 0.03) * (0.14 + sideView * 0.52 + orbit * 0.2) * ringBoost;
+  color = max(color + wavefrontVisual(dyeUv), vec3(0.0));
   color += sampleForegroundStars(worldUv);
 
   float frameRadius = distance(shakenUv, vec2(0.5));
+  color += sampleDiveGlow(shakenUv, frameRadius, horizon, surge, collapse, tremor, violence);
   float tunnelVignette = smoothstep(0.18, 0.82, frameRadius) * surge;
   color *= 1.0 - tunnelVignette * (0.38 + collapse * 0.62 + tremor * 0.1 + violence * 0.08);
   float vignette = smoothstep(1.05, 0.14, frameRadius);

@@ -32,4 +32,11 @@ describe("black-hole scroll dive", () => {
     expect(runtimeSource).toContain("uniform1f(advectProgram, \"uDiveProgress\", diveState.progress);");
     expect(runtimeSource).toContain("insideDiveHorizon");
   });
+
+  it("allows the 127.0.0.1 dev origin used by the black-hole homepage workflow", () => {
+    const nextConfigSource = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+
+    expect(nextConfigSource).toContain("allowedDevOrigins");
+    expect(nextConfigSource).toContain("\"127.0.0.1\"");
+  });
 });

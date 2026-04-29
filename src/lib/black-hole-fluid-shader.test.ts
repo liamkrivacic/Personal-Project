@@ -32,4 +32,42 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("warpedUv += cursorLens.xy;");
     expect(shaderSource).toContain("vec2 parallaxUv = horizonParallaxUv(uv, p, d);");
   });
+
+  it("uses a soft side-view disc and a dedicated dive glow instead of the detached ribbon seam", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    expect(shaderSource).toContain("vec2 ringAberrationOffset");
+    expect(shaderSource).toContain("float discBandSoftness");
+    expect(shaderSource).toContain("float discDirectionalMask");
+    expect(shaderSource).toContain("float discFieldBlend");
+    expect(shaderSource).toContain("vec3 sampleDiveGlow");
+    expect(shaderSource).not.toContain("violence,\n  );");
+    expect(shaderSource).not.toContain("float discRibbonCore");
+    expect(shaderSource).not.toContain("float topWrap");
+    expect(shaderSource).not.toContain("float wrapHalo");
+    expect(shaderSource).not.toContain("float orbitD = mix(d, discD, discMix);");
+  });
+
+  it("keeps the main halo and spiral field anchored to the radial hole instead of the side-view disc projection", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    expect(shaderSource).toContain(
+      "float spiralMask = exp(-pow((d - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);",
+    );
+    expect(shaderSource).toContain(
+      "float warpedD = d + (rimNoise - 0.5) * horizon * 0.095;",
+    );
+    expect(shaderSource).not.toContain(
+      "float spiralMask = exp(-pow((orbitD - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);",
+    );
+    expect(shaderSource).not.toContain(
+      "float warpedD = orbitD + (rimNoise - 0.5) * horizon * 0.095;",
+    );
+  });
 });

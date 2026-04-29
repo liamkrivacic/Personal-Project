@@ -2,6 +2,7 @@
 
 **Liam Krivacic - Personal Portfolio Website**
 Stack: Next.js 15 (App Router) + TypeScript + Tailwind CSS + shadcn/ui -> Vercel
+Current focus: only the black-hole homepage hero is in active scope right now, and scroll input should drive a dive into the black hole.
 
 ## Session Memory
 Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-portfolio/`
