@@ -29,7 +29,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(shakenUv));");
     expect(shaderSource).toContain("vec2 worldUv = warpedWorldUv;");
     expect(shaderSource).toContain("color += sampleForegroundStars(worldUv);");
-    expect(shaderSource).toContain("warpedUv += cursorLens.xy;");
+    expect(shaderSource).toContain("warpedUv += cursorLens.xy * 0.5;");
     expect(shaderSource).toContain("vec2 parallaxUv = horizonParallaxUv(uv, p, d);");
   });
 

@@ -771,6 +771,24 @@ vec3 wavefrontVisual(vec2 uv) {
   return effect;
 }
 
+vec3 samplePhotonRingCrescendo(vec2 sc, float surge, float violence, float tremor, float collapse) {
+  float d = length(sc);
+  // Photon sphere crossing: thin ring sweeps inward and flares as surge peaks, then fades
+  float photonPeak = surge * (1.0 - smoothstep(0.55, 0.95, surge));
+  float photonR = mix(0.20, 0.04, surge);
+  float photonW = max(0.005, mix(0.044, 0.005, surge));
+  float photonRing = exp(-pow((d - photonR) / photonW, 2.0));
+  // Event horizon crossing: brief blue-white flash at the violence peak
+  float horizonPeak = violence * (1.0 - clamp(collapse * 1.4, 0.0, 1.0));
+  float horizonR = mix(0.08, 0.005, violence) * (1.0 + tremor * 0.08);
+  float horizonW = max(0.004, mix(0.028, 0.004, violence));
+  float horizonRing = exp(-pow((d - horizonR) / horizonW, 2.0));
+  vec3 photonColor = mix(vec3(1.0, 0.97, 0.92), vec3(0.88, 0.94, 1.0), surge * 0.4);
+  vec3 horizonColor = vec3(0.84, 0.92, 1.0);
+  return (photonColor * photonRing * photonPeak * 3.5
+        + horizonColor * horizonRing * horizonPeak * 2.6) * (1.0 + tremor * 0.18);
+}
+
 void main() {
   vec2 shakenUv = diveShake(vUv);
   vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(shakenUv));
@@ -783,6 +801,7 @@ void main() {
   float violence = diveViolence();
   float tremor = horizonTremor();
   float collapse = smoothstep(0.76, 1.0, uDiveProgress);
+  float diveDepth = smoothstep(0.38, 0.88, uDiveProgress);
   float horizon = effectiveHorizon();
   float orbit = discOrbitProgress();
   float sideView = discSideView();
@@ -880,6 +899,16 @@ void main() {
   color += wrappedDiscGlow * discGlowMask * vec3(0.42, 0.16, 0.03) * (0.14 + sideView * 0.52 + orbit * 0.2) * ringBoost;
   color = max(color + wavefrontVisual(dyeUv), vec3(0.0));
   color += sampleForegroundStars(worldUv);
+  vec2 sc = shakenUv - uCenter;
+  color += samplePhotonRingCrescendo(sc, surge, violence, tremor, collapse);
+  // Gravitational colour temperature shift: disc whitens then blue-shifts as you fall in
+  if (diveDepth > 0.001) {
+    float whitening = diveDepth * (1.0 - surge * 0.28);
+    vec3 lum = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+    color = mix(color, lum * 1.1, whitening * 0.32);
+    float blueshift = surge * 0.6 + violence * 0.4;
+    color *= mix(vec3(1.0), vec3(0.88, 0.94, 1.12), blueshift * 0.38);
+  }
 
   float frameRadius = distance(shakenUv, vec2(0.5));
   color += sampleDiveGlow(shakenUv, frameRadius, horizon, surge, collapse, tremor, violence);
