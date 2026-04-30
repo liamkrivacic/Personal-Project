@@ -8,7 +8,8 @@ test("homepage presents the black-hole portfolio interface", async ({ page }) =>
 
   await page.goto(homeUrl);
 
-  await expect(page.locator(".black-hole-fluid-canvas")).toBeVisible();
+  const blackHoleFrame = page.frameLocator("iframe.hero-background-frame");
+  await expect(blackHoleFrame.locator("#fluid-canvas")).toBeVisible();
   await expect(page.locator(".blackhole")).toHaveCount(0);
   await expect(page.locator(".gravity-lanes")).toHaveCount(0);
   await expect(page.locator(".gravity-lane")).toHaveCount(0);

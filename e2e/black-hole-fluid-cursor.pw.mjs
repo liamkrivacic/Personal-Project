@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
 
 test("cursor releases light streamlets that orbit and then decay", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await page.goto("http://127.0.0.1:5174/design/black-hole-fluid/index.html?v=playwright-cursor");
+  await mkdir(".verification", { recursive: true });
+  await page.goto("http://127.0.0.1:5176/black-hole-fluid/index.html?v=playwright-cursor");
   await expect(page.locator("#fluid-canvas")).toBeVisible();
   await page.waitForTimeout(2200);
   await page.screenshot({ path: ".verification/fluid-playwright-idle.png" });

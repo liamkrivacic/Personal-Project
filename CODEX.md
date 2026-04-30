@@ -1,8 +1,8 @@
 # CODEX.md
 
 **Liam Krivacic - Personal Portfolio Website**
-Stack: Next.js 15 (App Router) + TypeScript + Tailwind CSS + shadcn/ui -> Vercel
-Current focus: only the black-hole homepage hero is in active scope right now, and scroll input should drive a dive into the black hole.
+Stack: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS -> Vercel
+Current focus: checkpoint 9 black-hole scroll dive plus the post-dive project journey.
 
 ## Session Memory
 Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-portfolio/`
@@ -12,9 +12,17 @@ Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-
 - Use targeted reads/searches only; do not load entire vault directories
 
 ## Commands
-- `npm run dev` - local dev server
+- `npm run dev -- --hostname 127.0.0.1 --port 5176` - local dev server used for visual checks
 - `npm run build` - production build
 - `npm run lint` - lint
+- `npm test` - Vitest shader/string behavior tests
+- `npm run test:fluid` - Playwright visual/runtime smoke tests
+
+## Current Runtime
+- Hero shell: `src/components/orbital/orbital-hero.tsx`
+- Black-hole shader runtime: `public/black-hole-fluid/index.html` and `public/black-hole-fluid/fluid.js`
+- Post-dive project section: `src/components/projects/project-journey.tsx`
+- Next black-hole task: `docs/2026-04-28-black-hole-status.md`
 
 ## Rules
 - TypeScript strict mode
@@ -23,6 +31,7 @@ Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-
 - Ask before force-push or destructive git operations
 - Read files before editing them
 - Prefer root-cause fixes over fragile workarounds
+- Do not rewrite GitHub checkpoint 9; make new work as local changes/branches/checkpoints.
 
 ## Codex Setup
 - MCP configured: `obsidian`, `awesome-design-md`

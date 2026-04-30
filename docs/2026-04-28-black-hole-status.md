@@ -1,62 +1,56 @@
-# Black Hole Hero Status - 2026-04-28
+# Black Hole Hero Next Task - 2026-04-30
 
 ## Current saved checkpoint
 
-- `checkpoint-4-smaller-hole-lower-disc-cinematic-2026-04-27`
-- Commit: `81faaaa`
-- Meaning: smaller starting black hole, lower accretion-disc emphasis, cinematic baseline
+- Remote baseline: `origin/main`
+- Commit: `6740344`
+- Label: `checkpoint 9: post-dive project journey and design archive`
+- Live shader asset version: `scroll-dive-cinematic-13`
 
-## Current work after checkpoint 4
+This checkpoint is the correct recovered iteration. Do not rewrite checkpoint 9 on GitHub. Treat any new work as a local branch or a new checkpoint after the fix is proven.
 
-These changes are currently local and not checkpointed yet:
+## Active files
 
-- `public/black-hole-fluid/fluid.js`
-- `public/black-hole-fluid/index.html`
-- `design/black-hole-fluid/fluid.js`
-- `design/black-hole-fluid/index.html`
-- `src/components/orbital/orbital-hero.tsx`
+- `src/components/orbital/orbital-hero.tsx` embeds the black-hole runtime and converts wheel/touch input into dive progress.
+- `public/black-hole-fluid/index.html` hosts the standalone/embedded WebGL scene.
+- `public/black-hole-fluid/fluid.js` contains the shader, scroll-dive camera motion, cursor streamlets, accretion disc, lensing, and side-view transition.
+- `src/components/projects/project-journey.tsx` is the post-dive section that appears after the hero releases scroll.
 
-This current live version is using shader asset version:
+## Next task
 
-- `scroll-dive-cinematic-11`
+Fix the black-hole side orientation so the horizontal inner side-view disc reads as part of the same accretion structure as the outer disc.
 
-## What we are up to
+The current issue is not just "make the line less visible." The desired effect is:
 
-We moved beyond the straight scroll-zoom and started building a scroll-driven orbital rotation effect.
+- the side-view horizontal band should connect to the outer disc instead of feeling like a separate strip
+- the band should visually flow into the outer disc through shared glow, radial falloff, and rim energy
+- the orbital swing should feel like the camera is moving around one object, not swapping to a different layer
+- the final dive should still feel cinematic and pull the viewer into the hole
+- any large seam, line, boxed edge, or hard sampling boundary should be removed
 
-The goal of the current WIP version is:
+## Implementation direction
 
-- as the user scrolls, the black hole should feel like it is rotating in space
-- the accretion disc should swing toward a more side-on view, closer to the reference image
-- the disc should keep sweeping upward
-- the final stage should still end in a dive into the black hole
+Prefer a structural shader pass over small parameter tweaks.
 
-The current version has the first pass of that orbital sweep wired into the shader, but it is still not visually strong enough yet.
+Recommended approach:
 
-## Known issue still not fixed
+- Refactor the disc rendering around one shared disc coordinate field, then derive face-on and side-on appearances from that field.
+- Add a feathered bridge between the side band and outer disc using radial distance, angular alignment, and dive/orbit progress.
+- Share emission color, lensing distortion, grain/noise, and rim glow between the band and the outer disc so their edges blend naturally.
+- Avoid hard `step`/rectangular masks in the side-view layer; use smooth falloffs and energy-preserving blends.
+- Keep the event contract from `orbital-hero.tsx` intact: the iframe still receives `black-hole-dive` messages with a `progress` value.
 
-There is still a noticeable artifact in the black hole:
+## Verification target
 
-- a big line / seam / box-like edge is still visible in the black-hole image
-- this was not present in checkpoint 2, so it appears to have been introduced by later scroll/dive era changes
-- we suspect it is tied to the post-checkpoint dive/warp sampling path, but it has not been fully resolved
+Before calling the fix done:
 
-So the black hole is still not clean yet. The line issue remains an active bug.
+- run `npm test`
+- run `npm run test:fluid`
+- manually inspect the hero at the start, mid-orbit side view, near-capture, and post-dive handoff
+- capture fresh screenshots into `.verification/` if visual comparison is needed
+- confirm the project journey still appears after the dive
 
-## Visual state summary
+## Safety notes
 
-Right now the project is in this state:
-
-- homepage hero is the main experience
-- background is the interactive black-hole shader
-- stars and lensing are present
-- cursor interaction is active outside the horizon
-- scroll drives the dive instead of moving down the page
-- checkpoint 4 is the stable baseline
-- current local work is the experimental rotating / side-on disc transition
-
-## Best restart points
-
-- Stable baseline: `81faaaa` / `checkpoint-4-smaller-hole-lower-disc-cinematic-2026-04-27`
-- Earlier stable baseline: `add4443` / `checkpoint-3-cinematic-scroll-dive-blackhole-2026-04-27`
-- Star-lensed baseline before dive-heavy work: `f1ac3c6` / `checkpoint-2-star-lensed-blackhole-hero-2026-04-27`
+- A local-only safety branch named `cleanup-base-checkpoint9-2026-04-30` points at the recovered checkpoint 9 commit.
+- If the shader experiment goes wrong, return to commit `6740344` or that local branch before trying another approach.
