@@ -64,6 +64,17 @@ export function OrbitalHero() {
       document.body.style.overscrollBehavior = previousBodyOverscroll;
     };
 
+    const scrollToFirstProject = () => {
+      const projects = document.getElementById("projects");
+
+      if (projects) {
+        projects.scrollIntoView({ block: "start", behavior: "smooth" });
+        return;
+      }
+
+      window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+    };
+
     lockPageScroll();
     window.scrollTo(0, 0);
 
@@ -114,7 +125,7 @@ export function OrbitalHero() {
 
       if (progress >= 0.995 && delta > 0) {
         releasePageScroll();
-        window.scrollBy({ top: Math.max(delta * 1400, 64), behavior: "auto" });
+        scrollToFirstProject();
         return;
       }
 
@@ -127,7 +138,9 @@ export function OrbitalHero() {
 
     const handleWheel = (event: WheelEvent) => {
       if (progress >= 0.995 && event.deltaY > 0) {
+        event.preventDefault();
         releasePageScroll();
+        scrollToFirstProject();
         return;
       }
 
@@ -161,6 +174,7 @@ export function OrbitalHero() {
 
       if (progress >= 0.995 && delta > 0) {
         releasePageScroll();
+        scrollToFirstProject();
         touchY = nextTouchY;
         return;
       }
