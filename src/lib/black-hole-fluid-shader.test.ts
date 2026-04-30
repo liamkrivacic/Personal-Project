@@ -26,7 +26,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("vec2 warpBlackHoleField");
     expect(shaderSource).toContain("return mix(base, lensed * visible, lensWeight);");
     expect(shaderSource).toContain("vec2 shakenUv = diveShake(vUv);");
-    expect(shaderSource).toContain("vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(shakenUv));");
+    expect(shaderSource).toContain("vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(rolledUv));");
     expect(shaderSource).toContain("vec2 worldUv = warpedWorldUv;");
     expect(shaderSource).toContain("color += sampleForegroundStars(worldUv);");
     expect(shaderSource).toContain("warpedUv += cursorLens.xy * 0.5;");

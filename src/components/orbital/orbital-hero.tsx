@@ -37,16 +37,34 @@ export function OrbitalHero() {
 
     let depth = 0;
     let progress = 0;
+    let releasedForProjects = false;
     let touchY: number | null = null;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverscroll = document.documentElement.style.overscrollBehavior;
     const previousBodyOverscroll = document.body.style.overscrollBehavior;
 
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overscrollBehavior = "none";
-    document.body.style.overscrollBehavior = "none";
+    const lockPageScroll = () => {
+      releasedForProjects = false;
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overscrollBehavior = "none";
+      document.body.style.overscrollBehavior = "none";
+    };
+
+    const releasePageScroll = () => {
+      if (releasedForProjects) {
+        return;
+      }
+
+      releasedForProjects = true;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+    };
+
+    lockPageScroll();
     window.scrollTo(0, 0);
 
     const postProgress = (progress: number) => {
@@ -64,6 +82,10 @@ export function OrbitalHero() {
       progress = resolveDiveProgress(depth);
       scene.style.setProperty("--entry-progress", progress.toFixed(4));
       postProgress(progress);
+
+      if (progress >= 0.995) {
+        releasePageScroll();
+      }
     };
 
     const updateProgress = (delta: number) => {
@@ -88,14 +110,36 @@ export function OrbitalHero() {
         return;
       }
 
-      updateProgress(Number(event.data.delta) || 0);
+      const delta = Number(event.data.delta) || 0;
+
+      if (progress >= 0.995 && delta > 0) {
+        releasePageScroll();
+        window.scrollBy({ top: Math.max(delta * 1400, 64), behavior: "auto" });
+        return;
+      }
+
+      if (window.scrollY <= 1 && progress < 0.995 && releasedForProjects) {
+        lockPageScroll();
+      }
+
+      updateProgress(delta);
     };
 
     const handleWheel = (event: WheelEvent) => {
+      if (progress >= 0.995 && event.deltaY > 0) {
+        releasePageScroll();
+        return;
+      }
+
       event.preventDefault();
 
       const deltaScale =
         event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+
+      if (window.scrollY <= 1 && releasedForProjects) {
+        lockPageScroll();
+      }
+
       updateProgress((event.deltaY * deltaScale) / 1400);
     };
 
@@ -112,10 +156,22 @@ export function OrbitalHero() {
         return;
       }
 
-      event.preventDefault();
       const nextTouchY = event.touches[0].clientY;
       const delta = touchY - nextTouchY;
+
+      if (progress >= 0.995 && delta > 0) {
+        releasePageScroll();
+        touchY = nextTouchY;
+        return;
+      }
+
+      event.preventDefault();
       touchY = nextTouchY;
+
+      if (window.scrollY <= 1 && releasedForProjects) {
+        lockPageScroll();
+      }
+
       updateProgress(delta / Math.max(window.innerHeight, 1));
     };
 
