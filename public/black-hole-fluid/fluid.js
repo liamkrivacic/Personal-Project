@@ -1069,6 +1069,7 @@ void main() {
   float jetCone = jetNarrow * jetReach * jetNoise;
   float jetVertical = smoothstep(horizon * 0.9, horizon * 1.6, d);
   color += jetCone * jetVertical * vec3(0.12, 0.07, 0.18) * (0.18 + pulse * 0.14);
+  // Screen-space spiral fades with warpedDisc — replaced by disc-plane spiral inside the elliptical block
   color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost * warpedDisc;
   color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35) * ringBoost * warpedDisc;
   color += outerArc * vec3(0.18, 0.052, 0.005) * (0.34 + pulse * 0.4) * ringBoost * warpedDisc;
@@ -1110,9 +1111,10 @@ void main() {
   vec2 discLocal = vec2(p_raw.x, p_raw.y / tiltComp);
   float r_disc = length(discLocal);
   float theta_disc = atan(discLocal.y, discLocal.x);
-  // Ring radial profile — bright orange material between r_inner and r_outer in disc plane
-  float r_inner = horizon * 1.4;
-  float r_outer = horizon * 4.6;
+  // Ring radial profile — inner edge moved inward to overlap with the photon halo
+  // (so the disc material visually "flows into" the bright ring around the BH)
+  float r_inner = horizon * 1.16;
+  float r_outer = horizon * 3.4;
   float ringRadial = smoothstep(r_inner * 0.85, r_inner * 1.15, r_disc)
                    * (1.0 - smoothstep(r_outer * 0.65, r_outer, r_disc));
   // Inner glow taper — disc gets denser/brighter near the inner edge (BH)
@@ -1125,21 +1127,48 @@ void main() {
   float bhShadowMask = 1.0 - smoothstep(horizon * 0.78, horizon * 1.18, d_raw);
   float farSideAmt = smoothstep(0.0, 0.35, sin(theta_disc));
   float discVisible = 1.0 - bhShadowMask * farSideAmt;
-  // Core bright disc strip
+  // Disc-plane spiral pattern — lives in the disc's own coordinates so it rotates with the
+  // camera tilt. At pole-on it's a circular swirl; tilted it compresses elliptically with the
+  // ring; edge-on it becomes brightness modulation along the horizontal band.
+  float discSpiralPhase = theta_disc + log(max(r_disc / horizon, 0.18)) * 2.5 - uTime * 1.24;
+  float discSpiralBand = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 5.0);
+  // Slight angular sparkle — finer detail riding on the spiral
+  float discSpiralSpark = 0.45 + 0.55 * sin(theta_disc * 3.0 - uTime * 2.4);
+  // Subtle modulation of the smooth disc base (so the disc isn't perfectly uniform)
+  float spiralMod = mix(1.0, 0.5 + discSpiralBand * 0.9, 0.45);
+  // Core bright disc strip — multiplied by the spiral modulation
   color += ringRadial * discVisible * cleanFade * vec3(1.45, 0.66, 0.085)
-         * (0.5 + doppler * 1.0) * (0.55 + innerGlow * 1.4);
-  // Wide ambient halo around the disc band (wispy material in reference)
-  float wideRadial = exp(-pow((r_disc - horizon * 2.4) / (horizon * 1.7), 2.0));
+         * (0.5 + doppler * 1.0) * (0.55 + innerGlow * 1.4) * spiralMod;
+  // Wide ambient halo around the disc band — tightened so the wispy material doesn't extend so far
+  float wideRadial = exp(-pow((r_disc - horizon * 1.95) / (horizon * 1.2), 2.0));
   color += wideRadial * discVisible * cleanFade * vec3(0.42, 0.16, 0.022)
-         * (0.4 + doppler * 0.45) * (0.4 + innerGlow * 0.9);
-  // BRIGHT PHOTON HALO around BH shadow — this is the gravitational wrap-over arc.
-  // The far side of the disc is occluded by the BH in 3D, but its light is gravitationally
-  // bent over the top/bottom of the BH and appears as this bright ring. Strongest at edge-on.
-  float bhPhotonHalo = exp(-pow((d_raw - horizon * 1.32) / (horizon * 0.28), 2.0));
-  color += bhPhotonHalo * cleanFade * vec3(0.98, 0.43, 0.058) * (0.4 + sinTilt * 0.85);
-  // Tight photon ring — bright thin highlight just outside shadow (Interstellar's inner edge)
-  float bhPhotonRing = exp(-pow((d_raw - horizon * 1.18) / (horizon * 0.075), 2.0));
-  color += bhPhotonRing * cleanFade * vec3(1.7, 0.82, 0.16) * (0.3 + sinTilt * 0.7);
+         * (0.4 + doppler * 0.45) * (0.4 + innerGlow * 0.9) * mix(1.0, spiralMod, 0.6);
+  // Bright spiral-arm highlights on top of the disc (the dense knots/streaks in the reference)
+  float spiralArmFalloff = exp(-pow((r_disc - horizon * 1.95) / (horizon * 1.5), 2.0));
+  color += discSpiralBand * discSpiralSpark * spiralArmFalloff * discVisible * cleanFade
+         * vec3(0.55, 0.22, 0.03) * (0.4 + doppler * 0.6);
+  // BRIGHT PHOTON HALO around BH shadow — the gravitational wrap-over arc.
+  // haloBaseFade gives the halo a minimum brightness during all of Phase 1 (lower base now
+  // so the pole-on start frame doesn't get washed out by an oversized halo).
+  float haloBaseFade = max(cleanFade, 0.18 * (1.0 - smoothstep(0.0, 0.4, diveProgress())));
+  // Vertical bias: at edge-on, Interstellar's halo is brightest at top/bottom (where the disc
+  // wraps over and under the BH) and dims at the sides (where the disc itself takes over).
+  // sin²(screenAngle) peaks at top/bottom; ramped in by sinTilt so pole-on stays uniform.
+  float screenAngle = atan(p_raw.y, p_raw.x);
+  float verticalBias = mix(1.0, 0.35 + 0.85 * sin(screenAngle) * sin(screenAngle), sinTilt);
+  // Tighter halo: peak pulled inward and width reduced — much closer to the shadow edge
+  float bhPhotonHalo = exp(-pow((d_raw - horizon * 1.16) / (horizon * 0.13), 2.0));
+  color += bhPhotonHalo * haloBaseFade * verticalBias * vec3(0.98, 0.43, 0.058) * (0.5 + sinTilt * 0.85);
+  // Tight photon ring — bright sharp highlight right at the shadow edge (Interstellar's inner ring)
+  float bhPhotonRing = exp(-pow((d_raw - horizon * 1.06) / (horizon * 0.04), 2.0));
+  color += bhPhotonRing * haloBaseFade * verticalBias * vec3(1.7, 0.82, 0.16) * (0.4 + sinTilt * 0.7);
+  // INNER-EDGE CONNECTOR — bright rim at the disc's inner edge that's strongest at the equator
+  // (theta_disc near 0 or π). This is what visually fuses the disc material into the halo at
+  // the sides of the BH. Without it the disc looks "snapped off" before reaching the halo.
+  float innerEdgeRim = exp(-pow((r_disc - horizon * 1.20) / (horizon * 0.14), 2.0));
+  float equatorialBoost = pow(abs(cos(theta_disc)), 1.8);  // peaks at theta=0,π (equator/sides)
+  color += innerEdgeRim * equatorialBoost * discVisible * cleanFade
+         * vec3(1.55, 0.72, 0.12) * (0.55 + doppler * 0.55);
   // Subtle lensed background backlight over the poles at edge-on
   float topGlowMask = sinTilt * cleanFade * exp(-pow(p_raw.x / (horizon * 0.88), 2.0)) * 0.4;
   color += sampleLensedBackground(worldUv) * topGlowMask;
