@@ -1,13 +1,13 @@
-# Black Hole Hero Next Task - 2026-04-30
+# Black Hole Hero Status - 2026-05-01
 
 ## Current saved checkpoint
 
-- Remote baseline: `origin/main`
-- Commit: `6740344`
-- Label: `checkpoint 9: post-dive project journey and design archive`
-- Live shader asset version: `scroll-dive-cinematic-13`
+- Remote baseline before this black-hole work: `origin/main` at `6740344`
+- Last committed local baseline before shader tuning: `161e050`
+- Current shader asset version: `scroll-dive-cinematic-17`
+- Detailed session handoff: `docs/2026-05-01-black-hole-v17-handoff.md`
 
-This checkpoint is the correct recovered iteration. Do not rewrite checkpoint 9 on GitHub. Treat any new work as a local branch or a new checkpoint after the fix is proven.
+Checkpoint 9 on GitHub is still the recovered baseline and should not be rewritten. The ray-lensed black-hole work is local branch work on `shader-unified-blackhole-2026-04-30` and should become a new checkpoint only after Liam approves the look.
 
 ## Active files
 
@@ -15,42 +15,41 @@ This checkpoint is the correct recovered iteration. Do not rewrite checkpoint 9 
 - `public/black-hole-fluid/index.html` hosts the standalone/embedded WebGL scene.
 - `public/black-hole-fluid/fluid.js` contains the shader, scroll-dive camera motion, cursor streamlets, accretion disc, lensing, and side-view transition.
 - `src/components/projects/project-journey.tsx` is the post-dive section that appears after the hero releases scroll.
+- `src/lib/black-hole-fluid-shader.test.ts` locks down the shader/runtime source contract with string-level tests.
 
-## Next task
+## What changed this session
 
-Fix the black-hole side orientation so the horizontal inner side-view disc reads as part of the same accretion structure as the outer disc.
+- Replaced the older layered/foreground-lensing shader path with a pseudo-3D ray-lensed accretion model built around `traceAccretionDisk` and `sampleRayLensedAccretion`.
+- Shrunk the visible black shadow using local `shadowRadius`, `photonRingRadius`, `arcRadius`, `diskInnerRadius`, and `diskOuterRadius` terms.
+- Tuned the side-view toward the Interstellar reference: smaller central shadow, long horizontal disc, stronger upper/lower lensed arcs, and a tighter bright flow around the inner photon ring.
+- Added `innerBridgeGlow` so the outer disc visually connects to the inner ring instead of reading as a loose halo.
+- Brightened the side-view flow while keeping the orange palette and homepage text readability.
+- Kept the scroll/cursor messaging contract unchanged: parent sends `black-hole-dive`, iframe sends `black-hole-dive-input`.
+- Bumped cache/runtime version through `scroll-dive-cinematic-17`.
 
-The current issue is not just "make the line less visible." The desired effect is:
+## Verification completed
 
-- the side-view horizontal band should connect to the outer disc instead of feeling like a separate strip
-- the band should visually flow into the outer disc through shared glow, radial falloff, and rim energy
-- the orbital swing should feel like the camera is moving around one object, not swapping to a different layer
-- the final dive should still feel cinematic and pull the viewer into the hole
-- any large seam, line, boxed edge, or hard sampling boundary should be removed
+- `npm test`: 7 tests passed
+- `npm run lint`: passed
+- `npm run build`: passed
+- `npm run test:fluid`: 2 Playwright tests passed
+- `git diff --check`: passed with only line-ending warnings
+- Fresh visual captures saved in `.verification/`, including:
+  - `ray-lensed-progress-0.png`
+  - `ray-lensed-progress-0-32.png`
+  - `ray-lensed-progress-0-5.png`
+  - `ray-lensed-progress-0-62.png`
+  - `homepage-blackhole-current.png`
 
-## Implementation direction
+## Current visual read
 
-Prefer a structural shader pass over small parameter tweaks.
+The size issue is improved. The v17 pass makes the outer disc brighter and closer to the inner photon ring, with a stronger right-side highlight and readable homepage overlay. No extra 15 percent brightness bump was applied after visual inspection because the current pass already looked substantially denser without washing out the hero copy.
 
-Recommended approach:
+## Next review task
 
-- Refactor the disc rendering around one shared disc coordinate field, then derive face-on and side-on appearances from that field.
-- Add a feathered bridge between the side band and outer disc using radial distance, angular alignment, and dive/orbit progress.
-- Share emission color, lensing distortion, grain/noise, and rim glow between the band and the outer disc so their edges blend naturally.
-- Avoid hard `step`/rectangular masks in the side-view layer; use smooth falloffs and energy-preserving blends.
-- Keep the event contract from `orbital-hero.tsx` intact: the iframe still receives `black-hole-dive` messages with a `progress` value.
-
-## Verification target
-
-Before calling the fix done:
-
-- run `npm test`
-- run `npm run test:fluid`
-- manually inspect the hero at the start, mid-orbit side view, near-capture, and post-dive handoff
-- capture fresh screenshots into `.verification/` if visual comparison is needed
-- confirm the project journey still appears after the dive
+Have Liam review `http://127.0.0.1:5176` and the `.verification/` frames against the reference. If it still feels too dim, increase only the arc/foreground multipliers by about 15 percent; do not enlarge `shadowRadius`.
 
 ## Safety notes
 
 - A local-only safety branch named `cleanup-base-checkpoint9-2026-04-30` points at the recovered checkpoint 9 commit.
-- If the shader experiment goes wrong, return to commit `6740344` or that local branch before trying another approach.
+- If the shader experiment goes wrong, return to commit `161e050` or the safety branch before trying another approach.

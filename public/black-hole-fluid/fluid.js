@@ -181,39 +181,6 @@ vec2 blackHoleVelocity(vec2 uv) {
   return dir * (pull - sling * 0.052) + tangent * (swirl + sling * 0.15) + eddy + shear + torsion + buckle;
 }
 
-vec3 rimSource(vec2 uv) {
-  vec2 p = aspectPoint(uv);
-  float d = length(p);
-  float angle = atan(p.y, p.x);
-  vec2 spinP = rot(uTime * 0.2) * p;
-  float spinAngle = atan(spinP.y, spinP.x);
-  float lowerField = -sin(angle);
-  float lowerNoise = (fbm(spinP * 3.8 + vec2(uTime * 0.05, -uTime * 0.03)) - 0.5) * 0.22;
-  float lowerBlend = lowerField + lowerNoise;
-  float lower = smoothstep(-0.12, 0.98, lowerBlend);
-  float lowerCore = smoothstep(0.16, 0.98, lowerBlend);
-  float sideFade = 1.0 - smoothstep(0.58, 1.0, abs(cos(angle)));
-  float noisyRadius = uHorizon * (1.62 + (fbm(vec2(spinAngle * 2.1 - uTime * 0.22, uTime * 0.09)) - 0.5) * 0.34);
-  float ring = exp(-pow((d - noisyRadius) / (uHorizon * 0.42), 2.0));
-  float spiralPhase = spinAngle + log(max(d / uHorizon, 0.18)) * 2.55 - uTime * 1.18;
-  float spiralBands = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 7.0);
-  float spiralMask = exp(-pow((d - uHorizon * 2.28) / (uHorizon * 1.55), 2.0));
-  float spiralHeat = spiralBands * spiralMask * (0.16 + lower * 0.84);
-  float circumference = exp(-pow((d - uHorizon * 1.12) / (uHorizon * 0.32), 2.0)) * 0.18;
-  float broad = exp(-pow(length(p - vec2(0.05, -uHorizon * 2.3)) / (uHorizon * 3.05), 2.0));
-  vec2 hotOneCenter = vec2(0.15 + sin(uTime * 0.2) * uHorizon * 0.08, -uHorizon * 1.56);
-  vec2 hotTwoCenter = vec2(-0.12 + cos(uTime * 0.16) * uHorizon * 0.07, -uHorizon * 1.48);
-  vec2 hotThreeCenter = vec2(0.02 + sin(uTime * 0.12) * uHorizon * 0.06, -uHorizon * 1.9);
-  float hotOne = exp(-pow(length(p - hotOneCenter) / (uHorizon * 0.36), 2.0));
-  float hotTwo = exp(-pow(length(p - hotTwoCenter) / (uHorizon * 0.42), 2.0));
-  float hotThree = exp(-pow(length(p - hotThreeCenter) / (uHorizon * 0.62), 2.0));
-  float lumpy = 0.52 + fbm(spinP * 7.2 + vec2(uTime * 0.16, -uTime * 0.08)) * 0.78;
-  float heat = uRimHeat * ((ring * lower * (0.45 + sideFade * 0.55) * lumpy * 0.58) + spiralHeat * 0.58 + circumference + broad * 0.038);
-  float pulse = 0.82 + 0.18 * sin(uTime * 1.2 + fbm(p * 2.0) * 2.0);
-  float whiteHot = clamp((hotOne * 0.36 + hotTwo * 0.2 + hotThree * 0.14) * lowerCore * uRimHeat * pulse, 0.0, 0.64);
-  return colorRamp(clamp(heat, 0.0, 1.28), whiteHot) * (heat * 0.068 + whiteHot * 0.024);
-}
-
 vec3 wavefrontSource(vec2 uv) {
   vec3 source = vec3(0.0);
 
@@ -262,7 +229,6 @@ void main() {
   float lowerField = -p.y / max(d, 0.001);
   float lowerNoise = (fbm(p * 4.8 + vec2(uTime * 0.04, -uTime * 0.025)) - 0.5) * 0.24;
   float lowerRim = smoothstep(-0.14, 0.95, lowerField + lowerNoise * 0.35);
-  float nearRim = smoothstep(uHorizon * 1.7, uHorizon * 0.94, d) * lowerRim;
   float nearField = 1.0 - smoothstep(uHorizon * 1.7, uHorizon * 5.6, d);
   float orbitalWake = (1.0 - smoothstep(uHorizon * 1.12, uHorizon * 4.9, d)) * (0.42 + lowerRim * 0.58);
   float orbitRetention = exp(-pow((d - uHorizon * 2.6) / (uHorizon * 1.9), 2.0)) * 0.88;
@@ -289,10 +255,8 @@ void main() {
   float stainCap = mix(0.018, 0.9, packetField) * mix(0.44, 1.0, 1.0 - leftResidueDrain);
   float capScale = min(1.0, stainCap / max(dyeMax, 0.001));
   dye *= mix(capScale, 1.0, packetField);
-  dye += rimSource(vUv);
   dye += wavefrontSource(vUv);
   dye *= 1.0 - hole;
-  dye += nearRim * (1.0 - hole) * vec3(0.12, 0.052, 0.01);
   dye = clamp(dye, 0.0, 1.0);
   outColor = vec4(dye, 1.0);
 }`;
@@ -542,25 +506,6 @@ vec2 applyCameraRoll(vec2 uv) {
 }
 #endif
 
-vec2 warpBlackHoleField(vec2 uv) {
-  vec2 p = aspectPoint(uv);
-  float d = max(length(p), 0.001);
-  float angle = atan(p.y, p.x);
-  float horizon = effectiveHorizon();
-  float surge = diveSurge();
-  float violence = diveViolence();
-  float tremor = horizonTremor();
-  vec2 radialAspect = p / d;
-  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
-  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float shellWarp = exp(-pow((d - horizon * 1.05) / (horizon * 0.14), 2.0));
-  float wrapBand = exp(-pow((d - horizon * 1.34) / (horizon * 0.32), 2.0));
-  float pinch = (shellWarp * 0.04 + wrapBand * 0.018) * (1.0 + surge * 0.8 + violence * 1.5);
-  float curl = (shellWarp * 0.03 + wrapBand * 0.014) * (1.0 + surge * 1.0 + violence * 1.8);
-  float buckle = sin(angle * 5.4 - uTime * (2.6 + violence * 6.2) + tremor * 9.0) * (shellWarp * 0.016 + wrapBand * 0.008) * (0.7 + violence);
-  return uv - radialUv * pinch + tangentUv * curl + tangentUv * buckle - radialUv * buckle * 0.42;
-}
-
 float starGrid(vec2 uv, float scale, float threshold, float brightness) {
   vec2 scaled = uv * scale;
   vec2 cell = floor(scaled);
@@ -605,191 +550,6 @@ vec3 baseStarField(vec2 uv) {
   return cool + gold;
 }
 
-vec2 horizonParallaxUv(vec2 uv, vec2 p, float d) {
-  float angle = atan(p.y, p.x);
-  vec2 radialAspect = p / max(d, 0.001);
-  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
-  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float horizon = effectiveHorizon();
-  float surge = diveSurge();
-  float violence = diveViolence();
-  float tremor = horizonTremor();
-  float innerBand = exp(-pow((d - horizon * 1.18) / (horizon * 0.16), 2.0));
-  float outerBand = exp(-pow((d - horizon * 1.48) / (horizon * 0.34), 2.0));
-  float driftPhase = uTime * mix(0.08, 0.22, surge);
-  float drift = (innerBand * 0.0032 + outerBand * 0.0012) * (1.0 + surge * 1.05 + tremor * 0.75 + violence * 0.9);
-  vec2 instability =
-    tangentUv * sin(driftPhase * 3.6 + angle * 4.4) * (innerBand * 0.0042 + outerBand * 0.0015) * (tremor + violence * 0.7) +
-    radialUv * cos(driftPhase * 2.2 - angle * 2.8) * (innerBand * 0.0026 + outerBand * 0.0011) * (tremor + violence * 0.7);
-  return
-    uv +
-    tangentUv * drift * sin(driftPhase + angle * 2.1) +
-    radialUv * drift * 0.42 * cos(driftPhase * 0.74 - angle * 1.3) +
-    instability;
-}
-
-vec2 ringAberrationOffset(
-  vec2 radialUv,
-  vec2 tangentUv,
-  float ringBand,
-  float shellWarp,
-  float outerBand,
-  float spin,
-  float violence
-) {
-  return
-    radialUv * (ringBand * 0.014 + shellWarp * 0.022 + outerBand * 0.006) * -(0.92 + violence * 0.78) +
-    tangentUv * (ringBand * 0.01 + shellWarp * 0.016 + outerBand * 0.008) * spin * (0.94 + violence * 0.84);
-}
-
-vec3 cursorLensField(vec2 uv);
-
-vec3 sampleLensedBackground(vec2 uv) {
-  vec2 p = aspectPoint(uv);
-  float d = max(length(p), 0.001);
-  float horizon = effectiveHorizon();
-  float surge = diveSurge();
-  float violence = diveViolence();
-  float visible = starFieldVisibility();
-  vec2 radialAspect = p / d;
-  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
-  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float ringBand = exp(-pow((d - horizon * 1.28) / (horizon * 0.18), 2.0));
-  float outerBand = exp(-pow((d - horizon * 1.62) / (horizon * 0.36), 2.0));
-  float shellWarp = exp(-pow((d - horizon * 1.08) / (horizon * 0.12), 2.0));
-  float lensWeight = clamp(ringBand * 1.18 + outerBand * 0.32 + shellWarp * (0.42 + violence * 0.38), 0.0, 1.0);
-  float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
-  vec2 parallaxUv = horizonParallaxUv(uv, p, d);
-  vec3 cursorLens = cursorLensField(uv);
-
-  vec3 base = baseStarField(parallaxUv + cursorLens.xy * (0.38 + cursorLens.z * 0.26)) * visible;
-
-  if (lensWeight < 0.001 && cursorLens.z < 0.001) {
-    return base;
-  }
-
-  vec2 warpedUv = parallaxUv + ringAberrationOffset(
-    radialUv,
-    tangentUv,
-    ringBand,
-    shellWarp,
-    outerBand,
-    spin,
-    violence
-  );
-  warpedUv += cursorLens.xy * 0.5;
-  warpedUv += cursorLens.xy * cursorLens.z * 0.36;
-  float smearNear = 0.004 + ringBand * 0.01 + shellWarp * 0.012 * (1.0 + violence);
-  float smearFar = 0.0018 + outerBand * 0.0042;
-  vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
-  float cursorSmear = 0.0024 + cursorLens.z * 0.042;
-  vec3 lensed =
-    baseStarField(warpedUv) * 0.42 +
-    baseStarField(warpedUv + tangentUv * smearNear) * 0.22 +
-    baseStarField(warpedUv - tangentUv * smearNear * 0.78) * 0.17 +
-    baseStarField(warpedUv + cursorDir * cursorSmear) * 0.16 +
-    baseStarField(warpedUv - cursorDir * cursorSmear * 0.62) * 0.12 +
-    baseStarField(warpedUv + tangentUv * smearFar * 1.65) * 0.1;
-  float cursorWeight = clamp(cursorLens.z * 0.82, 0.0, 0.72);
-  lensWeight = clamp(lensWeight + surge * ringBand * 0.42 + violence * shellWarp * 0.35 + cursorWeight * 0.44, 0.0, 1.0);
-
-  return mix(base, lensed * visible, lensWeight);
-}
-
-vec3 cursorLensField(vec2 uv) {
-  vec2 totalOffset = vec2(0.0);
-  float totalField = 0.0;
-
-  for (int stream = 0; stream < 3; stream++) {
-    if (stream >= uStreamCount) {
-      break;
-    }
-
-    vec4 meta = uStreamMeta[stream];
-    float escapeSpread = smoothstep(0.04, 0.72, meta.x);
-    vec4 wave = uStreamWave[stream];
-    vec2 waveNormal = normalize(wave.zw + vec2(0.0001, 0.0));
-    vec2 waveMotion = vec2(waveNormal.y, -waveNormal.x);
-    vec2 waveDelta = vec2((uv.x - wave.x) * uAspect, uv.y - wave.y);
-    float waveWidth = max(meta.z, 0.01);
-    float distortion = (fbm(waveDelta * 10.0 + vec2(meta.y * 9.0, uTime * 0.34)) - 0.5) * waveWidth * (0.65 + escapeSpread * 0.5);
-    float across = dot(waveDelta, waveNormal) + distortion;
-    float forward = dot(waveDelta, waveMotion);
-    float waveDepth = max(waveWidth * mix(0.14, 0.32, escapeSpread), 0.0055);
-    float shellRadius = waveWidth * mix(0.54, 0.9, escapeSpread);
-    vec2 shellP = vec2(across, forward * mix(1.08, 0.86, escapeSpread));
-    float shellDistance = length(shellP) - shellRadius;
-    float frontMask = smoothstep(-waveWidth * 0.52, waveWidth * 0.18, forward);
-    float shell = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask;
-    float body = exp(-dot(waveDelta, waveDelta) / max(waveWidth * waveWidth * 6.8, 0.0001));
-    float lane = exp(-(across * across) / max(waveWidth * waveWidth * 1.9, 0.0001)) * smoothstep(-waveWidth * 1.1, waveWidth * 0.78, forward);
-    float streamField = (shell * 1.06 + body * 0.52 + lane * 0.42) * meta.w * (0.24 + uCursorHeat * 0.38) * mix(1.0, 0.64, escapeSpread);
-    vec2 normalUv = vec2(waveNormal.x / max(uAspect, 0.001), waveNormal.y);
-    vec2 motionUv = vec2(waveMotion.x / max(uAspect, 0.001), waveMotion.y);
-    float bendPulse = 0.72 + 0.28 * sin(uTime * 2.2 + meta.y * 17.0);
-    totalOffset += normalUv * sign(across + 0.0001) * streamField * (0.016 + shell * 0.028 + body * 0.01);
-    totalOffset += motionUv * streamField * bendPulse * (0.022 + shell * 0.034 + body * 0.015);
-    totalField = max(totalField, streamField);
-  }
-
-  return vec3(totalOffset, clamp(totalField, 0.0, 1.0));
-}
-
-vec3 sampleForegroundStars(vec2 uv) {
-  vec2 p = aspectPoint(uv);
-  float d = max(length(p), 0.001);
-  float horizon = effectiveHorizon();
-  float surge = diveSurge();
-  float violence = diveViolence();
-  float visible = starFieldVisibility();
-  vec2 radialAspect = p / d;
-  vec2 radialUv = vec2(radialAspect.x / uAspect, radialAspect.y);
-  vec2 tangentUv = vec2(-radialUv.y / max(uAspect, 0.001), radialUv.x * uAspect);
-  float ringBand = exp(-pow((d - horizon * 1.16) / (horizon * 0.07), 2.0));
-  float outerBand = exp(-pow((d - horizon * 1.31) / (horizon * 0.14), 2.0));
-  float shellWarp = exp(-pow((d - horizon * 1.08) / (horizon * 0.11), 2.0));
-  float edgeBand = exp(-pow((d - horizon * 1.018) / (horizon * 0.038), 2.0));
-  float horizonMask = smoothstep(horizon * 0.972, horizon * 1.004, d);
-  vec2 parallaxUv = horizonParallaxUv(uv, p, d);
-  vec3 cursorLens = cursorLensField(uv);
-  float foregroundWeight = clamp((ringBand * 0.82 + outerBand * 0.22 + shellWarp * 0.32 + edgeBand * 1.1) * horizonMask * (1.0 + surge * 0.54 + violence * 0.4), 0.0, 0.96);
-  float cursorWeight = clamp(cursorLens.z * 0.24, 0.0, 0.32);
-
-  if (foregroundWeight < 0.001 && cursorWeight < 0.001) {
-    return vec3(0.0);
-  }
-
-  float spin = 0.86 + 0.14 * sin(atan(p.y, p.x) * 3.0 - uTime * 1.2);
-  vec2 warpedUv = parallaxUv + ringAberrationOffset(
-    radialUv,
-    tangentUv,
-    ringBand,
-    shellWarp,
-    outerBand,
-    spin,
-    violence
-  ) * 1.14;
-  warpedUv += cursorLens.xy * 0.5;
-  warpedUv += cursorLens.xy * cursorLens.z * 0.34;
-  float smearNear = 0.0058 + ringBand * 0.014 + shellWarp * 0.016 + edgeBand * 0.018;
-  float smearFar = 0.0024 + outerBand * 0.0055;
-  vec2 cursorDir = normalize(cursorLens.xy + tangentUv * 0.00025);
-  float cursorSmear = 0.0032 + cursorLens.z * 0.046;
-  vec3 ringLensed =
-    baseStarField(warpedUv) * 0.22 +
-    baseStarField(warpedUv + tangentUv * smearNear) * 0.24 +
-    baseStarField(warpedUv - tangentUv * smearNear * 0.82) * 0.19 +
-    baseStarField(warpedUv + tangentUv * smearNear * 1.85) * 0.13 +
-    baseStarField(warpedUv + tangentUv * smearFar * 1.7) * 0.11;
-  vec2 cursorUv = parallaxUv + cursorLens.xy * (1.35 + cursorLens.z * 0.8);
-  vec3 cursorLensed =
-    baseStarField(cursorUv) * 0.18 +
-    baseStarField(cursorUv + cursorDir * cursorSmear) * 0.14 +
-    baseStarField(cursorUv - cursorDir * cursorSmear * 0.6) * 0.12;
-
-  return (ringLensed * foregroundWeight + cursorLensed * cursorWeight) * visible;
-}
-
 float uvEdgeMask(vec2 uv, vec2 margin) {
   vec2 lower = smoothstep(vec2(0.0), margin, uv);
   vec2 upper = smoothstep(vec2(0.0), margin, 1.0 - uv);
@@ -816,24 +576,6 @@ vec3 sampleBloom(vec2 uv) {
   color += sampleDyeTap(uv + vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
   color += sampleDyeTap(uv - vec2(uTexel.x * 9.0, uTexel.y * 5.0), margin) * 0.18;
   return color;
-}
-
-float discBandSoftness(float horizon, float sideView) {
-#ifdef ORBITAL_FLYAROUND
-  // Compensate for tiltCompression so the disc stays a visible band in world-space p.y
-  float tiltComp = max(cos(diveInclination()), 0.12);
-  float worldWidth = mix(horizon * 1.34, horizon * 0.42, sideView);
-  return worldWidth / tiltComp;
-#else
-  return mix(horizon * 1.34, horizon * 0.22, sideView);
-#endif
-}
-
-float discDirectionalMask(vec2 discP, float horizon, float sideView, float lowerBias) {
-  float verticalBias = smoothstep(-0.08, 0.82, -discP.y / max(horizon, 0.001));
-  float lateralFade = 1.0 - smoothstep(horizon * 1.18, horizon * 2.1, abs(discP.x));
-  float directional = verticalBias * lateralFade * (0.38 + lowerBias * 0.62);
-  return mix(1.0, directional, sideView);
 }
 
 vec3 sampleDiveGlow(
@@ -896,6 +638,156 @@ vec3 wavefrontVisual(vec2 uv) {
   return effect;
 }
 
+struct AccretionField {
+  vec3 color;
+  float emission;
+  float eventShadow;
+  float lensRing;
+  float sideBand;
+};
+
+struct RayDiskHit {
+  vec2 coord;
+  float radius;
+  float angle;
+  float depth;
+  float visible;
+  float nearSide;
+};
+
+vec3 accretionColorRamp(float heat, float dopplerBeaming, float innerHot) {
+  vec3 ember = vec3(0.13, 0.025, 0.007);
+  vec3 orange = vec3(0.72, 0.19, 0.026);
+  vec3 gold = vec3(1.08, 0.55, 0.11);
+  vec3 white = vec3(1.72, 1.16, 0.48);
+  vec3 color = mix(ember, orange, smoothstep(0.0, 0.5, heat));
+  color = mix(color, gold, smoothstep(0.32, 0.82, heat));
+  color = mix(color, white, innerHot);
+  vec3 receding = vec3(0.58, 0.32, 0.2);
+  vec3 approaching = vec3(1.12, 0.94, 0.62);
+  return color * mix(receding, approaching, dopplerBeaming);
+}
+
+RayDiskHit traceAccretionDisk(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  float sideView = discSideView();
+  float horizon = effectiveHorizon();
+  float tiltComp = mix(1.0, 0.16, sideView);
+  float denom = mix(-0.8, -0.18, sideView) + p.y * 0.08;
+  float denomSign = mix(-1.0, 1.0, step(0.0, denom));
+  float safeDenom = denomSign * max(abs(denom), 0.045);
+  float t = (horizon * 2.6) / safeDenom;
+  t = clamp(t, -8.0, 8.0);
+  vec2 coord = rot(discSweepAngle()) * vec2(p.x, (p.y + horizon * sideView * 0.035) / tiltComp);
+  coord = clamp(coord, vec2(-2.2), vec2(2.2));
+  float visible = 1.0;
+  float depth = -coord.y * sideView;
+  float nearSide = smoothstep(-0.1, 0.16, depth);
+
+  return RayDiskHit(coord, length(coord), atan(coord.y, coord.x), depth, visible, nearSide);
+}
+
+AccretionField sampleRayLensedAccretion(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  float d = max(length(p), 0.001);
+  float horizon = effectiveHorizon();
+  float orbit = discOrbitProgress();
+  float sideView = discSideView();
+  float surge = diveSurge();
+  float violence = diveViolence();
+  float tremor = horizonTremor();
+  float screenAngle = atan(p.y, p.x);
+
+  RayDiskHit diskHit = traceAccretionDisk(uv);
+#ifdef ORBITAL_FLYAROUND
+  float diveShrink = mix(1.0, 0.76, smoothstep(0.08, 0.38, diveProgress()));
+#else
+  float diveShrink = mix(1.0, 0.76, smoothstep(0.58, 0.82, uDiveProgress));
+#endif
+  float shadowRadius = horizon * mix(0.68, 0.74, sideView) * diveShrink;
+  float photonRingRadius = shadowRadius * 1.06;
+  float arcRadius = shadowRadius * mix(1.48, 1.62, sideView);
+  float diskInnerRadius = shadowRadius * mix(1.08, 1.18, sideView);
+  float diskOuterRadius = shadowRadius * mix(7.5, 10.0, sideView);
+  float eventShadow = 1.0 - smoothstep(shadowRadius * 0.84, shadowRadius * 1.18, d);
+  float shadowOcclusion = 1.0 - smoothstep(shadowRadius * 0.96, shadowRadius * 1.38, d);
+  float outsideShadow = smoothstep(shadowRadius * 0.96, shadowRadius * 1.2, d);
+  float photonRingRestraint = mix(0.4, 0.3, sideView) * (1.0 - smoothstep(0.35, 0.98, abs(sin(screenAngle))) * 0.18);
+  float restrainedPhotonRing = exp(-pow((d - photonRingRadius) / (shadowRadius * 0.075), 2.0)) * outsideShadow * photonRingRestraint;
+  float lensingRing = exp(-pow((d - arcRadius * 0.92) / (shadowRadius * 0.3), 2.0)) * outsideShadow;
+
+  float radialGate =
+    smoothstep(diskInnerRadius, diskInnerRadius * 1.18, diskHit.radius) *
+    (1.0 - smoothstep(diskOuterRadius * 0.78, diskOuterRadius, diskHit.radius));
+  float radialBody = exp(-pow((diskHit.radius - shadowRadius * 2.45) / (shadowRadius * 1.55), 2.0));
+  float discSpiralPhase = diskHit.angle + log(max(diskHit.radius / horizon, 0.2)) * 2.35 - uTime * 1.06;
+  float discSpiral = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 2.4);
+  float shearNoise = 0.5 + 0.5 * sin(diskHit.angle * 3.0 + diskHit.radius * 9.0 - uTime * 1.2);
+  float innerHot = exp(-pow((diskHit.radius - diskInnerRadius * 1.08) / (shadowRadius * 0.95), 2.0));
+  float diskEmission = radialGate * radialBody * (0.62 + shearNoise * 0.26 + discSpiral * 0.24);
+
+  vec2 bandP = rot(discSweepAngle()) * p;
+  float bandThickness = shadowRadius * mix(0.22, 0.34, sideView);
+  float sideLimbFusion =
+    smoothstep(shadowRadius * 0.98, shadowRadius * 1.7, abs(bandP.x)) *
+    (1.0 - smoothstep(diskOuterRadius * 0.78, diskOuterRadius, abs(bandP.x)));
+  float screenBand = sideView *
+    exp(-pow(abs(bandP.y + horizon * 0.02) / bandThickness, 1.45)) *
+    sideLimbFusion;
+  float foregroundBand = sideView *
+    exp(-pow(abs(bandP.y + shadowRadius * 0.018) / (shadowRadius * 0.15), 1.6)) *
+    (1.0 - smoothstep(diskOuterRadius * 0.64, diskOuterRadius * 0.92, abs(bandP.x)));
+  float directDisk = max(diskEmission, screenBand * (0.6 + shearNoise * 0.18));
+
+#ifdef ORBITAL_FLYAROUND
+  float dopplerBase = smoothstep(-0.7, 1.0, cos(diskHit.angle - diveAzimuth()));
+#else
+  float dopplerBase = smoothstep(-0.7, 1.0, cos(diskHit.angle));
+#endif
+  float dopplerBeaming = mix(0.5, dopplerBase, 0.35 + sideView * 0.65);
+  float sideViewBeam = mix(1.0, 0.82 + 0.56 * smoothstep(-0.15, 0.95, bandP.x / max(diskOuterRadius, 0.001)), sideView);
+  float directDiskVisibility = diskHit.visible * (1.0 - shadowOcclusion);
+  float nearSideVisibility = mix(0.36, 1.0, diskHit.nearSide);
+  float gatedDirectDiskVisibility = directDiskVisibility * nearSideVisibility;
+
+  float arcWidth = shadowRadius * mix(0.24, 0.34, sideView);
+  float verticalArc = exp(-pow((d - arcRadius) / arcWidth, 2.0)) * sideView * outsideShadow;
+  float topBottomArcBias = pow(abs(sin(screenAngle)), 1.45);
+  float horizontalMelt = 1.0 - smoothstep(diskOuterRadius * 0.58, diskOuterRadius * 0.86, abs(p.x));
+  float upperLensedArc =
+    verticalArc *
+    smoothstep(shadowRadius * 0.04, shadowRadius * 0.4, p.y) *
+    topBottomArcBias *
+    horizontalMelt *
+    (0.58 + 0.42 * smoothstep(-0.35, 0.9, cos(screenAngle)));
+  float lowerLensedArc =
+    verticalArc *
+    smoothstep(shadowRadius * 0.04, shadowRadius * 0.4, -p.y) *
+    topBottomArcBias *
+    horizontalMelt *
+    0.52;
+  float innerBridgeGlow =
+    exp(-pow((d - mix(photonRingRadius, arcRadius, 0.58)) / (shadowRadius * 0.28), 2.0)) *
+    outsideShadow *
+    sideView *
+    horizontalMelt *
+    (0.42 + topBottomArcBias * 0.58);
+
+  vec3 discColor = accretionColorRamp(0.36 + innerHot * 0.5 + discSpiral * 0.1, dopplerBeaming, smoothstep(0.36, 1.0, innerHot));
+  vec3 arcColor = accretionColorRamp(0.46 + sideView * 0.18, dopplerBeaming, 0.1 + innerHot * 0.18);
+  vec3 ringColor = vec3(1.15, 0.72, 0.22);
+  vec3 color =
+    discColor * directDisk * gatedDirectDiskVisibility * sideViewBeam * (0.72 + orbit * 0.4) +
+    discColor * foregroundBand * sideViewBeam * (0.36 + orbit * 0.28) +
+    arcColor * (upperLensedArc * 3.0 + lowerLensedArc * 2.15 + innerBridgeGlow * 1.24) +
+    ringColor * restrainedPhotonRing * (0.68 + sideView * 0.18) +
+    vec3(0.36, 0.13, 0.026) * lensingRing * sideView * 0.34;
+  color *= 1.0 + surge * 0.34 + tremor * 0.08 + violence * 0.1;
+
+  float emission = clamp(directDisk * gatedDirectDiskVisibility + upperLensedArc + lowerLensedArc + restrainedPhotonRing, 0.0, 1.0);
+  return AccretionField(color, emission, eventShadow, restrainedPhotonRing, directDisk);
+}
+
 vec3 samplePhotonRingCrescendo(vec2 sc, float surge, float violence, float tremor, float collapse) {
   float d = length(sc);
   // Photon sphere crossing: thin ring sweeps inward and flares as surge peaks, then fades
@@ -921,12 +813,9 @@ void main() {
 #else
   vec2 rolledUv = shakenUv;
 #endif
-  vec2 warpedWorldUv = warpBlackHoleField(viewToWorldUv(rolledUv));
-  vec2 worldUv = warpedWorldUv;
+  vec2 worldUv = viewToWorldUv(rolledUv);
   vec2 p = aspectPoint(worldUv);
   float d = length(p);
-  float angle = atan(p.y, p.x);
-  float dive = diveEase(uDiveProgress);
   float surge = diveSurge();
   float violence = diveViolence();
   float tremor = horizonTremor();
@@ -938,21 +827,6 @@ void main() {
   float diveDepth = smoothstep(0.38, 0.88, uDiveProgress);
 #endif
   float horizon = effectiveHorizon();
-  float orbit = discOrbitProgress();
-  float sideView = discSideView();
-  float tiltCompression = discTiltCompression();
-  float sweepAngle = discSweepAngle();
-  vec2 discRotP = rot(sweepAngle) * p;
-  vec2 discP = vec2(discRotP.x, discRotP.y / max(tiltCompression, 0.16));
-  float ellD = length(discP);
-#ifdef ORBITAL_FLYAROUND
-  float discRadialD = mix(d, ellD, sideView);
-  float discMix = smoothstep(0.04, 0.88, orbitProgress());
-#else
-  float discRadialD = d;
-  float discMix = smoothstep(0.04, 0.72, uDiveProgress);
-#endif
-  float discFieldBlend = discMix * exp(-pow((discRadialD - horizon * 1.72) / (horizon * 1.08), 2.0));
   vec2 dyeUv = mix(worldUv, rolledUv, smoothstep(0.54, 0.96, surge + violence * 0.65));
   vec3 dye = sampleBloom(dyeUv);
   vec2 spinP = rot(uTime * 0.16) * p;
@@ -962,232 +836,16 @@ void main() {
   float intensity = dot(dye, vec3(0.45, 0.36, 0.19));
   vec3 background = mix(vec3(0.024, 0.012, 0.008), vec3(0.0009, 0.00045, 0.00018), collapse * 0.94);
   float pulse = 0.76 + 0.24 * sin(uTime * (1.18 + tremor * 0.85) + densityNoise * 1.7);
-  float atmospheric = exp(-pow(d / (horizon * mix(4.9, 6.8, surge)), 2.0)) * (0.12 + pulse * 0.082) * (1.0 + surge * 1.18 + tremor * 0.24 + violence * 0.22) * mix(1.0, 0.24, collapse);
-  vec3 color = background + vec3(0.22, 0.045, 0.006) * atmospheric;
-  color += sampleLensedBackground(worldUv);
-  color += dye * (1.06 + intensity * 1.72 + orbitCompression * violence * 0.8) * mix(1.0, 0.68, collapse);
-
-  float hole = 1.0 - smoothstep(horizon * 0.76, horizon * 1.08, d);
-  float spiralPhase = angle + log(max(d / horizon, 0.18)) * 2.5 - uTime * 1.24;
-  float spiralBand = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 6.0);
-  float spiralMask = exp(-pow((d - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);
-#ifdef ORBITAL_FLYAROUND
-  // discSide: +1 = we're above disc (disc appears below), -1 = below disc (disc appears above)
-  float cosIncl = cos(diveInclination());
-  float discSide = clamp(cosIncl / 0.25, -1.0, 1.0);
-  float lowerField = discSide * (-sin(angle));
-#else
-  float discSide = 1.0;
-  float lowerField = -sin(angle);
-#endif
-  float lowerNoise = (fbm(p * 4.6 + vec2(uTime * 0.03, -uTime * 0.02)) - 0.5) * 0.24;
-  float lowerBias = smoothstep(-0.34, 0.98, lowerField + lowerNoise * 0.4);
-  float rimNoise = fbm(vec2(angle * 2.2 - uTime * 0.42, uTime * 0.16 + dive * 0.5));
-  float warpedD = d + (rimNoise - 0.5) * horizon * 0.095;
-  float rim = smoothstep(horizon * 1.22, horizon * 0.96, warpedD) * (1.0 - hole);
-  float softCircumference = exp(-pow((warpedD - horizon * 1.1) / (horizon * 0.26), 2.0)) * (1.0 - hole);
-  float outerHalo = exp(-pow((warpedD - horizon * 1.52) / (horizon * 0.72), 2.0)) * (1.0 - hole);
-  float rotatingArc = smoothstep(0.72, 1.0, 0.5 + 0.5 * cos(angle * 3.0 - uTime * 2.2 + densityNoise * 2.5));
-  float innerArc = exp(-pow((warpedD - horizon * (1.28 + pulse * 0.035)) / (horizon * 0.15), 2.0)) * rotatingArc * lowerBias * (1.0 - hole);
-  float outerArc = exp(-pow((warpedD - horizon * 2.05) / (horizon * 0.35), 2.0)) * spiralBand * (0.25 + lowerBias * 0.75) * (1.0 - hole);
-  color = mix(color, vec3(0.002, 0.001, 0.0005), hole);
-#ifdef ORBITAL_FLYAROUND
-  float lowerRimField = discSide * (-p.y) / max(d, 0.001);
-#else
-  float lowerRimField = -p.y / max(d, 0.001);
-#endif
-  float lowerRimNoise = (fbm(p * 5.2 + vec2(uTime * 0.04, uTime * 0.02)) - 0.5) * 0.22;
-  float lowerRim = smoothstep(-0.1, 0.95, lowerRimField + lowerRimNoise * 0.35);
-  float spinSpark = 0.45 + 0.55 * sin(angle * 3.0 - uTime * 2.4 + densityNoise * 2.2);
-  float discBand = exp(-pow(discP.y / max(discBandSoftness(horizon, sideView), horizon * 0.12), 2.0));
-  float sideBand = discBand;
-  float sideLane = exp(-pow((abs(discP.x) - horizon * 1.52) / (horizon * mix(0.82, 0.48, sideView)), 2.0));
-  float discEdge = exp(-pow((abs(discP.x) - horizon * mix(1.76, 1.48, sideView)) / max(horizon * mix(1.08, 0.38, sideView), horizon * 0.16), 2.0));
-#ifdef ORBITAL_FLYAROUND
-  // At edge-on the equatorial plane (p.y=0) must be bright — standard directional mask suppresses it
-  float discDirectional = mix(1.0, max(discDirectionalMask(discP, horizon, sideView, lowerBias), 0.62), sideView * 0.5);
-#else
-  float discDirectional = discDirectionalMask(discP, horizon, sideView, lowerBias);
-#endif
-  float discGlowMask = discFieldBlend * smoothstep(horizon * 0.42, horizon * 1.48, discRadialD);
-  float discMidGlow =
-    exp(-pow(discP.x / (horizon * 1.18), 2.0)) *
-    discBand *
-    smoothstep(horizon * 0.48, horizon * 1.24, discRadialD) *
-    mix(1.0, discDirectional, 0.72);
-  float discBackscatter = discBand * discEdge * (0.32 + lowerBias * 0.68) * discDirectional;
-  float wrappedDiscGlow =
-    sideBand *
-    sideLane *
-    smoothstep(horizon * 0.56, horizon * 1.34, discRadialD) *
-    discDirectional *
-    (0.32 + 0.68 * (1.0 - smoothstep(horizon * 1.14, horizon * 1.96, abs(discP.x))));
-#ifdef ORBITAL_FLYAROUND
-  // Phase 1: boost disc glow brightness until surge takes over (~diveProgress 0.58)
-  float phase1Boost = smoothstep(0.0, 0.3, orbit) * mix(1.0, 0.0, smoothstep(0.0, 0.6, diveProgress()));
-  float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78 + phase1Boost * 3.0;
-#else
-  float ringBoost = 1.0 + surge * 3.15 + collapse * 1.8 + tremor * 0.62 + violence * 0.78;
-#endif
-  // Foreground disc: near-side disc material crossing the horizon
-  // discSide flips this from below-BH to above-BH as we tip past edge-on
-#ifdef ORBITAL_FLYAROUND
-  float nearSide = smoothstep(-0.15, 0.88, discSide * (-sin(angle)) + lowerNoise * 0.4);
-#else
-  float nearSide = smoothstep(-0.15, 0.88, lowerField + lowerNoise * 0.4);
-#endif
-  float foreDiscNoise = fbm(vec2(angle * 1.4 - uTime * 0.18, uTime * 0.09));
-  float foreDiscR = horizon * (1.28 + (foreDiscNoise - 0.5) * 0.14);
-  float foreDiscCross = exp(-pow((d - foreDiscR) / (horizon * 0.38), 2.0)) * nearSide;
-  float foreDiscLumpy = 0.42 + 0.58 * fbm(spinP * 5.8 + vec2(uTime * 0.19, -uTime * 0.11));
-  float foreDiscFade = 1.0 - collapse;
-  float foreDiscBoost = 1.0 + surge * 2.0 + tremor * 0.4;
-#ifdef ORBITAL_FLYAROUND
-  // cleanFade ramps with orbit progress (NOT sideView). Sharper crossfade window
-  // (0.08→0.18) so warped disc + elliptical disc don't both render at half-strength
-  // for long, which was washing out the transition view.
-  float cleanFade = smoothstep(0.08, 0.18, orbitProgress()) * (1.0 - smoothstep(0.0, 0.4, diveProgress()));
-#else
-  float cleanFade = 0.0;
-#endif
-  float warpedDisc = 1.0 - cleanFade;
-  color += foreDiscCross * vec3(0.52, 0.19, 0.03) * (0.32 + pulse * 0.46) * foreDiscLumpy * foreDiscBoost * foreDiscFade * 0.65 * warpedDisc;
-  // Doppler beaming: disc orbiting left-to-right, left side is blueshifted/brighter
-#ifdef ORBITAL_FLYAROUND
-  float dopplerAngle = cos(angle - diveAzimuth());
-#else
-  float dopplerAngle = cos(angle);
-#endif
-  float dopplerBright = smoothstep(0.0, 1.0, dopplerAngle);
-  float dopplerMask  = exp(-pow((d - horizon * 1.6) / (horizon * 1.4), 2.0));
-  color += dopplerMask * dopplerBright * vec3(0.14, 0.06, 0.008) * ringBoost * 0.45 * warpedDisc;
-  // Relativistic jet: faint bipolar column perpendicular to the disc
-  float jetX = abs(p.x);
-  float jetNarrow = exp(-pow(jetX / (horizon * 0.28), 2.0));
-  float jetReach = exp(-pow(d / (horizon * 5.2), 1.2)) * (1.0 - hole);
-  float jetNoise = 0.72 + 0.28 * fbm(vec2(d * 6.2 - uTime * 0.55, angle * 0.4 + uTime * 0.08));
-  float jetCone = jetNarrow * jetReach * jetNoise;
-  float jetVertical = smoothstep(horizon * 0.9, horizon * 1.6, d);
-  color += jetCone * jetVertical * vec3(0.12, 0.07, 0.18) * (0.18 + pulse * 0.14);
-  // Screen-space spiral fades with warpedDisc — replaced by disc-plane spiral inside the elliptical block
-  color += spiralBand * spiralMask * vec3(0.24, 0.078, 0.008) * (0.44 + pulse * 0.82) * (0.58 + lowerBias * 0.42) * ringBoost * warpedDisc;
-  color += spiralMask * spinSpark * vec3(0.055, 0.015, 0.0018) * (0.2 + pulse * 0.35) * ringBoost * warpedDisc;
-  color += outerArc * vec3(0.18, 0.052, 0.005) * (0.34 + pulse * 0.4) * ringBoost * warpedDisc;
-  color += innerArc * vec3(0.42, 0.16, 0.028) * (0.26 + pulse * 0.38) * ringBoost * warpedDisc;
-  // Circular photon-sphere features — keep these regardless of disc phase (they look correct edge-on)
-  color += outerHalo * vec3(0.052, 0.015, 0.0022) * (0.36 + pulse * 0.45) * (1.0 + surge * 1.18 + tremor * 0.3 + violence * 0.25);
-  color += softCircumference * vec3(0.18, 0.07, 0.012) * (0.56 + pulse * 0.68) * ringBoost;
-  color += rim * vec3(0.13, 0.048, 0.008) * (0.3 + pulse * 0.34) * ringBoost;
-  color += rim * lowerRim * vec3(0.22, 0.095, 0.018) * (0.58 + pulse * 0.42) * ringBoost;
-  // discSideVis: blend from a base pole-on glow (orbit * 0.55) to the full edge-on response
-  float discSideVis = max(sideView, orbit * 0.55);
-  color += discBackscatter * discGlowMask * vec3(0.36, 0.12, 0.018) * discSideVis * (0.16 + orbit * 0.34) * ringBoost * warpedDisc;
-  color += discMidGlow * discGlowMask * vec3(0.62, 0.28, 0.05) * discSideVis * (0.08 + orbit * 0.22) * ringBoost * warpedDisc;
-  color += wrappedDiscGlow * discGlowMask * vec3(0.42, 0.16, 0.03) * (0.14 + sideView * 0.52 + orbit * 0.35) * ringBoost * warpedDisc;
+  float atmospheric = exp(-pow(d / (horizon * mix(2.75, 4.2, surge)), 2.0)) * (0.022 + pulse * 0.016) * (1.0 + surge * 0.48 + tremor * 0.1 + violence * 0.08) * mix(1.0, 0.16, collapse);
+  vec3 color = background + vec3(0.075, 0.017, 0.0036) * atmospheric;
+  color += baseStarField(worldUv) * starFieldVisibility();
+  AccretionField accretion = sampleRayLensedAccretion(worldUv);
+  color = mix(color, vec3(0.00012, 0.00004, 0.000015), accretion.eventShadow);
+  color += accretion.color * mix(1.0, 0.74, collapse);
+  color += dye * (0.68 + intensity * 0.96 + orbitCompression * violence * 0.42) * mix(1.0, 0.58, collapse) * (1.0 - accretion.eventShadow * 0.86);
   color = max(color + wavefrontVisual(dyeUv), vec3(0.0));
-#ifdef ORBITAL_FLYAROUND
-  // Photon-ring lensing is a dive effect — fade it out during the orbital phase so it doesn't overlay the disc
-  color += sampleForegroundStars(worldUv) * mix(0.06, 1.0, smoothstep(0.0, 0.35, diveProgress()));
-#else
-  color += sampleForegroundStars(worldUv);
-#endif
   vec2 sc = rolledUv - uCenter;
   color += samplePhotonRingCrescendo(sc, surge, violence, tremor, collapse);
-#ifdef ORBITAL_FLYAROUND
-  // ELLIPTICAL-PROJECTION DISC. The disc is a flat ring in 3D in the BH equatorial plane.
-  // We project it to screen by stretching the y-axis by 1/cos(tilt). The result:
-  //   pole-on (cos=1):    discLocal = p_raw → disc is a circle around BH
-  //   tilted (cos=0.5):   y is stretched 2× → disc is an ellipse, vertically compressed in screen
-  //   edge-on (cos≈0):    y is stretched ~25× → disc collapses to a horizontal line
-  // The "bottom edge of the disc rises to the equator as we tilt" is automatic — it's literally
-  // how an ellipse compresses to a line.
-  vec2 rawWorldUv = viewToWorldUv(rolledUv);
-  vec2 p_raw = aspectPoint(rawWorldUv);
-  float d_raw = max(length(p_raw), 0.001);
-  float tilt = diveInclination();
-  float tiltComp = max(cos(tilt), 0.04);
-  float sinTilt = sin(tilt);
-  // Disc-plane coordinates (the ring's "own" coordinate system)
-  vec2 discLocal = vec2(p_raw.x, p_raw.y / tiltComp);
-  float r_disc = length(discLocal);
-  float theta_disc = atan(discLocal.y, discLocal.x);
-  // ============================================================================
-  // CONTINUOUS-GRADIENT DISC + UNIFIED PHOTON RING
-  // The previous version had three separate Gaussians (disc band, photon halo,
-  // inner-edge connector) that didn't merge. Replaced with a single continuous
-  // structure: bright photon ring at shadow edge → hot white-yellow disc inner →
-  // deep orange disc outer. The "flow" between BH and disc is now baked into
-  // one brightness profile with a continuous color gradient.
-  // ============================================================================
-  float r_photonSphere = horizon * 1.06;  // disc inner edge meets photon ring at shadow rim
-  float r_outer = horizon * 5.0;          // long horizontal tails like the Interstellar reference
-  float doppler = 0.42 + 0.58 * cos(theta_disc - diveAzimuth());
-  float screenAngle = atan(p_raw.y, p_raw.x);
-  // Vertical bias: at edge-on the wrap-over arcs (top/bottom of BH) are bright,
-  // sides are where the disc itself takes over. At pole-on stays uniform.
-  float verticalBias = mix(1.0, 0.30 + 1.40 * sin(screenAngle) * sin(screenAngle), sinTilt);
-  // OCCLUSION: pixels showing the FAR HALF of the disc that fall inside the BH shadow are hidden.
-  float bhShadowMask = 1.0 - smoothstep(horizon * 0.78, horizon * 1.10, d_raw);
-  float farSideAmt = smoothstep(0.0, 0.35, sin(theta_disc));
-  float discVisible = 1.0 - bhShadowMask * farSideAmt;
-  // Disc-plane spiral pattern (lives in disc coords, rotates with the tilt)
-  float discSpiralPhase = theta_disc + log(max(r_disc / horizon, 0.18)) * 2.5 - uTime * 1.24;
-  float discSpiralBand = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 4.0);
-  float spiralMod = mix(1.0, 0.55 + discSpiralBand * 0.85, 0.4);
-
-  // ---- DISC MATERIAL: smooth Gaussian peaking at r_photonSphere, falling off outward ----
-  // No more boxy smoothstep × (1-smoothstep) profile — single continuous gradient.
-  float discDensity = exp(-pow((r_disc - r_photonSphere) / (horizon * 1.45), 2.0))
-                    * smoothstep(r_photonSphere * 0.86, r_photonSphere * 1.02, r_disc)
-                    * (1.0 - smoothstep(r_outer * 0.55, r_outer, r_disc));
-  // Hot zone near inner edge — controls the white-yellow color shift
-  float innerHot = exp(-pow((r_disc - r_photonSphere * 1.05) / (horizon * 0.45), 2.0));
-  // Color gradient: deep orange outer → bright yellow-white inner (Interstellar palette)
-  vec3 discOuterColor = vec3(0.85, 0.32, 0.05);
-  vec3 discInnerColor = vec3(2.60, 1.55, 0.50);  // brighter, more white-yellow saturation
-  vec3 discColor = mix(discOuterColor, discInnerColor, innerHot);
-  // Render the disc material — single contribution, no separate connector needed
-  color += discDensity * discVisible * cleanFade * discColor
-         * (0.5 + doppler * 1.0) * spiralMod * (0.6 + innerHot * 1.0);
-
-  // ---- WIDE AMBIENT HALO (the wispy material extending beyond the disc band) ----
-  float wideRadial = exp(-pow((r_disc - horizon * 1.85) / (horizon * 1.1), 2.0));
-  color += wideRadial * discVisible * cleanFade * vec3(0.55, 0.22, 0.030)
-         * (0.4 + doppler * 0.45) * mix(1.0, spiralMod, 0.6);
-
-  // ---- BRIGHT SPIRAL-ARM HIGHLIGHTS (dense streaks on top of the disc) ----
-  float spiralArmFalloff = exp(-pow((r_disc - horizon * 1.85) / (horizon * 1.4), 2.0));
-  color += discSpiralBand * spiralArmFalloff * discVisible * cleanFade
-         * vec3(0.85, 0.38, 0.06) * (0.45 + doppler * 0.55);
-
-  // ---- PHOTON RING at the shadow edge — visible at rest frame, brighter toward white-yellow ----
-  float ringFade = 1.0 - smoothstep(0.0, 0.4, diveProgress());
-  float photonRing = exp(-pow((d_raw - horizon * 1.04) / (horizon * 0.022), 2.0));
-  color += photonRing * ringFade * verticalBias * vec3(2.30, 1.45, 0.45) * (0.6 + sinTilt * 0.4);
-
-  // ---- SOFT OUTER HALO — slightly extended outward ----
-  float softHalo = exp(-pow((d_raw - horizon * 1.16) / (horizon * 0.13), 2.0));
-  color += softHalo * ringFade * verticalBias * vec3(1.10, 0.55, 0.10) * (0.45 + sinTilt * 0.55);
-
-  // ---- WRAP-OVER RING — the lensed back-of-disc forming a COMPLETE bright ring around the BH.
-  // KEY CHANGE: no longer zero-masked at the sides. Uses mix(0.7, 1.4, sin²) so the ring is
-  // continuous everywhere with extra emphasis at top/bottom. On the sides the horizontal disc
-  // overlaps this ring — that's how Interstellar achieves the seamless "one bright structure"
-  // wrapping the BH instead of "horizontal disc snapped onto a thin photon ring."
-  float wrapAngBoost = mix(0.70, 1.40, pow(abs(sin(screenAngle)), 1.5));
-  // Main wrap ring — moved outward and widened so it sits in the visible halo zone
-  float wrapRing = exp(-pow((d_raw - horizon * 1.22) / (horizon * 0.16), 2.0));
-  color += wrapRing * wrapAngBoost * sinTilt * cleanFade
-         * vec3(2.00, 1.10, 0.30) * (0.85 + sinTilt * 0.4);
-  // Extended outer wrap glow — softer continuation, helps the "halo extends outward" feel
-  float wrapOuterGlow = exp(-pow((d_raw - horizon * 1.50) / (horizon * 0.32), 2.0));
-  color += wrapOuterGlow * wrapAngBoost * sinTilt * cleanFade
-         * vec3(1.10, 0.50, 0.08) * 0.7;
-
-  // Subtle lensed background backlight over the poles at edge-on
-  float topGlowMask = sinTilt * cleanFade * exp(-pow(p_raw.x / (horizon * 0.88), 2.0)) * 0.4;
-  color += sampleLensedBackground(worldUv) * topGlowMask;
-#endif
   // Gravitational colour temperature shift: disc whitens then blue-shifts as you fall in
   if (diveDepth > 0.001) {
     float whitening = diveDepth * (1.0 - surge * 0.28);
@@ -1198,12 +856,12 @@ void main() {
   }
 
   float frameRadius = distance(rolledUv, vec2(0.5));
-  color += sampleDiveGlow(rolledUv, frameRadius, horizon, surge, collapse, tremor, violence);
+  color += sampleDiveGlow(rolledUv, frameRadius, horizon, surge, collapse, tremor, violence) * 0.42;
   float tunnelVignette = smoothstep(0.18, 0.82, frameRadius) * surge;
   color *= 1.0 - tunnelVignette * (0.38 + collapse * 0.62 + tremor * 0.1 + violence * 0.08);
   float vignette = smoothstep(1.05, 0.14, frameRadius);
   color *= 0.54 + vignette * (0.54 + surge * 0.2);
-  color = vec3(1.0) - exp(-color * mix(1.26, 1.92, surge));
+  color = vec3(1.0) - exp(-color * mix(1.22, 1.66, surge));
 #ifdef ORBITAL_FLYAROUND
   color *= 1.0 - smoothstep(0.86, 0.965, diveProgress());
 #else
@@ -1429,15 +1087,21 @@ resize();
 requestAnimationFrame(frame);
 
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  width = Math.max(1, Math.floor(window.innerWidth * dpr));
-  height = Math.max(1, Math.floor(window.innerHeight * dpr));
+  const displayLimit = 800;
+  const displayScale = Math.min(
+    window.devicePixelRatio || 1,
+    1.5,
+    displayLimit / Math.max(window.innerWidth, 1),
+  );
+  width = Math.max(1, Math.floor(window.innerWidth * displayScale));
+  height = Math.max(1, Math.floor(window.innerHeight * displayScale));
   canvas.width = width;
   canvas.height = height;
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
 
-  const target = Math.min(820, Math.max(420, Math.floor(window.innerWidth * 0.58)));
+  const simulationLimit = 520;
+  const target = Math.min(simulationLimit, Math.max(320, Math.floor(window.innerWidth * 0.46)));
   simWidth = target;
   simHeight = Math.max(240, Math.floor(target * window.innerHeight / window.innerWidth));
   read = createTarget(simWidth, simHeight);
