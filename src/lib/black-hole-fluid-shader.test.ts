@@ -12,6 +12,8 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("float starGrid");
     expect(shaderSource).toContain("vec3 baseStarField");
+    expect(shaderSource).toContain("uniform vec4 uDragOrbit;");
+    expect(shaderSource).toContain("vec2 dragOrbitStarUv");
     expect(shaderSource).toContain("vec2 viewToWorldUv");
     expect(shaderSource).toContain("float diveSurge");
     expect(shaderSource).toContain("float diveViolence");
@@ -21,7 +23,8 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("vec2 diveShake");
     expect(shaderSource).toContain("vec2 shakenUv = diveShake(vUv);");
     expect(shaderSource).toContain("vec2 worldUv = viewToWorldUv(rolledUv);");
-    expect(shaderSource).toContain("color += baseStarField(worldUv) * starFieldVisibility();");
+    expect(shaderSource).toContain("vec2 starUv = dragOrbitStarUv(worldUv);");
+    expect(shaderSource).toContain("color += baseStarField(starUv) * starFieldVisibility();");
     expect(shaderSource).not.toContain("vec3 sampleLensedBackground");
     expect(shaderSource).not.toContain("vec3 sampleForegroundStars");
     expect(shaderSource).not.toContain("vec3 cursorLensField");
@@ -37,8 +40,10 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("float shadowOcclusion");
     expect(shaderSource).toContain("float directDiskVisibility");
-    expect(shaderSource).toContain("float upperLensedArc");
-    expect(shaderSource).toContain("float lowerLensedArc");
+    expect(shaderSource).toContain("float unifiedWrapRing");
+    expect(shaderSource).toContain("float lensedDiscWrap");
+    expect(shaderSource).toContain("float strongOuterSwirl");
+    expect(shaderSource).toContain("float swirlReach");
     expect(shaderSource).toContain("vec3 sampleDiveGlow");
     expect(shaderSource).not.toContain("violence,\n  );");
     expect(shaderSource).not.toContain("float discRibbonCore");
@@ -48,7 +53,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("vec2 ringAberrationOffset");
   });
 
-  it("renders the black hole from a pseudo-3D ray-lensed accretion model", () => {
+  it("renders the black hole from a real orbit-camera ray accretion model", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
       "utf8",
@@ -64,22 +69,37 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("struct AccretionField");
     expect(shaderSource).toContain("struct RayDiskHit");
+    expect(shaderSource).toContain("struct OrbitCamera");
+    expect(shaderSource).toContain("OrbitCamera buildOrbitCamera(vec2 uv)");
+    expect(shaderSource).toContain("vec3 orbitCameraPosition()");
+    expect(shaderSource).toContain("vec3 bendRayTowardBlackHole(OrbitCamera camera, vec2 p)");
+    expect(shaderSource).toContain("RayDiskHit intersectAccretionDisc(OrbitCamera camera, vec3 rayDir)");
     expect(shaderSource).toContain("RayDiskHit traceAccretionDisk");
     expect(shaderSource).toContain("float safeDenom");
-    expect(shaderSource).toContain("t = clamp(t, -8.0, 8.0);");
+    expect(shaderSource).toContain("float signedCameraHeight");
+    expect(shaderSource).toContain("vec2 discCoord = hitPosition.xz * 0.36;");
+    expect(shaderSource).toContain("float nearSide = smoothstep(-0.08, 0.18, nearDepth);");
+    expect(shaderSource).toContain("t = clamp(t, 0.0, 8.0);");
     expect(shaderSource).toContain("AccretionField sampleRayLensedAccretion");
     expect(shaderSource).toContain("vec3 accretionColorRamp");
     expect(shaderSource).toContain("float shadowOcclusion");
     expect(shaderSource).toContain("float directDiskVisibility");
-    expect(shaderSource).toContain("float upperLensedArc");
-    expect(shaderSource).toContain("float lowerLensedArc");
+    expect(shaderSource).toContain("struct UnifiedDiscField");
+    expect(shaderSource).toContain("UnifiedDiscField sampleUnifiedDiscField(vec2 uv)");
     expect(shaderSource).toContain("float shadowRadius");
     expect(shaderSource).toContain("float photonRingRadius");
-    expect(shaderSource).toContain("float diskOuterRadius");
-    expect(shaderSource).toContain("float arcRadius = shadowRadius * mix(1.48, 1.62, sideView);");
+    expect(shaderSource).toContain("float discPerspective = mix(1.0, 0.46, sideView);");
+    expect(shaderSource).toContain("float swirlReach = shadowRadius * mix(4.2, 7.4, sideView);");
     expect(shaderSource).toContain("float innerBridgeGlow");
     expect(shaderSource).toContain("float eventShadow = 1.0 - smoothstep(shadowRadius");
-    expect(shaderSource).toContain("float restrainedPhotonRing");
+    expect(shaderSource).toContain("float unifiedPhotonRing");
+    expect(shaderSource).toContain("float unifiedWrapRing");
+    expect(shaderSource).toContain("float lensedDiscWrap");
+    expect(shaderSource).toContain("float strongOuterSwirl");
+    expect(shaderSource).not.toContain("float flattenedArcDistance");
+    expect(shaderSource).not.toContain("float layeredArcFilaments");
+    expect(shaderSource).not.toContain("float equatorialCaustic");
+    expect(shaderSource).not.toContain("float horseshoeArcShelf");
     expect(shaderSource).toContain("float dopplerBeaming");
     expect(shaderSource).toContain("float eventShadow");
     expect(shaderSource).toContain("color = vec3(1.0) - exp(-color * mix(1.22, 1.66, surge));");
@@ -89,12 +109,168 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("float discBackscatter");
     expect(shaderSource).not.toContain("float wrappedDiscGlow");
     expect(shaderSource).not.toContain("float sideLane");
-    expect(heroSource).toContain("scroll-dive-cinematic-17");
-    expect(htmlSource).toContain("scroll-dive-cinematic-17");
+    expect(heroSource).toContain("scroll-dive-cinematic-30");
+    expect(htmlSource).toContain("scroll-dive-cinematic-30");
     expect(heroSource).toContain('type: "black-hole-dive"');
     expect(heroSource).toContain('event.data.type !== "black-hole-dive-input"');
     expect(shaderSource).toContain('event.data.type !== "black-hole-dive"');
     expect(shaderSource).toContain('type: "black-hole-dive-input"');
+    expect(shaderSource).toContain("pushStreamPoint");
+    expect(shaderSource).toContain("updateStreamlets(dt, now / 1000)");
+    expect(shaderSource).toContain("wavefrontSource(vUv)");
+    expect(shaderSource).toContain('uniform4fv(displayProgram, "uStreamMeta", streamMetaUniforms);');
+    expect(shaderSource).toContain('uniform4fv(displayProgram, "uStreamWave", streamWaveUniforms);');
+  });
+
+  it("supports click-drag orbit controls with first-load tilt and globe-style momentum", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    expect(shaderSource).toContain("const dragOrbit = {");
+    expect(shaderSource).toContain("targetYaw");
+    expect(shaderSource).toContain("targetPitch");
+    expect(shaderSource).toContain("velocityYaw");
+    expect(shaderSource).toContain("velocityPitch");
+    expect(shaderSource).toContain("engagement");
+    expect(shaderSource).toContain("function updateDragOrbit");
+    expect(shaderSource).toContain('canvas.addEventListener("pointerdown"');
+    expect(shaderSource).toContain('canvas.addEventListener("pointerup"');
+    expect(shaderSource).toContain('canvas.addEventListener("pointercancel"');
+    expect(shaderSource).toContain("canvas.setPointerCapture(event.pointerId);");
+    expect(shaderSource).toContain("canvas.addEventListener(\"pointermove\", (event) => {\n  updateDragOrbit(event);");
+    expect(shaderSource).not.toContain("if (updateDragOrbit(event)) {\n    return;\n  }");
+    expect(shaderSource).toContain("const yawDelta = dx * 4.8;");
+    expect(shaderSource).toContain("dragOrbit.velocityYaw = yawDelta / elapsed;");
+    expect(shaderSource).toContain("const pitchDelta = dy * 3.4;");
+    expect(shaderSource).toContain("dragOrbit.targetPitch += pitchDelta;");
+    expect(shaderSource).not.toContain("dragOrbit.targetPitch = clamp(dragOrbit.targetPitch + pitchDelta");
+    expect(shaderSource).toContain("dragOrbit.targetYaw += dragOrbit.velocityYaw * dt;");
+    expect(shaderSource).toContain("dragOrbit.targetPitch += dragOrbit.velocityPitch * dt;");
+    expect(shaderSource).not.toContain("dragOrbit.targetPitch += (0 - dragOrbit.targetPitch)");
+    expect(shaderSource).toContain("dragOrbit.velocityYaw *= Math.exp(-dt * 1.45);");
+    expect(shaderSource).toContain("const engagementFollow = 1 - Math.exp(-dt * 4.6);");
+    expect(shaderSource).toContain("dragOrbit.yaw += (dragOrbit.targetYaw - dragOrbit.yaw) * orbitFollow;");
+    expect(shaderSource).toContain("dragOrbit.pitch += (dragOrbit.targetPitch - dragOrbit.pitch) * orbitFollow;");
+    expect(shaderSource).toContain('uniform4f(displayProgram, "uDragOrbit", dragOrbit.yaw, dragOrbit.pitch, dragOrbit.spinSpeed, dragOrbit.engagement);');
+    expect(shaderSource).toContain("float dragPitch = uDragOrbit.y;");
+    expect(shaderSource).toContain("float dragEnergy = uDragOrbit.w;");
+    expect(shaderSource).toContain("float dragLift = dragEnergy * (0.18 + uDragOrbit.z * 0.08);");
+    expect(shaderSource).toContain("return baseInclination + dragPitch * 1.0 + dragLift;");
+    expect(shaderSource).toContain("float orbitFacingAmount()");
+    expect(shaderSource).toContain("return cos(diveInclination());");
+    expect(shaderSource).toContain("float orbitSideAmount()");
+    expect(shaderSource).toContain("return abs(sin(diveInclination()));");
+    expect(shaderSource).toContain("float orbitFacingSign()");
+    expect(shaderSource).toContain("return mix(-1.0, 1.0, step(0.0, orbitFacingAmount()));");
+    expect(shaderSource).toContain("float orbitSignedVisualPhase()");
+    expect(shaderSource).toContain("return clamp(orbitFacingAmount() / 0.32, -1.0, 1.0);");
+    expect(shaderSource).toContain("struct OrbitCamera");
+    expect(shaderSource).toContain("vec3 orbitCameraPosition()");
+    expect(shaderSource).toContain("OrbitCamera buildOrbitCamera(vec2 uv)");
+    expect(shaderSource).toContain("vec3 rayDir = normalize(forward + (p.x * right + p.y * up) * fov);");
+    expect(shaderSource).toContain("RayDiskHit intersectAccretionDisc(OrbitCamera camera, vec3 rayDir)");
+    expect(shaderSource).toContain("float signedCameraHeight");
+    expect(shaderSource).toContain("vec2 discCoord = hitPosition.xz * 0.36;");
+    expect(shaderSource).toContain("float nearSide = smoothstep(-0.08, 0.18, nearDepth);");
+    expect(shaderSource).not.toContain("float orbitScreenPitchPhase()");
+    expect(shaderSource).not.toContain("float discTiltProjection()");
+    expect(shaderSource).not.toContain("return discTiltCompression() * orbitFacingSign();");
+    expect(shaderSource).not.toContain("float discScreenLift(float horizon, float sideView)");
+    expect(shaderSource).not.toContain("float orbitHemisphere()");
+    expect(shaderSource).toContain("return smoothstep(0.18, 0.98, orbitSideAmount());");
+    expect(shaderSource).toContain("OrbitCamera camera = buildOrbitCamera(uv);");
+    expect(shaderSource).toContain("vec3 rayDir = bendRayTowardBlackHole(camera, p);");
+    expect(shaderSource).not.toContain("* hemisphere) / tiltProjection");
+    expect(shaderSource).toContain("float orbitVisualPhase = orbitSignedVisualPhase();");
+    expect(shaderSource).toContain("vec2 bandP = projectedAccretionBand(uv);");
+    expect(shaderSource).not.toContain("vec2 bandP = rot(discSweepAngle()) * p;");
+    expect(shaderSource).not.toContain("vec2 bandP = rot(discSweepAngle()) * vec2(p.x, p.y - screenLift);");
+    expect(shaderSource).not.toContain("vec2 bandP = rot(discSweepAngle()) * vec2(p.x, p.y * orbitVisualPhase);");
+    expect(shaderSource).toContain("cos(diskHit.angle - diveAzimuth()) * orbitVisualPhase");
+    expect(shaderSource).toContain("return uDragOrbit.x;");
+    expect(shaderSource).toContain("return uDragOrbit.x * mix(0.34, 0.18, discSideView());");
+    expect(shaderSource).toContain("float starCameraParallax");
+    expect(shaderSource).toContain("vec2 cameraLookOffset");
+    expect(shaderSource).toContain("vec2 perspectiveShear");
+    expect(shaderSource).toContain("float verticalLookTravel = -pitch * 1.18;");
+    expect(shaderSource).not.toContain("pitch * 0.72");
+    expect(shaderSource).not.toContain("pitch * parallax * 0.72");
+    expect(shaderSource).toContain("function uniform4f(program, name, x, y, z, w)");
+    expect(shaderSource).not.toContain("abs(sin(uDragOrbit.x))");
+    expect(shaderSource).not.toContain("return smoothstep(0.18, 0.98, abs(sin(diveInclination())));");
+    expect(shaderSource).not.toContain("return max(abs(cos(diveInclination())), 0.12);");
+  });
+
+  it("uses one unified accretion disc with the pre-contrast strong outer swirl", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("struct UnifiedDiscField");
+    expect(shaderSource).toContain("UnifiedDiscField sampleUnifiedDiscField(vec2 uv)");
+    expect(shaderSource).toContain("float discFilaments");
+    expect(shaderSource).toContain("float discPerspective = mix(1.0, 0.46, sideView);");
+    expect(shaderSource).toContain("float swirlReach = shadowRadius * mix(4.2, 7.4, sideView);");
+    expect(shaderSource).toContain("float strongOuterSwirl");
+    expect(shaderSource).toContain("float outerAccretionEnvelope");
+    expect(shaderSource).toContain("float discSpiralPhase");
+    expect(shaderSource).toContain("float discSpiralBand");
+    expect(shaderSource).toContain("float unifiedPhotonRing");
+    expect(shaderSource).toContain("float unifiedWrapRing");
+    expect(shaderSource).toContain("float lensedEnvelope");
+    expect(shaderSource).toContain("UnifiedDiscField unified = sampleUnifiedDiscField(uv);");
+    expect(shaderSource).toContain("unified.strongOuterSwirl");
+    expect(shaderSource).toContain("unified.unifiedWrapRing");
+    expect(shaderSource).toContain("unified.unifiedPhotonRing");
+    expect(shaderSource).not.toContain("spiralArmContrast");
+    expect(shaderSource).not.toContain("interArmDarkness");
+    expect(unifiedFieldBlock).toContain("sideView");
+    expect(unifiedFieldBlock).toContain("projectedAccretionBand");
+    expect(unifiedFieldBlock).toContain("traceAccretionDisk");
+    expect(shaderSource).not.toContain("float discPlaneCore = sideView *");
+    expect(shaderSource).not.toContain("float innerHorizontalRim = sideView *");
+    expect(shaderSource).not.toContain("float alignedOuterDiscTail = sideView *");
+    expect(shaderSource).not.toContain("float topViewOuterRing =");
+    expect(shaderSource).not.toContain("discColor * alignedOuterDiscTail * sideViewBeam");
+    expect(shaderSource).not.toContain("float sideWispTail = sideView *");
+    expect(shaderSource).not.toContain("samplePhotonRingCrescendo");
+    expect(shaderSource).not.toContain("vec3 photonColor = mix(vec3(1.0, 0.97, 0.92)");
+    expect(shaderSource).not.toContain("vec3 horizonColor = vec3(0.84, 0.92, 1.0);");
+    expect(shaderSource).not.toContain("float whitening = diveDepth");
+  });
+
+  it("keeps the strong outer swirl hazy instead of using the later thresholded contrast mask", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("float strongOuterSwirl");
+    expect(shaderSource).toContain("float discSpiralBand");
+    expect(shaderSource).toContain("float swirlRadialGate");
+    expect(shaderSource).toContain("float lensedDiscWrap");
+    expect(shaderSource).toContain(
+      "float strongOuterSwirl =",
+    );
+    expect(shaderSource).toContain(
+      "swirlColor * strongOuterSwirl",
+    );
+    expect(unifiedFieldBlock).toContain("outerAccretionEnvelope");
+    expect(unifiedFieldBlock).toContain("discSpiralBand");
+    expect(unifiedFieldBlock).toContain("lensedDiscWrap");
+    expect(unifiedFieldBlock).toContain("(0.42 + sideView * 0.38)");
+    expect(unifiedFieldBlock).not.toContain("spiralArmContrast");
+    expect(unifiedFieldBlock).not.toContain("interArmDarkness");
   });
 
   it("keeps the photon ring and shadow anchored to the radial hole while the disc uses projected coordinates", () => {
@@ -105,11 +281,11 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("float eventShadow");
     expect(shaderSource).toContain("float shadowOcclusion");
-    expect(shaderSource).toContain("float restrainedPhotonRing = exp(-pow((d - photonRingRadius)");
+    expect(shaderSource).toContain("float unifiedPhotonRing = exp(-pow((d - photonRingRadius)");
     expect(shaderSource).toContain("float photonRingRestraint");
-    expect(shaderSource).toContain("float topBottomArcBias");
-    expect(shaderSource).toContain("float sideLimbFusion");
-    expect(shaderSource).toContain("RayDiskHit diskHit = traceAccretionDisk(uv);");
+    expect(shaderSource).toContain("float unifiedWrapRing");
+    expect(shaderSource).toContain("float lensedDiscWrap");
+    expect(shaderSource).toContain("float strongOuterSwirl");
     expect(shaderSource).toContain("float directDiskVisibility = diskHit.visible * (1.0 - shadowOcclusion);");
     expect(shaderSource).not.toContain("float centerGap");
     expect(shaderSource).not.toContain(
