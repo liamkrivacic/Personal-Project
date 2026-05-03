@@ -38,3 +38,16 @@ Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-
 - MCP not needed right now: `figma`
 - Local Codex skills mirrored from Claude custom commands: `codex-start`, `codex-save`, `codex-search`, `codex-lint`, `codex-new-project`, `codex-configure`, `codex-skill-update`
 - Additional Codex skills installed from the Claude setup notes: `frontend-design`, `pro-workflow`, `taste-skill`, `ui-ux-pro-max`, Superpowers workflow skills, Next.js/React toolkit skills
+
+## Black-Hole Shader Direction
+
+The black hole must be rendered as one canonical accretion model. Words like "top view" and "side view" are only camera-angle descriptions used while debugging; they must not become separate shader modes, separate ring recipes, or separate visual layers.
+
+For the Interstellar-style black hole:
+
+- The event shadow, photon ring, accretion disc, lens wrap, and broad swirl should share one set of canonical radii and brightness rules.
+- Camera angle may change projection, foreshortening, parallax, and which parts of the disc are visible.
+- Camera angle must not change the identity of the rim, swap in a side-only band, or boost a different outer ring just because the view is edge-on.
+- The accretion disc coordinate system should come from the ray-disc intersection coordinates. Projected edge-on bands may shape visibility, lensing, and compression, but they must not define the spiral radius or angle.
+- Avoid adding new corrective layers on top of old ones. If a visual term exists only to patch a specific view, delete or fold it back into the canonical disc model.
+- The cursor light streamlets and scroll/dive choreography should remain intact unless a requested black-hole change explicitly requires touching them.

@@ -4,6 +4,18 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("black-hole fluid shader", () => {
+  it("documents that camera angles are not separate black-hole rendering modes", () => {
+    const codexNotes = readFileSync(join(process.cwd(), "CODEX.md"), "utf8");
+
+    expect(codexNotes).toContain("one canonical accretion model");
+    expect(codexNotes).toContain("must not become separate shader modes");
+    expect(codexNotes).toContain("Camera angle may change projection");
+    expect(codexNotes).toContain("Camera angle must not change the identity of the rim");
+    expect(codexNotes).toContain("ray-disc intersection coordinates");
+    expect(codexNotes).toContain("Projected edge-on bands may shape visibility");
+    expect(codexNotes).toContain("must not define the spiral radius or angle");
+  });
+
   it("draws a lightweight star background without compiling legacy lensing passes", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
@@ -88,8 +100,13 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("UnifiedDiscField sampleUnifiedDiscField(vec2 uv)");
     expect(shaderSource).toContain("float shadowRadius");
     expect(shaderSource).toContain("float photonRingRadius");
-    expect(shaderSource).toContain("float discPerspective = mix(1.0, 0.46, sideView);");
-    expect(shaderSource).toContain("float swirlReach = shadowRadius * mix(4.2, 7.4, sideView);");
+    expect(shaderSource).toContain("const float CANONICAL_SHADOW_SCALE = 0.74;");
+    expect(shaderSource).toContain("const float CANONICAL_PHOTON_RADIUS = 1.04;");
+    expect(shaderSource).toContain("const float CANONICAL_LENS_WRAP_RADIUS = 1.56;");
+    expect(shaderSource).toContain("const float CANONICAL_DISC_INNER_RADIUS = 1.16;");
+    expect(shaderSource).toContain("const float CANONICAL_DISC_OUTER_RADIUS = 5.4;");
+    expect(shaderSource).toContain("vec2 canonicalDiscCoord = diskHit.coord;");
+    expect(shaderSource).toContain("float swirlReach = shadowRadius * 6.8;");
     expect(shaderSource).toContain("float innerBridgeGlow");
     expect(shaderSource).toContain("float eventShadow = 1.0 - smoothstep(shadowRadius");
     expect(shaderSource).toContain("float unifiedPhotonRing");
@@ -109,8 +126,8 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("float discBackscatter");
     expect(shaderSource).not.toContain("float wrappedDiscGlow");
     expect(shaderSource).not.toContain("float sideLane");
-    expect(heroSource).toContain("scroll-dive-cinematic-30");
-    expect(htmlSource).toContain("scroll-dive-cinematic-30");
+    expect(heroSource).toContain("scroll-dive-cinematic-37");
+    expect(htmlSource).toContain("scroll-dive-cinematic-37");
     expect(heroSource).toContain('type: "black-hole-dive"');
     expect(heroSource).toContain('event.data.type !== "black-hole-dive-input"');
     expect(shaderSource).toContain('event.data.type !== "black-hole-dive"');
@@ -203,7 +220,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("return max(abs(cos(diveInclination())), 0.12);");
   });
 
-  it("uses one unified accretion disc with the pre-contrast strong outer swirl", () => {
+  it("uses one canonical Interstellar-style accretion model instead of top/side visual modes", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
       "utf8",
@@ -214,13 +231,17 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("struct UnifiedDiscField");
     expect(shaderSource).toContain("UnifiedDiscField sampleUnifiedDiscField(vec2 uv)");
+    expect(shaderSource).toContain("Canonical single-model rule");
     expect(shaderSource).toContain("float discFilaments");
-    expect(shaderSource).toContain("float discPerspective = mix(1.0, 0.46, sideView);");
-    expect(shaderSource).toContain("float swirlReach = shadowRadius * mix(4.2, 7.4, sideView);");
+    expect(shaderSource).toContain("vec2 canonicalDiscCoord = diskHit.coord;");
+    expect(shaderSource).toContain("float canonicalDiscRadius");
+    expect(shaderSource).toContain("float canonicalDiscAngle");
+    expect(shaderSource).toContain("float swirlReach = shadowRadius * 6.8;");
     expect(shaderSource).toContain("float strongOuterSwirl");
     expect(shaderSource).toContain("float outerAccretionEnvelope");
     expect(shaderSource).toContain("float discSpiralPhase");
     expect(shaderSource).toContain("float discSpiralBand");
+    expect(shaderSource).toContain("float canonicalSpiralArm");
     expect(shaderSource).toContain("float unifiedPhotonRing");
     expect(shaderSource).toContain("float unifiedWrapRing");
     expect(shaderSource).toContain("float lensedEnvelope");
@@ -230,13 +251,38 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("unified.unifiedPhotonRing");
     expect(shaderSource).not.toContain("spiralArmContrast");
     expect(shaderSource).not.toContain("interArmDarkness");
-    expect(unifiedFieldBlock).toContain("sideView");
+    expect(unifiedFieldBlock).not.toContain("float sideView = discSideView();");
+    expect(unifiedFieldBlock).not.toContain("sideView");
     expect(unifiedFieldBlock).toContain("projectedAccretionBand");
     expect(unifiedFieldBlock).toContain("traceAccretionDisk");
+    expect(unifiedFieldBlock).toContain("vec2 canonicalDiscCoord = diskHit.coord;");
+    expect(unifiedFieldBlock).toContain("float canonicalDiscRadius = diskHit.radius;");
+    expect(unifiedFieldBlock).toContain("float canonicalDiscAngle = diskHit.angle;");
+    expect(unifiedFieldBlock).toContain("float canonicalSpiralArm = smoothstep(0.16, 0.95, discSpiralBand);");
+    expect(unifiedFieldBlock).toContain("float projectedDiscPlane");
+    expect(unifiedFieldBlock).toContain("float projectedDiscCue");
+    expect(unifiedFieldBlock).toContain("float shadowRadius = horizon * CANONICAL_SHADOW_SCALE * diveShrink;");
+    expect(unifiedFieldBlock).toContain("float photonRingRadius = shadowRadius * CANONICAL_PHOTON_RADIUS;");
+    expect(unifiedFieldBlock).toContain("float lensWrapRadius = shadowRadius * CANONICAL_LENS_WRAP_RADIUS;");
+    expect(unifiedFieldBlock).toContain("float diskInnerRadius = shadowRadius * CANONICAL_DISC_INNER_RADIUS;");
+    expect(unifiedFieldBlock).toContain("float compactDiscOuterRadius = shadowRadius * CANONICAL_DISC_OUTER_RADIUS;");
     expect(shaderSource).not.toContain("float discPlaneCore = sideView *");
     expect(shaderSource).not.toContain("float innerHorizontalRim = sideView *");
     expect(shaderSource).not.toContain("float alignedOuterDiscTail = sideView *");
     expect(shaderSource).not.toContain("float topViewOuterRing =");
+    expect(shaderSource).not.toContain("float horizontalDiscBand");
+    expect(shaderSource).not.toContain("float sideViewBeam");
+    expect(unifiedFieldBlock).not.toContain("float cameraDiscBlend");
+    expect(unifiedFieldBlock).not.toContain("mix(diskHit.radius, projectedRadius");
+    expect(unifiedFieldBlock).not.toContain("mix(diskDir, projectedDir");
+    expect(unifiedFieldBlock).not.toContain("float radialDiscGate");
+    expect(unifiedFieldBlock).not.toContain("float radialDiscEmission");
+    expect(unifiedFieldBlock).not.toContain("mix(radialDiscGate, projectedRadialGate");
+    expect(unifiedFieldBlock).not.toContain("diskEmission = mix(");
+    expect(unifiedFieldBlock).not.toContain("canonicalDiscProjectionBlend");
+    expect(unifiedFieldBlock).not.toContain("vec2 canonicalDiscP = vec2(bandP.x");
+    expect(unifiedFieldBlock).not.toContain("float canonicalDiscRadius = length(canonicalDiscP);");
+    expect(unifiedFieldBlock).not.toContain("float canonicalDiscAngle = atan(canonicalDiscP.y, canonicalDiscP.x);");
     expect(shaderSource).not.toContain("discColor * alignedOuterDiscTail * sideViewBeam");
     expect(shaderSource).not.toContain("float sideWispTail = sideView *");
     expect(shaderSource).not.toContain("samplePhotonRingCrescendo");
@@ -245,7 +291,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("float whitening = diveDepth");
   });
 
-  it("keeps the strong outer swirl hazy instead of using the later thresholded contrast mask", () => {
+  it("keeps the strong outer swirl hazy without side-view brightness multipliers", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
       "utf8",
@@ -257,6 +303,7 @@ describe("black-hole fluid shader", () => {
 
     expect(shaderSource).toContain("float strongOuterSwirl");
     expect(shaderSource).toContain("float discSpiralBand");
+    expect(shaderSource).toContain("float canonicalSpiralArm");
     expect(shaderSource).toContain("float swirlRadialGate");
     expect(shaderSource).toContain("float lensedDiscWrap");
     expect(shaderSource).toContain(
@@ -267,13 +314,32 @@ describe("black-hole fluid shader", () => {
     );
     expect(unifiedFieldBlock).toContain("outerAccretionEnvelope");
     expect(unifiedFieldBlock).toContain("discSpiralBand");
+    expect(unifiedFieldBlock).toContain("float discSpiralBand = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 4.0);");
+    expect(unifiedFieldBlock).toContain("(0.06 + canonicalSpiralArm * 0.54 + shearNoise * 0.05)");
+    expect(unifiedFieldBlock).toContain("swirlColor * strongOuterSwirl * 1.08");
     expect(unifiedFieldBlock).toContain("lensedDiscWrap");
-    expect(unifiedFieldBlock).toContain("(0.42 + sideView * 0.38)");
+    expect(unifiedFieldBlock).not.toContain("mix(0.24, 1.0, smoothstep(0.28, 1.0, discSpiralBand))");
+    expect(unifiedFieldBlock).not.toContain("canonicalSpiralArm * 1.34");
+    expect(unifiedFieldBlock).not.toContain("swirlColor * strongOuterSwirl * 1.46");
+    expect(unifiedFieldBlock).not.toContain("smoothstep(0.34, 1.0, discSpiralBand)");
+    expect(unifiedFieldBlock).not.toContain("(0.42 + sideView * 0.38)");
+    expect(unifiedFieldBlock).not.toContain("mix(0.68, 0.74, sideView)");
+    expect(unifiedFieldBlock).not.toContain("mix(1.42, 1.56, sideView)");
+    expect(unifiedFieldBlock).not.toContain("mix(1.1, 1.16, sideView)");
+    expect(unifiedFieldBlock).not.toContain("mix(4.4, 5.4, sideView)");
+    expect(unifiedFieldBlock).not.toContain("mix(1.02, 0.72, sideView)");
+    expect(unifiedFieldBlock).not.toContain("shadowRadius * mix(0.058, 0.074, sideView)");
+    expect(unifiedFieldBlock).not.toContain("mix(1.0, 0.32, sideView)");
+    expect(unifiedFieldBlock).not.toContain("(0.46 + sideView * 0.72)");
+    expect(unifiedFieldBlock).not.toContain("(0.05 + sideView * 0.16)");
+    expect(unifiedFieldBlock).not.toContain("(0.18 + sideView * 0.72)");
+    expect(unifiedFieldBlock).not.toContain("0.72 + sideView * 0.08");
+    expect(unifiedFieldBlock).not.toContain("1.1 + sideView * 0.12");
     expect(unifiedFieldBlock).not.toContain("spiralArmContrast");
     expect(unifiedFieldBlock).not.toContain("interArmDarkness");
   });
 
-  it("keeps the photon ring and shadow anchored to the radial hole while the disc uses projected coordinates", () => {
+  it("keeps the photon ring and shadow anchored to the radial hole while the disc uses ray-disc coordinates", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
       "utf8",
@@ -286,7 +352,8 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("float unifiedWrapRing");
     expect(shaderSource).toContain("float lensedDiscWrap");
     expect(shaderSource).toContain("float strongOuterSwirl");
-    expect(shaderSource).toContain("float directDiskVisibility = diskHit.visible * (1.0 - shadowOcclusion);");
+    expect(shaderSource).toContain("float directDiskVisibility = diskHit.visible * outsideShadow * (1.0 - shadowOcclusion * 0.35);");
+    expect(shaderSource).toContain("float spiralVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.24);");
     expect(shaderSource).not.toContain("float centerGap");
     expect(shaderSource).not.toContain(
       "float spiralMask = exp(-pow((orbitD - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);",
