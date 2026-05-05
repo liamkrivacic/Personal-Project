@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion } from "motion/react";
 
 type ProjectImage = {
   src: string;
@@ -109,19 +108,10 @@ function ProjectMedia({ project, index }: { project: ProjectCaseStudy; index: nu
 }
 
 function ProjectPanel({ index, project }: { index: number; project: ProjectCaseStudy }) {
-  const prefersReducedMotion = useReducedMotion();
-  const revealEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
   return (
     <section className="project-panel" aria-labelledby={`${project.id}-title`}>
       <div className="project-plate">
-        <motion.div
-          className="project-plate-copy"
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 28 }}
-          transition={{ duration: 0.55, ease: revealEase }}
-          viewport={{ amount: 0.54, once: false }}
-          whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-        >
+        <div className="project-plate-copy">
           <p className="project-plate-kicker">
             <span>{String(index + 1).padStart(2, "0")}</span>
             {project.kicker}
@@ -155,17 +145,11 @@ function ProjectPanel({ index, project }: { index: number; project: ProjectCaseS
               <span key={tool}>{tool}</span>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="project-plate-media"
-          initial={prefersReducedMotion ? false : { clipPath: "inset(0 100% 0 0)" }}
-          transition={{ duration: 0.7, ease: revealEase }}
-          viewport={{ amount: 0.54, once: false }}
-          whileInView={prefersReducedMotion ? undefined : { clipPath: "inset(0 0% 0 0)" }}
-        >
+        <div className="project-plate-media">
           <ProjectMedia index={index} project={project} />
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -208,6 +192,12 @@ export function ProjectJourney() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("has-revealed");
+          }
+        });
+
         const visibleEntry = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
@@ -224,7 +214,7 @@ export function ProjectJourney() {
       },
       {
         root: null,
-        threshold: [0.36, 0.52, 0.68],
+        threshold: [0.08, 0.36, 0.52, 0.68],
       },
     );
 

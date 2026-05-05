@@ -288,6 +288,7 @@ uniform int uStreamCount;
 uniform float uCursorHeat;
 uniform float uDiveProgress;
 uniform vec4 uDragOrbit;
+uniform vec4 uCursorHotspot;
 
 in vec2 vUv;
 out vec4 outColor;
@@ -685,6 +686,28 @@ vec3 wavefrontVisual(vec2 uv) {
   }
 
   return effect;
+}
+
+vec3 colorRamp(float heat, float whiteHot) {
+  vec3 ember  = vec3(0.38, 0.02, 0.01);
+  vec3 orange = vec3(0.92, 0.36, 0.04);
+  vec3 gold   = vec3(1.0,  0.74, 0.20);
+  vec3 white  = vec3(1.0,  0.95, 0.82);
+  vec3 c = mix(ember, orange, smoothstep(0.0, 0.35, heat));
+  c = mix(c, gold, smoothstep(0.25, 0.70, heat));
+  c = mix(c, white, smoothstep(0.55, 0.95, heat));
+  c = mix(c, vec3(1.0, 0.98, 0.94), whiteHot);
+  return c;
+}
+
+vec3 cursorHotspotDisplay(vec2 worldUv) {
+  vec2 delta = vec2((worldUv.x - uCursorHotspot.x) * uAspect, worldUv.y - uCursorHotspot.y);
+  float radius = max(uCursorHotspot.w, 0.001);
+  float core = exp(-dot(delta, delta) / (radius * radius));
+  float halo = exp(-dot(delta, delta) / (radius * radius * 5.8));
+  float heat = (core * 1.12 + halo * 0.24) * uCursorHotspot.z * uCursorHeat;
+  float whiteHot = smoothstep(0.34, 0.92, heat);
+  return colorRamp(clamp(heat, 0.0, 1.0), whiteHot) * heat * 1.2;
 }
 
 struct AccretionField {
@@ -1106,9 +1129,15 @@ void main() {
   color *= 1.0 - centerCull;
   float frameRadius = distance(rolledUv, vec2(0.5));
   color *= (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
+  color += cursorHotspotDisplay(worldUv) * (1.0 - centerCull) * (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
   color = vec3(1.0) - exp(-color * mix(1.26, 1.72, surge));
   float maxChannel = clamp(max(max(color.r, color.g), color.b), 0.0, 1.0);
-  float alpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;
+  float dyeAlpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;
+  vec2 cursorDelta = vec2((worldUv.x - uCursorHotspot.x) * uAspect, worldUv.y - uCursorHotspot.y);
+  float cursorRadiusAlpha = max(uCursorHotspot.w, 0.001);
+  float cursorPresence = exp(-dot(cursorDelta, cursorDelta) / (cursorRadiusAlpha * cursorRadiusAlpha * 7.0)) * uCursorHotspot.z * uCursorHeat;
+  float cursorAlpha = smoothstep(0.0, 0.32, cursorPresence) * 0.92 * (1.0 - centerCull) * (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
+  float alpha = max(dyeAlpha, cursorAlpha);
   color *= alpha;
   outColor = vec4(color, alpha);
 }`;
@@ -1414,7 +1443,7 @@ function handleCursorMove(clientX, clientY, now = performance.now()) {
   const leadDistance = 0.013 + emissionIntensity * 0.018;
   cursorHotspot.x = pointer.x + motion.flowX * leadDistance;
   cursorHotspot.y = pointer.y + motion.flowY * leadDistance;
-  cursorHotspot.heat = Math.max(cursorHotspot.heat * 0.72, emissionIntensity * 0.46);
+  cursorHotspot.heat = Math.max(cursorHotspot.heat, emissionIntensity * 0.46);
   cursorHotspot.radius = 0.006 + emissionIntensity * 0.006;
 
   if (distance > 0.65 && emissionIntensity > 0.035) {
@@ -1926,6 +1955,7 @@ function draw(time) {
   uniform1f(displayProgram, "uHorizon", HORIZON);
   uniform1f(displayProgram, "uCursorHeat", cursorHeat);
   uniform1f(displayProgram, "uDiveProgress", diveState.progress);
+  uniform4f(displayProgram, "uCursorHotspot", cursorHotspot.x, cursorHotspot.y, cursorHotspot.heat, cursorHotspot.radius);
   uniform4f(displayProgram, "uDragOrbit", dragOrbit.yaw, dragOrbit.pitch, dragOrbit.spinSpeed, dragOrbit.engagement);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }

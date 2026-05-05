@@ -364,15 +364,17 @@ canvas.addEventListener("pointercancel", endDrag);
 
 const startTime = performance.now();
 function frame() {
-  gl.viewport(0, 0, width, height);
-  gl.useProgram(program);
-  gl.bindVertexArray(vao);
-  gl.uniform2f(uResolution, width, height);
-  gl.uniform1f(uTime, (performance.now() - startTime) / 1000);
-  gl.uniform1f(uDive, diveProgress);
-  gl.uniform1f(uDragYawLoc, dragYaw);
-  gl.uniform1f(uDragPitchLoc, dragPitch);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (diveProgress < 0.995) {
+    gl.viewport(0, 0, width, height);
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.uniform2f(uResolution, width, height);
+    gl.uniform1f(uTime, (performance.now() - startTime) / 1000);
+    gl.uniform1f(uDive, diveProgress);
+    gl.uniform1f(uDragYawLoc, dragYaw);
+    gl.uniform1f(uDragPitchLoc, dragPitch);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

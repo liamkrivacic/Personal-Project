@@ -282,7 +282,7 @@ export function OrbitalHeroTsbxw3() {
           <input id="rimHeat" type="range" value="0.34" readOnly />
           <input id="swirl" type="range" value="2.92" readOnly />
           <input id="pull" type="range" value="0.98" readOnly />
-          <input id="cursorHeat" type="range" value="0.65" readOnly />
+          <input id="cursorHeat" type="range" value="0.9" readOnly />
           <input id="dissipation" type="range" value="0.984" readOnly />
           <button id="reset" type="button">Reset</button>
           <span id="status">initializing</span>
