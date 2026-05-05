@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const homeUrl = process.env.HOME_URL ?? "http://127.0.0.1:5176/";
+const homeUrl = process.env.HOME_URL ?? process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000/";
 
 test("homepage presents the black-hole portfolio interface", async ({ page }) => {
   const pageErrors = [];
@@ -44,7 +44,12 @@ test("homepage presents the black-hole portfolio interface", async ({ page }) =>
   await expect(page.locator(".project-copy-word")).toHaveCount(0);
   await expect(page.locator(".project-morph-layer")).toHaveCount(0);
 
-  await page.mouse.wheel(0, 900);
+  await page.locator("#sumobot").evaluate((element) => {
+    element.scrollIntoView({ block: "start", behavior: "instant" });
+  });
+
+  await expect(page.locator("#sumobot")).toBeInViewport({ ratio: 0.8 });
+  await page.waitForTimeout(250);
   await expect(page.getByRole("heading", { name: /sumobot/i })).toBeVisible({ timeout: 5000 });
   await expect(page.locator(".project-header-nav button[aria-current='step']")).toContainText(/sumobot/i);
   expect(pageErrors).toEqual([]);

@@ -342,7 +342,8 @@ float diveInclination() {
   return baseInclination + dragPitch * 1.0 + dragLift;
 }
 float diveAzimuth() {
-  return uDragOrbit.x;
+  float baseOrbitYaw = mix(-0.42, 3.08, smoothstep(0.05, 0.95, orbitProgress()));
+  return baseOrbitYaw + uDragOrbit.x;
 }
 float orbitFacingAmount() {
   return cos(diveInclination());
@@ -437,7 +438,7 @@ float discSideView() {
 
 float discSweepAngle() {
 #ifdef ORBITAL_FLYAROUND
-  return uDragOrbit.x * mix(0.34, 0.18, discSideView());
+  return diveAzimuth() * mix(0.34, 0.18, discSideView());
 #else
   return mix(-0.42, 3.08, discOrbitProgress());
 #endif
@@ -675,7 +676,9 @@ vec3 wavefrontVisual(vec2 uv) {
 }
 
 struct AccretionField {
-  vec3 color;
+  vec3 backDiscColor;
+  vec3 frontDiscColor;
+  vec3 ringGlowColor;
   float emission;
   float eventShadow;
   float lensRing;
@@ -692,8 +695,12 @@ struct RayDiskHit {
 };
 
 struct UnifiedDiscField {
-  vec3 discColor;
+  vec3 backDiscColor;
+  vec3 frontDiscColor;
+  vec3 ringGlowColor;
   float directDisc;
+  float denseInnerDisc;
+  float frontDisc;
   float strongOuterSwirl;
   float unifiedPhotonRing;
   float unifiedWrapRing;
@@ -757,15 +764,26 @@ vec3 bendRayTowardBlackHole(OrbitCamera camera, vec2 p) {
 }
 
 RayDiskHit intersectAccretionDisc(OrbitCamera camera, vec3 rayDir) {
+  // Slab intersection: the disc has finite vertical thickness so rays grazing
+  // the equator at edge-on still produce hits. Rays nearly parallel to the
+  // disc plane fall back to BH closest-approach, which represents the
+  // brightest sample point along the chord through the disc material.
   float cameraSide = mix(-1.0, 1.0, step(0.0, camera.origin.y));
   float signedCameraHeight = cameraSide * max(abs(camera.origin.y), 0.075);
   vec3 rayOrigin = vec3(camera.origin.x, signedCameraHeight, camera.origin.z);
   float denomSign = mix(-1.0, 1.0, step(0.0, rayDir.y));
-  float safeDenom = denomSign * max(abs(rayDir.y), 0.026);
-  float t = -rayOrigin.y / safeDenom;
-  float visible = step(0.0, t);
+  float safeDenom = denomSign * max(abs(rayDir.y), 0.01);
+  float tPlane = -rayOrigin.y / safeDenom;
+  float tBH = -dot(rayOrigin, rayDir);
+  float grazing = 1.0 - smoothstep(0.04, 0.25, abs(rayDir.y));
+  float t = mix(max(tPlane, 0.0), max(tBH, 0.0), grazing);
   t = clamp(t, 0.0, 8.0);
   vec3 hitPosition = rayOrigin + rayDir * t;
+  float discHalfThickness = 0.22;
+  float distFromPlane = abs(hitPosition.y);
+  float planeProximity = exp(-pow(distFromPlane / discHalfThickness, 2.0));
+  float forwardHit = max(step(0.0, tPlane), step(0.0, tBH));
+  float visible = forwardHit * planeProximity;
   vec2 discCoord = hitPosition.xz * 0.36;
   discCoord = clamp(discCoord, vec2(-2.2), vec2(2.2));
   vec2 cameraDiscDir = normalize(camera.origin.xz + vec2(0.0001, 0.0));
@@ -787,20 +805,29 @@ vec2 projectedAccretionBand(vec2 uv) {
   float sweep = diveAzimuth() * mix(0.16, 0.06, camera.sideView);
   float pitchLift = clamp(-camera.forward.y, -1.0, 1.0) * camera.sideView * effectiveHorizon() * 0.08;
   vec2 bandP = vec2(p.x, p.y - pitchLift);
-  bandP.y *= mix(1.0, 0.64, camera.sideView);
+  bandP.y *= mix(1.0, 0.52, camera.sideView);
   return rot(sweep) * bandP;
 }
 
+vec2 projectedFrontDiscOcclusionBand(vec2 uv) {
+  vec2 p = aspectPoint(uv);
+  OrbitCamera camera = buildOrbitCamera(uv);
+  float pitchLift = clamp(-camera.forward.y, -1.0, 1.0) * camera.sideView * effectiveHorizon() * 0.08;
+  vec2 bandP = vec2(p.x, p.y - pitchLift);
+  bandP.y *= mix(1.0, 0.52, camera.sideView);
+  return bandP;
+}
+
 vec3 accretionColorRamp(float heat, float dopplerBeaming, float innerHot) {
-  vec3 ember = vec3(0.13, 0.025, 0.007);
-  vec3 orange = vec3(0.72, 0.19, 0.026);
-  vec3 gold = vec3(1.08, 0.55, 0.11);
-  vec3 white = vec3(1.72, 1.16, 0.48);
+  vec3 ember = vec3(0.10, 0.05, 0.02);
+  vec3 orange = vec3(0.65, 0.42, 0.18);
+  vec3 gold = vec3(1.10, 0.90, 0.45);
+  vec3 white = vec3(1.85, 1.55, 0.95);
   vec3 color = mix(ember, orange, smoothstep(0.0, 0.5, heat));
   color = mix(color, gold, smoothstep(0.32, 0.82, heat));
   color = mix(color, white, innerHot);
-  vec3 receding = vec3(0.58, 0.32, 0.2);
-  vec3 approaching = vec3(1.12, 0.94, 0.62);
+  vec3 receding = vec3(0.66, 0.36, 0.18);
+  vec3 approaching = vec3(1.2, 0.98, 0.62);
   return color * mix(receding, approaching, dopplerBeaming);
 }
 
@@ -811,11 +838,11 @@ RayDiskHit traceAccretionDisk(vec2 uv) {
   return intersectAccretionDisc(camera, rayDir);
 }
 
-const float CANONICAL_SHADOW_SCALE = 0.74;
+const float CANONICAL_SHADOW_SCALE = 0.82;
 const float CANONICAL_PHOTON_RADIUS = 1.04;
 const float CANONICAL_LENS_WRAP_RADIUS = 1.56;
-const float CANONICAL_DISC_INNER_RADIUS = 1.16;
-const float CANONICAL_DISC_OUTER_RADIUS = 5.4;
+const float CANONICAL_DISC_INNER_RADIUS = 1.06;
+const float CANONICAL_DISC_OUTER_RADIUS = 4.4;
 
 UnifiedDiscField sampleUnifiedDiscField(vec2 uv) {
   // Canonical single-model rule: camera angle changes projection and visibility,
@@ -835,6 +862,7 @@ UnifiedDiscField sampleUnifiedDiscField(vec2 uv) {
 
   RayDiskHit diskHit = traceAccretionDisk(uv);
   vec2 bandP = projectedAccretionBand(uv);
+  vec2 frontBandP = projectedFrontDiscOcclusionBand(uv);
 #ifdef ORBITAL_FLYAROUND
   float diveShrink = mix(1.0, 0.76, smoothstep(0.08, 0.38, diveProgress()));
 #else
@@ -854,98 +882,167 @@ UnifiedDiscField sampleUnifiedDiscField(vec2 uv) {
   vec2 canonicalDiscCoord = diskHit.coord;
   float canonicalDiscRadius = diskHit.radius;
   float canonicalDiscAngle = diskHit.angle;
-  float projectedDiscPlane = exp(-pow(abs(bandP.y + shadowRadius * 0.008) / (shadowRadius * 0.2), 1.65));
+  float projectedTailTaper = exp(-pow(abs(bandP.x) / (compactDiscOuterRadius * 0.42), 2.0));
+  float projectedInnerTaper = exp(-pow(abs(bandP.x) / (shadowRadius * 1.58), 2.0));
+  float projectedVisibilityTaper = mix(1.0, projectedTailTaper, smoothstep(0.12, 0.92, orbitSideAmount()));
+  float projectedDiscPlane = exp(-pow(abs(bandP.y + shadowRadius * 0.006) / (shadowRadius * 0.074), 2.0));
   float projectedDiscGate =
-    smoothstep(diskInnerRadius * 0.98, diskInnerRadius * 1.24, abs(bandP.x)) *
-    (1.0 - smoothstep(compactDiscOuterRadius * 0.86, compactDiscOuterRadius, abs(bandP.x)));
+    smoothstep(diskInnerRadius * 1.02, diskInnerRadius * 1.18, abs(bandP.x)) *
+    (1.0 - smoothstep(compactDiscOuterRadius * 0.9, compactDiscOuterRadius * 1.04, abs(bandP.x)));
   float projectedDiscCue =
     projectedDiscPlane *
+    (0.22 + projectedTailTaper * 0.78) *
+    projectedTailTaper *
     projectedDiscGate *
     outsideShadow *
-    (1.0 - shadowOcclusion * 0.28);
+    (1.0 - shadowOcclusion * 0.18);
   float canonicalDiscGate =
     smoothstep(diskInnerRadius * 0.98, diskInnerRadius * 1.18, canonicalDiscRadius) *
     (1.0 - smoothstep(compactDiscOuterRadius * 0.82, compactDiscOuterRadius, canonicalDiscRadius));
-  float compactDiscBody = exp(-pow((canonicalDiscRadius - shadowRadius * 2.34) / (shadowRadius * 0.92), 2.0));
+  float compactDiscBody = exp(-pow((canonicalDiscRadius - shadowRadius * 2.18) / (shadowRadius * 1.08), 2.0));
   float shearNoise = 0.5 + 0.5 * sin(canonicalDiscAngle * 5.0 + canonicalDiscRadius * 18.0 - uTime * 1.2);
-  float discFilaments = clamp(0.72 + shearNoise * 0.18 + sin(canonicalDiscRadius * 42.0 - uTime * 1.35) * 0.1, 0.5, 1.0);
-  float innerHot = exp(-pow((canonicalDiscRadius - diskInnerRadius * 1.08) / (shadowRadius * 0.95), 2.0));
+  float discFilaments = clamp(0.76 + shearNoise * 0.14 + sin(canonicalDiscRadius * 42.0 - uTime * 1.35) * 0.08, 0.52, 1.0);
+  float innerHot = exp(-pow((canonicalDiscRadius - diskInnerRadius * 1.04) / (shadowRadius * 0.72), 2.0));
   float swirlReach = shadowRadius * 6.8;
   float outerAccretionEnvelope =
-    exp(-pow((canonicalDiscRadius - shadowRadius * 4.05) / (shadowRadius * 2.45), 2.0));
+    exp(-pow((canonicalDiscRadius - shadowRadius * 3.72) / (shadowRadius * 2.1), 2.0));
   float discSpiralPhase = canonicalDiscAngle + log(max(canonicalDiscRadius / shadowRadius, 0.2)) * 2.32 - uTime * 1.06;
   float discSpiralBand = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 4.0);
   float canonicalSpiralArm = smoothstep(0.16, 0.95, discSpiralBand);
+  float spiralShadowGate = smoothstep(shadowRadius * 1.12, shadowRadius * 1.34, d);
+  float visibleDiscSpiralBand = discSpiralBand * spiralShadowGate;
+  float visibleCanonicalSpiralArm = canonicalSpiralArm * spiralShadowGate;
   float swirlRadialGate =
     smoothstep(diskInnerRadius * 1.1, diskInnerRadius * 1.42, canonicalDiscRadius) *
     (1.0 - smoothstep(swirlReach * 0.76, swirlReach, canonicalDiscRadius));
-  float directDiskVisibility = diskHit.visible * outsideShadow * (1.0 - shadowOcclusion * 0.35);
-  float nearSideVisibility = mix(0.62, 1.0, diskHit.nearSide);
-  float spiralVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.24);
+  float directDiskVisibility = diskHit.visible * projectedVisibilityTaper * (1.0 - shadowOcclusion * 0.35);
+  float nearSideVisibility = mix(0.04, 1.0, diskHit.nearSide);
+  float spiralVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.14);
   float strongOuterSwirl =
+    spiralShadowGate *
     outerAccretionEnvelope *
     swirlRadialGate *
     spiralVisibility *
-    (0.06 + canonicalSpiralArm * 0.54 + shearNoise * 0.05) *
-    0.72;
+    (0.04 + visibleCanonicalSpiralArm * 0.32 + shearNoise * 0.04) *
+    0.78;
   float diskEmission =
     canonicalDiscGate *
     compactDiscBody *
     discFilaments *
-    outsideShadow *
-    (1.0 - shadowOcclusion * 0.28) *
-    (1.08 + innerHot * 0.36 + shearNoise * 0.14) *
-    (0.48 + canonicalSpiralArm * 0.18 + innerHot * 0.42);
-  float canonicalDiscVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.18);
+    (1.0 - shadowOcclusion * 0.2) *
+    (1.16 + innerHot * 0.52 + shearNoise * 0.12) *
+    (0.42 + canonicalSpiralArm * 0.22 + innerHot * 0.5);
+  float canonicalDiscVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.16);
   float directDisc = diskEmission * canonicalDiscVisibility * nearSideVisibility;
+  float denseDiscInnerRadius = max(photonRingRadius * 1.08, diskInnerRadius * 1.02);
+  float denseDiscOuterRadius = diskInnerRadius * 1.86;
+  float denseDiscAnnulus =
+    smoothstep(denseDiscInnerRadius, denseDiscInnerRadius + shadowRadius * 0.1, canonicalDiscRadius) *
+    (1.0 - smoothstep(denseDiscOuterRadius - shadowRadius * 0.18, denseDiscOuterRadius, canonicalDiscRadius));
+  float denseDiscCore =
+    exp(-pow((canonicalDiscRadius - mix(denseDiscInnerRadius, denseDiscOuterRadius, 0.42)) / (shadowRadius * 0.38), 2.0));
+  float denseDiscProjectedCue =
+    projectedDiscCue *
+    smoothstep(denseDiscInnerRadius * 0.86, denseDiscOuterRadius, abs(bandP.x)) *
+    (1.0 - smoothstep(denseDiscOuterRadius * 1.04, denseDiscOuterRadius * 1.32, abs(bandP.x)));
+  float denseDiscVisibility = max(directDiskVisibility * nearSideVisibility, denseDiscProjectedCue * 0.28);
+  float denseInnerDisc =
+    denseDiscAnnulus *
+    max(denseDiscCore, 0.42) *
+    discFilaments *
+    denseDiscVisibility *
+    (1.0 - shadowOcclusion * 0.16) *
+    (0.88 + innerHot * 0.72 + canonicalSpiralArm * 0.18 + shearNoise * 0.08);
+  float frontDiscNearSide = smoothstep(0.0, 0.54, diskHit.nearSide);
+  float frontDiscProjection = smoothstep(0.18, 0.7, orbitSideAmount());
+  float frontDiscLaneTexture = clamp(0.58 + discFilaments * 0.15 + shearNoise * 0.08 + sin(frontBandP.x * 31.0 - uTime * 1.18) * 0.035, 0.0, 1.0);
+  float frontProjectedInnerTaper = exp(-pow(abs(frontBandP.x) / (shadowRadius * 1.52), 2.0));
+  float frontDiscLaneOffset = shadowRadius * mix(0.06, 0.18, frontDiscProjection);
+  float frontDiscLaneY = frontBandP.y + frontDiscLaneOffset;
+  float frontDiscPlane = exp(-pow(frontDiscLaneY / (shadowRadius * 0.064), 2.0));
+  float frontDiscSpan = 1.0 - smoothstep(shadowRadius * 0.82, shadowRadius * 1.08, abs(frontBandP.x));
+  float frontDiscCenterSoftness = mix(0.62, 1.0, smoothstep(shadowRadius * 0.05, shadowRadius * 0.22, d));
+  float frontDiscShadowWindow =
+    eventShadow *
+    frontDiscCenterSoftness *
+    (1.0 - smoothstep(shadowRadius * 0.94, shadowRadius * 1.12, d)) *
+    (0.62 + frontProjectedInnerTaper * 0.38);
+  float frontDiscOccludingLane =
+    frontDiscPlane *
+    frontDiscSpan *
+    frontDiscShadowWindow;
+  float frontDisc =
+    frontDiscOccludingLane *
+    frontDiscNearSide *
+    frontDiscProjection *
+    (0.56 + frontDiscLaneTexture * 0.36) *
+    canonicalDiscGate *
+    diskHit.visible;
 
 #ifdef ORBITAL_FLYAROUND
   float dopplerBase = smoothstep(-0.7, 1.0, cos(diskHit.angle - diveAzimuth()) * orbitVisualPhase);
 #else
   float dopplerBase = smoothstep(-0.7, 1.0, cos(diskHit.angle));
 #endif
-  float dopplerBeaming = mix(0.5, dopplerBase, 0.82);
-  float discBeam = 0.86 + 0.44 * smoothstep(-0.18, 0.92, bandP.x * orbitVisualPhase / max(compactDiscOuterRadius, 0.001));
+  float dopplerBeaming = mix(0.46, dopplerBase, 0.9);
+  float discBeam = 0.82 + 0.68 * smoothstep(-0.18, 0.92, bandP.x * orbitVisualPhase / max(compactDiscOuterRadius, 0.001));
 
   float wrapCut = 1.0 - smoothstep(compactDiscOuterRadius * 0.64, compactDiscOuterRadius * 0.98, abs(bandP.x));
   float compactWrapGate = wrapCut;
   float lensedDiscWrap =
-    exp(-pow((d - lensWrapRadius) / (shadowRadius * 0.24), 2.0)) *
-    1.18 *
-    (1.0 - shadowOcclusion * 0.18);
+    exp(-pow((d - lensWrapRadius) / (shadowRadius * 0.28), 2.0)) *
+    1.34 *
+    (1.0 - shadowOcclusion * 0.12);
   float lensedEnvelope =
-    exp(-pow((d - lensWrapRadius * 1.02) / (shadowRadius * 0.36), 2.0)) *
+    exp(-pow((d - lensWrapRadius * 1.02) / (shadowRadius * 0.42), 2.0)) *
     outsideShadow *
     wrapCut *
-    0.14;
+    0.22;
   float wrapPhase = screenAngle - diveAzimuth() * 0.28;
-  float wrapBias = 0.62 + 0.28 * pow(abs(sin(screenAngle)), 0.62) + 0.1 * cos(wrapPhase);
-  float lensedSpiralMod = 0.72 + canonicalSpiralArm * 0.18 + shearNoise * 0.06;
+  float wrapBias = 0.7 + 0.36 * pow(abs(sin(screenAngle)), 1.35) + 0.18 * cos(wrapPhase);
+  float lensedSpiralMod = 0.74 + visibleCanonicalSpiralArm * 0.22 + shearNoise * 0.07;
   float unifiedWrapRing = lensedDiscWrap * wrapBias * compactWrapGate * outsideShadow * lensedSpiralMod;
   float innerBridgeGlow =
-    exp(-pow((d - mix(photonRingRadius, lensWrapRadius, 0.62)) / (shadowRadius * 0.16), 2.0)) *
+    exp(-pow((d - mix(photonRingRadius, lensWrapRadius, 0.62)) / (shadowRadius * 0.2), 2.0)) *
     outsideShadow *
     wrapCut *
-    (0.56 + discSpiralBand * 0.12);
+    (0.68 + visibleDiscSpiralBand * 0.16);
 
-  vec3 discColor = accretionColorRamp(0.5 + innerHot * 0.42 + discFilaments * 0.08, dopplerBeaming, smoothstep(0.22, 0.9, innerHot) * 0.72);
-  vec3 swirlColor = accretionColorRamp(0.44 + discSpiralBand * 0.16, dopplerBeaming, 0.06 + innerHot * 0.08);
-  vec3 wrapColor = accretionColorRamp(0.8, dopplerBeaming, 0.44 + innerHot * 0.16);
-  vec3 ringColor = vec3(1.45, 1.1, 0.52);
-  vec3 color =
-    discColor * directDisc * discBeam * 1.14 +
-    swirlColor * strongOuterSwirl * 1.08 +
-    wrapColor * (unifiedWrapRing * 1.58 + innerBridgeGlow * 0.54 + lensedEnvelope * 0.3) +
-    ringColor * unifiedPhotonRing * 1.22;
-  color *= 1.0 + surge * 0.34 + tremor * 0.08 + violence * 0.1;
+  vec3 discColor = accretionColorRamp(0.54 + innerHot * 0.48 + discFilaments * 0.08, dopplerBeaming, smoothstep(0.2, 0.88, innerHot) * 0.86);
+  vec3 denseDiscColor = accretionColorRamp(0.74 + denseDiscCore * 0.14 + innerHot * 0.24, dopplerBeaming, 0.54 + innerHot * 0.26);
+  vec3 swirlColor = accretionColorRamp(0.48 + visibleDiscSpiralBand * 0.18, dopplerBeaming, 0.08 + innerHot * 0.1);
+  vec3 wrapColor = accretionColorRamp(0.86, dopplerBeaming, 0.58 + innerHot * 0.18);
+  vec3 frontDiscColorRamp = accretionColorRamp(0.54 + innerHot * 0.48 + discFilaments * 0.08, dopplerBeaming, smoothstep(0.2, 0.88, innerHot) * 0.86);
+  vec3 ringColor = vec3(1.82, 1.22, 0.46);
+  vec3 directDiscContribution = discColor * directDisc * discBeam * 1.18;
+  vec3 denseDiscContribution = denseDiscColor * denseInnerDisc * discBeam * 1.44;
+  float frontHalfStrength = smoothstep(0.0, 0.5, diskHit.nearSide);
+  float backHalfStrength = 1.0 - frontHalfStrength;
+  vec3 backDiscColor =
+    directDiscContribution * backHalfStrength +
+    denseDiscContribution * backHalfStrength +
+    swirlColor * strongOuterSwirl * 1.08;
+  vec3 frontDiscColor =
+    frontDiscColorRamp * frontDisc * 0.92 +
+    directDiscContribution * frontHalfStrength +
+    denseDiscContribution * frontHalfStrength;
+  vec3 ringGlowColor =
+    wrapColor * (unifiedWrapRing * 1.58 + innerBridgeGlow * 0.54 + lensedEnvelope * 0.34) +
+    ringColor * unifiedPhotonRing * 1.18;
+  float accretionPulse = 1.0 + surge * 0.34 + tremor * 0.08 + violence * 0.1;
+  backDiscColor *= accretionPulse;
+  frontDiscColor *= accretionPulse;
+  ringGlowColor *= accretionPulse;
 
-  return UnifiedDiscField(color, directDisc, strongOuterSwirl, unifiedPhotonRing, unifiedWrapRing, lensedEnvelope, eventShadow);
+  return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor, directDisc, denseInnerDisc, frontDisc, strongOuterSwirl, unifiedPhotonRing, unifiedWrapRing, lensedEnvelope, eventShadow);
 }
 
 AccretionField sampleRayLensedAccretion(vec2 uv) {
   UnifiedDiscField unified = sampleUnifiedDiscField(uv);
   float emission = clamp(
     unified.directDisc +
+    unified.denseInnerDisc * 0.86 +
+    unified.frontDisc * 0.34 +
     unified.strongOuterSwirl * 0.58 +
     unified.unifiedWrapRing * 0.82 +
     unified.lensedEnvelope * 0.44 +
@@ -954,7 +1051,9 @@ AccretionField sampleRayLensedAccretion(vec2 uv) {
     1.0
   );
   return AccretionField(
-    unified.discColor,
+    unified.backDiscColor,
+    unified.frontDiscColor,
+    unified.ringGlowColor,
     emission,
     unified.eventShadow,
     unified.unifiedPhotonRing,
@@ -990,23 +1089,29 @@ void main() {
   float intensity = dot(dye, vec3(0.45, 0.36, 0.19));
   vec3 background = mix(vec3(0.024, 0.012, 0.008), vec3(0.0009, 0.00045, 0.00018), collapse * 0.94);
   float pulse = 0.76 + 0.24 * sin(uTime * (1.18 + tremor * 0.85) + densityNoise * 1.7);
-  float atmospheric = exp(-pow(d / (horizon * mix(2.75, 4.2, surge)), 2.0)) * (0.022 + pulse * 0.016) * (1.0 + surge * 0.48 + tremor * 0.1 + violence * 0.08) * mix(1.0, 0.16, collapse);
-  vec3 color = background + vec3(0.075, 0.017, 0.0036) * atmospheric;
+  float atmospheric = exp(-pow(d / (horizon * mix(2.95, 4.45, surge)), 2.0)) * (0.028 + pulse * 0.02) * (1.0 + surge * 0.52 + tremor * 0.1 + violence * 0.08) * mix(1.0, 0.16, collapse);
+  vec3 color = background + vec3(0.092, 0.022, 0.0042) * atmospheric;
   vec2 starUv = dragOrbitStarUv(worldUv);
+  OrbitCamera starCam = buildOrbitCamera(worldUv);
+  vec3 starBentRay = bendRayTowardBlackHole(starCam, p);
+  vec2 starLensOffset = (starBentRay.xy - starCam.rayDir.xy) * 0.7;
+  starUv = dragOrbitStarUv(worldUv + starLensOffset);
   color += baseStarField(starUv) * starFieldVisibility();
   AccretionField accretion = sampleRayLensedAccretion(worldUv);
+  color += accretion.backDiscColor * mix(1.0, 0.78, collapse);
   color = mix(color, vec3(0.00012, 0.00004, 0.000015), accretion.eventShadow);
-  color += accretion.color * mix(1.0, 0.74, collapse);
+  color += accretion.frontDiscColor * mix(1.0, 0.78, collapse);
+  color += accretion.ringGlowColor * mix(1.0, 0.78, collapse);
   color += dye * (0.68 + intensity * 0.96 + orbitCompression * violence * 0.42) * mix(1.0, 0.58, collapse) * (1.0 - accretion.eventShadow * 0.86);
   color = max(color + wavefrontVisual(dyeUv), vec3(0.0));
 
   float frameRadius = distance(rolledUv, vec2(0.5));
-  color += sampleDiveGlow(rolledUv, frameRadius, horizon, surge, collapse, tremor, violence) * 0.42;
+  color += sampleDiveGlow(rolledUv, frameRadius, horizon, surge, collapse, tremor, violence) * 0.5;
   float tunnelVignette = smoothstep(0.18, 0.82, frameRadius) * surge;
   color *= 1.0 - tunnelVignette * (0.38 + collapse * 0.62 + tremor * 0.1 + violence * 0.08);
   float vignette = smoothstep(1.05, 0.14, frameRadius);
   color *= 0.54 + vignette * (0.54 + surge * 0.2);
-  color = vec3(1.0) - exp(-color * mix(1.22, 1.66, surge));
+  color = vec3(1.0) - exp(-color * mix(1.26, 1.72, surge));
 #ifdef ORBITAL_FLYAROUND
   color *= 1.0 - smoothstep(0.86, 0.965, diveProgress());
 #else

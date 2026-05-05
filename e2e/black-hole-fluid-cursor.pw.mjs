@@ -1,12 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
+const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000/";
+const fluidUrl = process.env.FLUID_URL ?? new URL("/black-hole-fluid/index.html?v=playwright-cursor", baseUrl).toString();
+
 test("cursor releases light streamlets that orbit and then decay", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await mkdir(".verification", { recursive: true });
-  await page.goto("http://127.0.0.1:5176/black-hole-fluid/index.html?v=playwright-cursor");
+  await page.goto(fluidUrl);
   await expect(page.locator("#fluid-canvas")).toBeVisible();
   await page.waitForTimeout(2200);
   await page.screenshot({ path: ".verification/fluid-playwright-idle.png" });

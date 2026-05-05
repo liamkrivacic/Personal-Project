@@ -100,11 +100,11 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("UnifiedDiscField sampleUnifiedDiscField(vec2 uv)");
     expect(shaderSource).toContain("float shadowRadius");
     expect(shaderSource).toContain("float photonRingRadius");
-    expect(shaderSource).toContain("const float CANONICAL_SHADOW_SCALE = 0.74;");
+    expect(shaderSource).toContain("const float CANONICAL_SHADOW_SCALE = 0.82;");
     expect(shaderSource).toContain("const float CANONICAL_PHOTON_RADIUS = 1.04;");
     expect(shaderSource).toContain("const float CANONICAL_LENS_WRAP_RADIUS = 1.56;");
-    expect(shaderSource).toContain("const float CANONICAL_DISC_INNER_RADIUS = 1.16;");
-    expect(shaderSource).toContain("const float CANONICAL_DISC_OUTER_RADIUS = 5.4;");
+    expect(shaderSource).toContain("const float CANONICAL_DISC_INNER_RADIUS = 1.06;");
+    expect(shaderSource).toContain("const float CANONICAL_DISC_OUTER_RADIUS = 4.4;");
     expect(shaderSource).toContain("vec2 canonicalDiscCoord = diskHit.coord;");
     expect(shaderSource).toContain("float swirlReach = shadowRadius * 6.8;");
     expect(shaderSource).toContain("float innerBridgeGlow");
@@ -119,15 +119,15 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("float horseshoeArcShelf");
     expect(shaderSource).toContain("float dopplerBeaming");
     expect(shaderSource).toContain("float eventShadow");
-    expect(shaderSource).toContain("color = vec3(1.0) - exp(-color * mix(1.22, 1.66, surge));");
+    expect(shaderSource).toContain("color = vec3(1.0) - exp(-color * mix(1.26, 1.72, surge));");
     expect(shaderSource).not.toContain("AccretionField sampleUnifiedAccretionField");
     expect(shaderSource).not.toContain("float cleanFade");
     expect(shaderSource).not.toContain("float warpedDisc");
     expect(shaderSource).not.toContain("float discBackscatter");
     expect(shaderSource).not.toContain("float wrappedDiscGlow");
     expect(shaderSource).not.toContain("float sideLane");
-    expect(heroSource).toContain("scroll-dive-cinematic-37");
-    expect(htmlSource).toContain("scroll-dive-cinematic-37");
+    expect(heroSource).toContain("scroll-dive-cinematic-55");
+    expect(htmlSource).toContain("scroll-dive-cinematic-55");
     expect(heroSource).toContain('type: "black-hole-dive"');
     expect(heroSource).toContain('event.data.type !== "black-hole-dive-input"');
     expect(shaderSource).toContain('event.data.type !== "black-hole-dive"');
@@ -156,7 +156,7 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain('canvas.addEventListener("pointerup"');
     expect(shaderSource).toContain('canvas.addEventListener("pointercancel"');
     expect(shaderSource).toContain("canvas.setPointerCapture(event.pointerId);");
-    expect(shaderSource).toContain("canvas.addEventListener(\"pointermove\", (event) => {\n  updateDragOrbit(event);");
+    expect(shaderSource).toMatch(/canvas\.addEventListener\("pointermove", \(event\) => \{\r?\n  updateDragOrbit\(event\);/);
     expect(shaderSource).not.toContain("if (updateDragOrbit(event)) {\n    return;\n  }");
     expect(shaderSource).toContain("const yawDelta = dx * 4.8;");
     expect(shaderSource).toContain("dragOrbit.velocityYaw = yawDelta / elapsed;");
@@ -206,8 +206,9 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain("vec2 bandP = rot(discSweepAngle()) * vec2(p.x, p.y - screenLift);");
     expect(shaderSource).not.toContain("vec2 bandP = rot(discSweepAngle()) * vec2(p.x, p.y * orbitVisualPhase);");
     expect(shaderSource).toContain("cos(diskHit.angle - diveAzimuth()) * orbitVisualPhase");
-    expect(shaderSource).toContain("return uDragOrbit.x;");
-    expect(shaderSource).toContain("return uDragOrbit.x * mix(0.34, 0.18, discSideView());");
+    expect(shaderSource).toContain("float baseOrbitYaw = mix(-0.42, 3.08, smoothstep(0.05, 0.95, orbitProgress()));");
+    expect(shaderSource).toContain("return baseOrbitYaw + uDragOrbit.x;");
+    expect(shaderSource).toContain("return diveAzimuth() * mix(0.34, 0.18, discSideView());");
     expect(shaderSource).toContain("float starCameraParallax");
     expect(shaderSource).toContain("vec2 cameraLookOffset");
     expect(shaderSource).toContain("vec2 perspectiveShear");
@@ -304,6 +305,9 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("float strongOuterSwirl");
     expect(shaderSource).toContain("float discSpiralBand");
     expect(shaderSource).toContain("float canonicalSpiralArm");
+    expect(shaderSource).toContain("float spiralShadowGate");
+    expect(shaderSource).toContain("float visibleDiscSpiralBand");
+    expect(shaderSource).toContain("float visibleCanonicalSpiralArm");
     expect(shaderSource).toContain("float swirlRadialGate");
     expect(shaderSource).toContain("float lensedDiscWrap");
     expect(shaderSource).toContain(
@@ -315,7 +319,8 @@ describe("black-hole fluid shader", () => {
     expect(unifiedFieldBlock).toContain("outerAccretionEnvelope");
     expect(unifiedFieldBlock).toContain("discSpiralBand");
     expect(unifiedFieldBlock).toContain("float discSpiralBand = pow(0.5 + 0.5 * cos(discSpiralPhase * 2.0), 4.0);");
-    expect(unifiedFieldBlock).toContain("(0.06 + canonicalSpiralArm * 0.54 + shearNoise * 0.05)");
+    expect(unifiedFieldBlock).toContain("spiralShadowGate *");
+    expect(unifiedFieldBlock).toContain("(0.04 + visibleCanonicalSpiralArm * 0.32 + shearNoise * 0.04)");
     expect(unifiedFieldBlock).toContain("swirlColor * strongOuterSwirl * 1.08");
     expect(unifiedFieldBlock).toContain("lensedDiscWrap");
     expect(unifiedFieldBlock).not.toContain("mix(0.24, 1.0, smoothstep(0.28, 1.0, discSpiralBand))");
@@ -339,6 +344,127 @@ describe("black-hole fluid shader", () => {
     expect(unifiedFieldBlock).not.toContain("interArmDarkness");
   });
 
+  it("borrows checkpoint-nine brightness without brightening the event-shadow floor", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("vec3 ember = vec3(0.10, 0.05, 0.02);");
+    expect(shaderSource).toContain("vec3 white = vec3(1.85, 1.55, 0.95);");
+    expect(unifiedFieldBlock).toContain(
+      "float projectedDiscPlane = exp(-pow(abs(bandP.y + shadowRadius * 0.006) / (shadowRadius * 0.074), 2.0));",
+    );
+    expect(unifiedFieldBlock).toContain("float compactDiscBody = exp(-pow((canonicalDiscRadius - shadowRadius * 2.18) / (shadowRadius * 1.08), 2.0));");
+    expect(unifiedFieldBlock).toContain("float innerHot = exp(-pow((canonicalDiscRadius - diskInnerRadius * 1.04) / (shadowRadius * 0.72), 2.0));");
+    expect(unifiedFieldBlock).toContain("float outerAccretionEnvelope =");
+    expect(unifiedFieldBlock).toContain("exp(-pow((canonicalDiscRadius - shadowRadius * 3.72) / (shadowRadius * 2.1), 2.0));");
+    expect(unifiedFieldBlock).toContain("(0.04 + visibleCanonicalSpiralArm * 0.32 + shearNoise * 0.04)");
+    expect(unifiedFieldBlock).toContain("float wrapBias = 0.7 + 0.36 * pow(abs(sin(screenAngle)), 1.35) + 0.18 * cos(wrapPhase);");
+    expect(unifiedFieldBlock).toContain("float lensedDiscWrap =");
+    expect(unifiedFieldBlock).toContain("1.34 *");
+    expect(unifiedFieldBlock).toContain("vec3 ringColor = vec3(1.82, 1.22, 0.46);");
+    expect(unifiedFieldBlock).toContain("vec3 backDiscColor =");
+    expect(unifiedFieldBlock).toContain("vec3 frontDiscColor =");
+    expect(unifiedFieldBlock).toContain("vec3 ringGlowColor =");
+    expect(unifiedFieldBlock).toContain("discColor * directDisc * discBeam * 1.18");
+    expect(unifiedFieldBlock).toContain("denseDiscColor * denseInnerDisc * discBeam * 1.44");
+    expect(unifiedFieldBlock).toContain("swirlColor * strongOuterSwirl * 1.08");
+    expect(unifiedFieldBlock).toContain("wrapColor * (unifiedWrapRing * 1.58 + innerBridgeGlow * 0.54 + lensedEnvelope * 0.34)");
+    expect(unifiedFieldBlock).toContain("ringColor * unifiedPhotonRing * 1.18");
+    expect(unifiedFieldBlock).toContain("return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor");
+    expect(unifiedFieldBlock).not.toContain("if (sideView");
+    expect(unifiedFieldBlock).not.toContain("if (orbitSideAmount");
+    expect(shaderSource).not.toContain("sampleCheckpointNineSideView");
+    expect(shaderSource).not.toContain("sampleTopViewAccretion");
+  });
+
+  it("tapers projected disc cues so the unified model cannot render a flat light bar", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(unifiedFieldBlock).toContain("float projectedTailTaper = exp(-pow(abs(bandP.x) / (compactDiscOuterRadius * 0.42), 2.0));");
+    expect(unifiedFieldBlock).toContain("float projectedInnerTaper = exp(-pow(abs(bandP.x) / (shadowRadius * 1.58), 2.0));");
+    expect(unifiedFieldBlock).toContain("float projectedVisibilityTaper = mix(1.0, projectedTailTaper, smoothstep(0.12, 0.92, orbitSideAmount()));");
+    expect(unifiedFieldBlock).toContain("smoothstep(diskInnerRadius * 1.02, diskInnerRadius * 1.18, abs(bandP.x)) *");
+    expect(unifiedFieldBlock).toContain("(0.22 + projectedTailTaper * 0.78) *");
+    expect(unifiedFieldBlock).toContain("float directDiskVisibility = diskHit.visible * projectedVisibilityTaper * (1.0 - shadowOcclusion * 0.35);");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneOffset = shadowRadius * mix(0.06, 0.18, frontDiscProjection);");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneY = frontBandP.y + frontDiscLaneOffset;");
+    expect(unifiedFieldBlock).toContain("float frontDiscPlane = exp(-pow(frontDiscLaneY / (shadowRadius * 0.064), 2.0));");
+    expect(unifiedFieldBlock).toContain("float frontDiscSpan = 1.0 - smoothstep(shadowRadius * 0.82, shadowRadius * 1.08, abs(frontBandP.x));");
+    expect(unifiedFieldBlock).toContain("float frontDiscCenterSoftness = mix(0.62, 1.0, smoothstep(shadowRadius * 0.05, shadowRadius * 0.22, d));");
+    expect(unifiedFieldBlock).toContain("float frontDiscShadowWindow =");
+    expect(unifiedFieldBlock).toContain("eventShadow *");
+    expect(unifiedFieldBlock).not.toContain("frontDiscCenterGuard");
+    expect(unifiedFieldBlock).not.toContain("foregroundDisc");
+    expect(unifiedFieldBlock).not.toContain("foregroundUpper");
+  });
+
+  it("masks spiral detail so it only appears outside the black-hole radius", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(unifiedFieldBlock).toContain("float spiralShadowGate = smoothstep(shadowRadius * 1.12, shadowRadius * 1.34, d);");
+    expect(unifiedFieldBlock).toContain("float visibleDiscSpiralBand = discSpiralBand * spiralShadowGate;");
+    expect(unifiedFieldBlock).toContain("float visibleCanonicalSpiralArm = canonicalSpiralArm * spiralShadowGate;");
+    expect(unifiedFieldBlock).toContain("float strongOuterSwirl =");
+    expect(unifiedFieldBlock).toContain("spiralShadowGate *");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneTexture = clamp(0.58 + discFilaments * 0.15 + shearNoise * 0.08");
+    expect(unifiedFieldBlock).toContain("float lensedSpiralMod = 0.74 + visibleCanonicalSpiralArm * 0.22 + shearNoise * 0.07;");
+    expect(unifiedFieldBlock).toContain("vec3 swirlColor = accretionColorRamp(0.48 + visibleDiscSpiralBand * 0.18");
+    expect(unifiedFieldBlock).toContain("vec3 frontDiscColorRamp = accretionColorRamp(0.54 + innerHot * 0.48 + discFilaments * 0.08");
+    expect(unifiedFieldBlock).not.toContain("canonicalSpiralArm * 0.06");
+    expect(unifiedFieldBlock).not.toContain("float frontDiscSpiralLight");
+    expect(unifiedFieldBlock).not.toContain("float lensedSpiralMod = 0.72 + canonicalSpiralArm");
+    expect(unifiedFieldBlock).not.toContain("vec3 swirlColor = accretionColorRamp(0.44 + discSpiralBand * 0.16");
+  });
+
+  it("adds a dense annular inner disc while preserving the black center and outer spiral", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("float denseInnerDisc;");
+    expect(unifiedFieldBlock).toContain("float denseDiscInnerRadius = max(photonRingRadius * 1.08, diskInnerRadius * 1.02);");
+    expect(unifiedFieldBlock).toContain("float denseDiscOuterRadius = diskInnerRadius * 1.86;");
+    expect(unifiedFieldBlock).toContain("float denseDiscAnnulus =");
+    expect(unifiedFieldBlock).toContain("smoothstep(denseDiscInnerRadius, denseDiscInnerRadius + shadowRadius * 0.1, canonicalDiscRadius) *");
+    expect(unifiedFieldBlock).toContain("(1.0 - smoothstep(denseDiscOuterRadius - shadowRadius * 0.18, denseDiscOuterRadius, canonicalDiscRadius));");
+    expect(unifiedFieldBlock).toContain("float denseDiscVisibility = max(directDiskVisibility * nearSideVisibility, denseDiscProjectedCue * 0.28);");
+    expect(unifiedFieldBlock).toContain("float denseInnerDisc =");
+    expect(unifiedFieldBlock).toContain("denseDiscAnnulus *");
+    expect(unifiedFieldBlock).toContain("outsideShadow *");
+    expect(unifiedFieldBlock).toContain("(1.0 - shadowOcclusion * 0.16) *");
+    expect(unifiedFieldBlock).toContain("vec3 denseDiscColor = accretionColorRamp");
+    expect(unifiedFieldBlock).toContain("denseDiscColor * denseInnerDisc * discBeam * 1.44");
+    expect(unifiedFieldBlock).toContain("swirlColor * strongOuterSwirl * 1.08");
+    expect(unifiedFieldBlock).toContain("return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor, directDisc, denseInnerDisc, frontDisc, strongOuterSwirl");
+    expect(shaderSource).toContain("unified.denseInnerDisc * 0.86");
+    expect(unifiedFieldBlock).not.toContain("denseInnerDisc = eventShadow");
+  });
+
   it("keeps the photon ring and shadow anchored to the radial hole while the disc uses ray-disc coordinates", () => {
     const shaderSource = readFileSync(
       join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
@@ -352,8 +478,9 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).toContain("float unifiedWrapRing");
     expect(shaderSource).toContain("float lensedDiscWrap");
     expect(shaderSource).toContain("float strongOuterSwirl");
-    expect(shaderSource).toContain("float directDiskVisibility = diskHit.visible * outsideShadow * (1.0 - shadowOcclusion * 0.35);");
-    expect(shaderSource).toContain("float spiralVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.24);");
+    expect(shaderSource).toContain("float directDiskVisibility = diskHit.visible * projectedVisibilityTaper * (1.0 - shadowOcclusion * 0.35);");
+    expect(shaderSource).toContain("float spiralVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.14);");
+    expect(shaderSource).toContain("float canonicalDiscVisibility = max(directDiskVisibility * nearSideVisibility, projectedDiscCue * 0.16);");
     expect(shaderSource).not.toContain("float centerGap");
     expect(shaderSource).not.toContain(
       "float spiralMask = exp(-pow((orbitD - horizon * 2.22) / (horizon * 1.58), 2.0)) * (1.0 - hole);",
@@ -361,6 +488,173 @@ describe("black-hole fluid shader", () => {
     expect(shaderSource).not.toContain(
       "float warpedD = orbitD + (rimNoise - 0.5) * horizon * 0.095;",
     );
+  });
+
+  it("separates back disc, front disc, and ring glow so near-side material composites after the shadow", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+    const rayStart = fieldEnd;
+    const rayEnd = shaderSource.indexOf("void main()", rayStart);
+    const rayBlock = shaderSource.slice(rayStart, rayEnd);
+    const mainBlock = shaderSource.slice(rayEnd);
+
+    expect(shaderSource).toContain("vec3 backDiscColor;");
+    expect(shaderSource).toContain("vec3 frontDiscColor;");
+    expect(shaderSource).toContain("vec3 ringGlowColor;");
+    expect(shaderSource).toContain("float frontDisc;");
+    expect(unifiedFieldBlock).toContain("float frontDiscOccludingLane =");
+    expect(unifiedFieldBlock).toContain("float frontDisc =");
+    expect(unifiedFieldBlock).toContain("vec3 backDiscColor =");
+    expect(unifiedFieldBlock).toContain("vec3 frontDiscColor =");
+    expect(unifiedFieldBlock).toContain("vec3 ringGlowColor =");
+    expect(unifiedFieldBlock).toContain("return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor");
+    expect(unifiedFieldBlock).not.toContain("foregroundDiscBridge");
+    expect(unifiedFieldBlock).not.toContain("foregroundUpperDisc");
+    expect(rayBlock).toContain("return AccretionField(\n    unified.backDiscColor,\n    unified.frontDiscColor,\n    unified.ringGlowColor");
+
+    const backComposite = mainBlock.indexOf("color += accretion.backDiscColor * mix(1.0, 0.78, collapse);");
+    const shadowComposite = mainBlock.indexOf("color = mix(color, vec3(0.00012, 0.00004, 0.000015), accretion.eventShadow);");
+    const frontComposite = mainBlock.indexOf("color += accretion.frontDiscColor * mix(1.0, 0.78, collapse);");
+    const ringComposite = mainBlock.indexOf("color += accretion.ringGlowColor * mix(1.0, 0.78, collapse);");
+
+    expect(backComposite).toBeGreaterThan(-1);
+    expect(shadowComposite).toBeGreaterThan(-1);
+    expect(frontComposite).toBeGreaterThan(-1);
+    expect(ringComposite).toBeGreaterThan(-1);
+    expect(backComposite).toBeLessThan(shadowComposite);
+    expect(shadowComposite).toBeLessThan(frontComposite);
+    expect(frontComposite).toBeLessThan(ringComposite);
+    expect(mainBlock).not.toContain("color += accretion.color");
+  });
+
+  it("lets only near-side front disc material cross in front of the shadow", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("float frontDisc;");
+    expect(unifiedFieldBlock).toContain("float frontDiscNearSide = smoothstep(0.0, 0.54, diskHit.nearSide);");
+    expect(unifiedFieldBlock).toContain("float frontDiscProjection = smoothstep(0.18, 0.7, orbitSideAmount());");
+    expect(unifiedFieldBlock).toContain("float frontDiscShadowWindow =");
+    expect(unifiedFieldBlock).toContain("eventShadow *");
+    expect(unifiedFieldBlock).toContain("frontDiscCenterSoftness *");
+    expect(unifiedFieldBlock).not.toContain("frontDiscCenterGuard");
+    expect(unifiedFieldBlock).toContain("float frontDiscOccludingLane =");
+    expect(unifiedFieldBlock).toContain("frontDiscPlane *");
+    expect(unifiedFieldBlock).toContain("frontDiscSpan *");
+    expect(unifiedFieldBlock).toContain("frontDiscShadowWindow;");
+    expect(unifiedFieldBlock).toContain("frontDiscNearSide *");
+    expect(unifiedFieldBlock).toContain("frontDiscProjection *");
+    expect(unifiedFieldBlock).toContain("vec3 frontDiscColorRamp = accretionColorRamp");
+    expect(unifiedFieldBlock).toContain("frontDiscColorRamp * frontDisc * 0.92");
+    expect(unifiedFieldBlock).toContain("return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor, directDisc, denseInnerDisc, frontDisc");
+    expect(shaderSource).toContain("unified.frontDisc * 0.34");
+    expect(unifiedFieldBlock).not.toContain("foregroundDisc");
+    expect(unifiedFieldBlock).not.toContain("foregroundUpper");
+  });
+
+  it("keeps the same near-side disc crossing from becoming an internal upper arch", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(unifiedFieldBlock).toContain("float frontDiscOccludingLane =");
+    expect(unifiedFieldBlock).toContain("frontDiscPlane *");
+    expect(unifiedFieldBlock).toContain("frontDiscSpan *");
+    expect(unifiedFieldBlock).toContain("frontDiscShadowWindow;");
+    expect(unifiedFieldBlock).toContain("eventShadow *");
+    expect(unifiedFieldBlock).toContain("frontDiscNearSide *");
+    expect(unifiedFieldBlock).toContain("float frontDisc =");
+    expect(unifiedFieldBlock).toContain("frontDiscOccludingLane *");
+    expect(unifiedFieldBlock).not.toContain("frontDiscArch");
+    expect(shaderSource).toContain("float frontDisc;");
+    expect(unifiedFieldBlock).not.toContain("foregroundDiscBridge");
+    expect(unifiedFieldBlock).not.toContain("foregroundUpperDisc");
+    expect(unifiedFieldBlock).not.toContain("if (sideView");
+    expect(unifiedFieldBlock).not.toContain("if (orbitSideAmount");
+    expect(shaderSource).not.toContain("sampleTopViewAccretion");
+    expect(shaderSource).not.toContain("sampleSideViewAccretion");
+  });
+
+  it("composites the front disc as its own hot unified contribution", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("float frontDisc;");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneTexture =");
+    expect(unifiedFieldBlock).toContain("float frontDisc =");
+    expect(unifiedFieldBlock).toContain("vec3 frontDiscColorRamp = accretionColorRamp");
+    expect(unifiedFieldBlock).toContain("frontDiscOccludingLane *");
+    expect(unifiedFieldBlock).toContain("frontDiscColorRamp * frontDisc * 0.92");
+    expect(unifiedFieldBlock).toContain("return UnifiedDiscField(backDiscColor, frontDiscColor, ringGlowColor");
+    expect(shaderSource).toContain("unified.frontDisc * 0.34");
+    expect(unifiedFieldBlock).not.toContain("foregroundDiscBridge");
+    expect(unifiedFieldBlock).not.toContain("foregroundUpperDisc");
+    expect(shaderSource).not.toContain("unified.foreground");
+    expect(shaderSource).not.toContain("sampleTopViewAccretion");
+    expect(shaderSource).not.toContain("sampleSideViewAccretion");
+  });
+
+  it("uses a near-side occluding lane for the front disc instead of an internal arch or debug probe", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).not.toContain("uDebugFrontProbe");
+    expect(shaderSource).not.toContain("debugFrontProbe");
+    expect(unifiedFieldBlock).not.toContain("frontDiscArch");
+    expect(unifiedFieldBlock).toContain("float frontDiscOccludingLane =");
+    expect(unifiedFieldBlock).toContain("float frontDiscShadowWindow =");
+    expect(unifiedFieldBlock).toContain("frontDiscOccludingLane *");
+    expect(unifiedFieldBlock).toContain("eventShadow *");
+    expect(unifiedFieldBlock).toContain("frontDiscNearSide *");
+    expect(unifiedFieldBlock).toContain("frontDiscProjection *");
+  });
+
+  it("projects the front occluding lane from the camera plane instead of the rotated swirl band", () => {
+    const shaderSource = readFileSync(
+      join(process.cwd(), "public", "black-hole-fluid", "fluid.js"),
+      "utf8",
+    );
+
+    const fieldStart = shaderSource.indexOf("UnifiedDiscField sampleUnifiedDiscField");
+    const fieldEnd = shaderSource.indexOf("AccretionField sampleRayLensedAccretion", fieldStart);
+    const unifiedFieldBlock = shaderSource.slice(fieldStart, fieldEnd);
+
+    expect(shaderSource).toContain("vec2 projectedFrontDiscOcclusionBand(vec2 uv)");
+    expect(unifiedFieldBlock).toContain("vec2 frontBandP = projectedFrontDiscOcclusionBand(uv);");
+    expect(unifiedFieldBlock).toContain("float frontProjectedInnerTaper = exp(-pow(abs(frontBandP.x)");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneOffset = shadowRadius * mix(0.06, 0.18, frontDiscProjection);");
+    expect(unifiedFieldBlock).toContain("float frontDiscLaneY = frontBandP.y + frontDiscLaneOffset;");
+    expect(unifiedFieldBlock).toContain("abs(frontBandP.x)");
+    expect(unifiedFieldBlock).not.toContain("float frontDiscLaneY = bandP.y");
   });
 
   it("caps internal canvas resolution so the heavier lensing shader stays stable on wide screens", () => {

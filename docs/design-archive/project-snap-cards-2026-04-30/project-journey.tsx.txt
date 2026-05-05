@@ -1,0 +1,328 @@
+"use client";
+
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+
+type ProjectImage = {
+  src: string;
+  alt: string;
+  caption?: string;
+};
+
+type ProjectCaseStudy = {
+  id: string;
+  kicker: string;
+  title: string;
+  shortTitle: string;
+  signal: string;
+  overview: string;
+  role: string;
+  constraint: string;
+  output: string;
+  tools: string[];
+  color: string;
+  visual: "plasma" | "robot" | "web" | "lab";
+  images: ProjectImage[];
+};
+
+const projectCaseStudies: ProjectCaseStudy[] = [
+  {
+    id: "rf-plasma",
+    kicker: "RF / Plasma systems",
+    title: "RF Plasma",
+    shortTitle: "RF",
+    signal: "Bench energy made observable.",
+    overview:
+      "A hardware-first investigation into controlled RF energy, measurement loops, and the messy boundary between simulation, lab constraints, and physical behaviour.",
+    role: "System design, instrumentation planning, test iteration",
+    constraint: "Noise, heat, coupling, and safety all matter at the same time",
+    output: "A practical experimental path for making the invisible parts of the system measurable",
+    tools: ["RF systems", "Instrumentation", "Plasma", "Lab notes"],
+    color: "#ffd166",
+    visual: "plasma",
+    images: [],
+  },
+  {
+    id: "sumobot",
+    kicker: "Robotics / Control",
+    title: "Sumobot",
+    shortTitle: "Bot",
+    signal: "Small robot, hard real-time instincts.",
+    overview:
+      "An autonomous competition robot built around fast sensing, decisive control logic, and physical design choices that survive contact with the arena.",
+    role: "Embedded behaviour, sensor strategy, mechanical iteration",
+    constraint: "Every gram, loop delay, and false sensor read changes the fight",
+    output: "A compact robotics system that turns messy arena input into reliable movement",
+    tools: ["Embedded C", "Sensors", "Control", "Fabrication"],
+    color: "#ef7d22",
+    visual: "robot",
+    images: [],
+  },
+  {
+    id: "fmcg-web",
+    kicker: "Software / Operations",
+    title: "FMCG Web",
+    shortTitle: "Ops",
+    signal: "Operational data without the spreadsheet gravity well.",
+    overview:
+      "A focused web workflow for fast-moving consumer-goods operations, designed to make status, handoffs, and exceptions easier to see at a glance.",
+    role: "Frontend architecture, interaction design, data modelling",
+    constraint: "The interface has to stay legible when people are busy, interrupted, and moving quickly",
+    output: "A clearer operational surface for tracking work, surfacing state, and reducing ambiguity",
+    tools: ["Next.js", "TypeScript", "UX", "Dashboards"],
+    color: "#8fb8c7",
+    visual: "web",
+    images: [],
+  },
+  {
+    id: "lab-demo",
+    kicker: "Teaching / Infrastructure",
+    title: "Lab Demo",
+    shortTitle: "Lab",
+    signal: "Reliable demos for fragile physical systems.",
+    overview:
+      "Demo and lab infrastructure shaped around repeatability: the unglamorous wiring, setup, docs, and recovery paths that let technical work be shown clearly.",
+    role: "Systems thinking, documentation, practical test flow",
+    constraint: "A good demo has to be recoverable even when hardware decides to be hardware",
+    output: "A calmer path from setup to explanation, with fewer hidden single points of failure",
+    tools: ["Reliability", "Docs", "Testing", "Handover"],
+    color: "#d8a24a",
+    visual: "lab",
+    images: [],
+  },
+];
+
+function ProjectSchematic({ visual, title }: Pick<ProjectCaseStudy, "visual" | "title">) {
+  return (
+    <div className={`case-schematic case-schematic-${visual}`} aria-label={`${title} schematic`}>
+      <span className="schematic-grid" aria-hidden="true" />
+      <span className="schematic-orbit orbit-one" aria-hidden="true" />
+      <span className="schematic-orbit orbit-two" aria-hidden="true" />
+      <span className="schematic-core" aria-hidden="true" />
+      <span className="schematic-node node-one" aria-hidden="true" />
+      <span className="schematic-node node-two" aria-hidden="true" />
+      <span className="schematic-node node-three" aria-hidden="true" />
+      <span className="schematic-readout readout-one" aria-hidden="true" />
+      <span className="schematic-readout readout-two" aria-hidden="true" />
+    </div>
+  );
+}
+
+function ProjectMedia({ project }: { project: ProjectCaseStudy }) {
+  if (project.images.length === 0) {
+    return <ProjectSchematic visual={project.visual} title={project.title} />;
+  }
+
+  const [heroImage, ...supportingImages] = project.images;
+
+  return (
+    <div className="case-image-system">
+      <figure className="case-image-primary">
+        <Image
+          src={heroImage.src}
+          alt={heroImage.alt}
+          fill
+          sizes="(max-width: 1120px) 100vw, 40vw"
+        />
+        {heroImage.caption ? <figcaption>{heroImage.caption}</figcaption> : null}
+      </figure>
+
+      {supportingImages.length > 0 ? (
+        <div className="case-image-strip" aria-label={`${project.title} supporting images`}>
+          {supportingImages.map((image) => (
+            <figure key={image.src}>
+              <Image
+                src={image.src}
+                alt={image.alt}
+                fill
+                sizes="(max-width: 720px) 100vw, 14vw"
+              />
+              {image.caption ? <figcaption>{image.caption}</figcaption> : null}
+            </figure>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ProjectJourney() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [activeProjectId, setActiveProjectId] = useState(projectCaseStudies[0]?.id ?? "");
+  const [isProjectHeaderVisible, setIsProjectHeaderVisible] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const cardMotion = prefersReducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0.62, y: 34, scale: 0.982, filter: "blur(7px)" },
+        whileInView: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+        viewport: { amount: 0.7, margin: "-8% 0px -8% 0px" },
+        transition: { duration: 0.52 },
+      };
+
+  useEffect(() => {
+    const section = sectionRef.current;
+
+    if (!section) {
+      return;
+    }
+
+    const chapters = Array.from(section.querySelectorAll<HTMLElement>(".project-chapter"));
+
+    if (chapters.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const activeEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (activeEntry?.target.id) {
+          setActiveProjectId(activeEntry.target.id);
+        }
+      },
+      {
+        rootMargin: "-42% 0px -42% 0px",
+        threshold: [0.12, 0.24, 0.36, 0.5, 0.72],
+      },
+    );
+
+    chapters.forEach((chapter) => observer.observe(chapter));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+
+    if (!section) {
+      return;
+    }
+
+    let frame = 0;
+
+    const updateHeaderVisibility = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = section.getBoundingClientRect();
+        setIsProjectHeaderVisible(rect.top <= 1 && rect.bottom > 80);
+      });
+    };
+
+    updateHeaderVisibility();
+    window.addEventListener("scroll", updateHeaderVisibility, { passive: true });
+    window.addEventListener("resize", updateHeaderVisibility);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateHeaderVisibility);
+      window.removeEventListener("resize", updateHeaderVisibility);
+    };
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="post-dive-projects"
+      id="projects"
+      aria-label="Project case studies"
+    >
+      <header
+        className={`project-sticky-header ${
+          isProjectHeaderVisible ? "project-sticky-header-visible" : ""
+        }`}
+        aria-hidden={!isProjectHeaderVisible}
+      >
+        <a
+          className="project-header-brand"
+          href="#projects"
+          aria-label="Project case studies"
+          tabIndex={isProjectHeaderVisible ? undefined : -1}
+        >
+          Projects
+        </a>
+
+        <nav className="project-header-nav" aria-label="Project sections">
+          {projectCaseStudies.map((project, index) => (
+            <a
+              href={`#${project.id}`}
+              key={project.id}
+              aria-current={activeProjectId === project.id ? "step" : undefined}
+              tabIndex={isProjectHeaderVisible ? undefined : -1}
+              style={{ "--case-color": project.color } as CSSProperties}
+            >
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              {project.title}
+            </a>
+          ))}
+        </nav>
+      </header>
+
+      <div className="project-scroll-shell">
+        <div className="project-chapter-list">
+          {projectCaseStudies.map((project, index) => (
+            <article
+              className="project-chapter"
+              id={project.id}
+              key={project.id}
+              style={
+                {
+                  "--case-color": project.color,
+                  "--case-number": `"${String(index + 1).padStart(2, "0")}"`,
+                } as CSSProperties
+              }
+            >
+              <motion.div className="project-chapter-card" {...cardMotion}>
+                <div className="project-chapter-visual">
+                  <ProjectMedia project={project} />
+                </div>
+
+                <div className="project-chapter-copy" id={`${project.id}-overview`}>
+                  <p className="case-kicker">{project.kicker}</p>
+                  <div className="case-title-row">
+                    <h3>{project.title}</h3>
+                    <span>{project.shortTitle}</span>
+                  </div>
+                  <p className="case-signal">{project.signal}</p>
+                  <p className="case-overview">{project.overview}</p>
+
+                  <dl className="case-proof">
+                    <div>
+                      <dt>Role</dt>
+                      <dd>{project.role}</dd>
+                    </div>
+                    <div>
+                      <dt>Constraint</dt>
+                      <dd>{project.constraint}</dd>
+                    </div>
+                    <div>
+                      <dt>Output</dt>
+                      <dd>{project.output}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="case-tools" aria-label={`${project.title} tools`}>
+                    {project.tools.map((tool) => (
+                      <span key={tool}>{tool}</span>
+                    ))}
+                  </div>
+
+                  <a className="case-open-link" href={`#${project.id}-overview`}>
+                    <span>Open {project.title} case study</span>
+                    <ArrowUpRight size={15} aria-hidden="true" />
+                  </a>
+                </div>
+              </motion.div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

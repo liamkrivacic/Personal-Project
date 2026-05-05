@@ -5,7 +5,10 @@ import { Mail } from "lucide-react";
 
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
-const iframeSrc = "/black-hole-fluid/index.html?embed=1&v=scroll-dive-cinematic-55";
+
+// Phase 2: locally-hosted port of tsBXW3 with dive integration.
+// Scroll-dive drives the camera zoom via postMessage. Cursor drag rotates.
+const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-1";
 
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
@@ -23,7 +26,7 @@ function resolveDiveProgress(depth: number) {
   return clamp01(clampedDepth + capture * 0.48);
 }
 
-export function OrbitalHero() {
+export function OrbitalHeroTsbxw3() {
   const sceneRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
 
@@ -216,7 +219,7 @@ export function OrbitalHero() {
   }, []);
 
   return (
-    <main ref={sceneRef} className="home-page hero-dive" aria-labelledby="hero-title">
+    <main ref={sceneRef} className="home-page hero-dive" aria-labelledby="hero-title-tsbxw3">
       <section className="hero-home hero-dive-stage">
         <div className="hero-background" aria-hidden="true">
           <iframe
@@ -225,13 +228,14 @@ export function OrbitalHero() {
             src={iframeSrc}
             tabIndex={-1}
             title=""
+            allow="autoplay"
           />
         </div>
 
         <div className="hero-shell">
           <div className="hero-copy">
             <p className="eyebrow">Electrical Engineering + Computer Science</p>
-            <h1 id="hero-title">Liam Krivacic</h1>
+            <h1 id="hero-title-tsbxw3">Liam Krivacic</h1>
             <p className="hero-summary">{biography}</p>
             <div className="hero-facts" aria-label="Profile summary">
               <span>UNSW</span>
