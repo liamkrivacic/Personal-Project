@@ -8,13 +8,14 @@ const controls = {
   dissipation: document.querySelector("#dissipation"),
 };
 
-const FIELD_CENTER = { x: 0.55, y: 0.54 };
+const RUNS_IN_PARENT_OVERLAY = window.parent === window;
+const FIELD_CENTER = { x: 0.5, y: 0.5 };
 const HORIZON = 0.105;
 const MAX_STREAMLETS = 3;
 const STREAM_POINTS = 10;
 
 const gl = canvas.getContext("webgl2", {
-  alpha: false,
+  alpha: true,
   antialias: false,
   depth: false,
   premultipliedAlpha: false,
@@ -44,6 +45,7 @@ uniform sampler2D uDye;
 uniform vec2 uCenter;
 uniform vec4 uStreamMeta[3];
 uniform vec4 uStreamWave[3];
+uniform vec4 uCursorHotspot;
 uniform vec2 uTexel;
 uniform float uAspect;
 uniform float uTime;
@@ -137,15 +139,14 @@ float uvInside(vec2 uv) {
 }
 
 vec3 colorRamp(float heat, float whiteHot) {
-  vec3 ember = vec3(0.22, 0.014, 0.004);
-  vec3 red = vec3(0.72, 0.08, 0.005);
-  vec3 orange = vec3(1.0, 0.34, 0.0);
-  vec3 gold = vec3(1.0, 0.78, 0.16);
-  vec3 white = vec3(1.0, 0.94, 0.72);
-  vec3 color = mix(ember, red, smoothstep(0.0, 0.28, heat));
-  color = mix(color, orange, smoothstep(0.22, 0.62, heat));
-  color = mix(color, gold, smoothstep(0.48, 0.95, heat));
-  color = mix(color, white, whiteHot);
+  vec3 ember  = vec3(0.38, 0.02, 0.01);
+  vec3 orange = vec3(0.92, 0.36, 0.04);
+  vec3 gold   = vec3(1.0,  0.74, 0.20);
+  vec3 white  = vec3(1.0,  0.95, 0.82);
+  vec3 color = mix(ember, orange, smoothstep(0.0, 0.35, heat));
+  color = mix(color, gold, smoothstep(0.25, 0.70, heat));
+  color = mix(color, white, smoothstep(0.55, 0.95, heat));
+  color = mix(color, vec3(1.0, 0.98, 0.94), whiteHot);
   return color;
 }
 
@@ -218,6 +219,16 @@ vec3 wavefrontSource(vec2 uv) {
   return source;
 }
 
+vec3 cursorHotspotSource(vec2 uv) {
+  vec2 delta = vec2((uv.x - uCursorHotspot.x) * uAspect, uv.y - uCursorHotspot.y);
+  float radius = max(uCursorHotspot.w, 0.001);
+  float core = exp(-dot(delta, delta) / (radius * radius));
+  float halo = exp(-dot(delta, delta) / (radius * radius * 5.8));
+  float heat = (core * 1.12 + halo * 0.24) * uCursorHotspot.z * uCursorHeat * 0.36;
+  float whiteHot = smoothstep(0.34, 0.92, heat);
+  return colorRamp(clamp(heat, 0.0, 1.0), whiteHot) * heat * 0.34;
+}
+
 void main() {
   vec2 velocity = blackHoleVelocity(vUv);
   vec2 backUv = vUv - velocity * uDt;
@@ -256,6 +267,7 @@ void main() {
   float capScale = min(1.0, stainCap / max(dyeMax, 0.001));
   dye *= mix(capScale, 1.0, packetField);
   dye += wavefrontSource(vUv);
+  dye += cursorHotspotSource(vUv);
   dye *= 1.0 - hole;
   dye = clamp(dye, 0.0, 1.0);
   outColor = vec4(dye, 1.0);
@@ -1073,11 +1085,12 @@ void main() {
   float d = length(p);
   float surge = diveSurge();
   float violence = diveViolence();
-  float tremor = horizonTremor();
 #ifdef ORBITAL_FLYAROUND
   float collapse = smoothstep(0.76, 1.0, diveProgress());
+  float diveFade = 1.0 - smoothstep(0.86, 0.965, diveProgress());
 #else
   float collapse = smoothstep(0.76, 1.0, uDiveProgress);
+  float diveFade = 1.0 - smoothstep(0.86, 0.965, uDiveProgress);
 #endif
   float horizon = effectiveHorizon();
   vec2 dyeUv = mix(worldUv, rolledUv, smoothstep(0.54, 0.96, surge + violence * 0.65));
@@ -1087,44 +1100,24 @@ void main() {
   float orbitCompression = exp(-pow((d - horizon * 1.42) / (horizon * 0.72), 2.0));
   dye *= (0.76 + densityNoise * 0.5) * (1.0 + orbitCompression * (0.24 + violence * 0.5));
   float intensity = dot(dye, vec3(0.45, 0.36, 0.19));
-  vec3 background = mix(vec3(0.024, 0.012, 0.008), vec3(0.0009, 0.00045, 0.00018), collapse * 0.94);
-  float pulse = 0.76 + 0.24 * sin(uTime * (1.18 + tremor * 0.85) + densityNoise * 1.7);
-  float atmospheric = exp(-pow(d / (horizon * mix(2.95, 4.45, surge)), 2.0)) * (0.028 + pulse * 0.02) * (1.0 + surge * 0.52 + tremor * 0.1 + violence * 0.08) * mix(1.0, 0.16, collapse);
-  vec3 color = background + vec3(0.092, 0.022, 0.0042) * atmospheric;
-  vec2 starUv = dragOrbitStarUv(worldUv);
-  OrbitCamera starCam = buildOrbitCamera(worldUv);
-  vec3 starBentRay = bendRayTowardBlackHole(starCam, p);
-  vec2 starLensOffset = (starBentRay.xy - starCam.rayDir.xy) * 0.7;
-  starUv = dragOrbitStarUv(worldUv + starLensOffset);
-  color += baseStarField(starUv) * starFieldVisibility();
-  AccretionField accretion = sampleRayLensedAccretion(worldUv);
-  color += accretion.backDiscColor * mix(1.0, 0.78, collapse);
-  color = mix(color, vec3(0.00012, 0.00004, 0.000015), accretion.eventShadow);
-  color += accretion.frontDiscColor * mix(1.0, 0.78, collapse);
-  color += accretion.ringGlowColor * mix(1.0, 0.78, collapse);
-  color += dye * (0.68 + intensity * 0.96 + orbitCompression * violence * 0.42) * mix(1.0, 0.58, collapse) * (1.0 - accretion.eventShadow * 0.86);
+  vec3 color = dye * (0.68 + intensity * 0.96 + orbitCompression * violence * 0.42) * mix(1.0, 0.58, collapse);
   color = max(color + wavefrontVisual(dyeUv), vec3(0.0));
-
+  float centerCull = 1.0 - smoothstep(horizon * 0.78, horizon * 1.18, d);
+  color *= 1.0 - centerCull;
   float frameRadius = distance(rolledUv, vec2(0.5));
-  color += sampleDiveGlow(rolledUv, frameRadius, horizon, surge, collapse, tremor, violence) * 0.5;
-  float tunnelVignette = smoothstep(0.18, 0.82, frameRadius) * surge;
-  color *= 1.0 - tunnelVignette * (0.38 + collapse * 0.62 + tremor * 0.1 + violence * 0.08);
-  float vignette = smoothstep(1.05, 0.14, frameRadius);
-  color *= 0.54 + vignette * (0.54 + surge * 0.2);
+  color *= (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
   color = vec3(1.0) - exp(-color * mix(1.26, 1.72, surge));
-#ifdef ORBITAL_FLYAROUND
-  color *= 1.0 - smoothstep(0.86, 0.965, diveProgress());
-#else
-  color *= 1.0 - smoothstep(0.86, 0.965, uDiveProgress);
-#endif
-  outColor = vec4(color, 1.0);
+  float maxChannel = clamp(max(max(color.r, color.g), color.b), 0.0, 1.0);
+  float alpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;
+  color *= alpha;
+  outColor = vec4(color, alpha);
 }`;
 
 const clearShader = `#version 300 es
 precision highp float;
 out vec4 outColor;
 void main() {
-  outColor = vec4(0.0, 0.0, 0.0, 1.0);
+  outColor = vec4(0.0, 0.0, 0.0, 0.0);
 }`;
 
 const advectProgram = createProgram(vertexShader, advectShader);
@@ -1189,6 +1182,12 @@ let activeStreamlet = null;
 const streamlets = [];
 const streamMetaUniforms = new Float32Array(MAX_STREAMLETS * 4);
 const streamWaveUniforms = new Float32Array(MAX_STREAMLETS * 4);
+const cursorHotspot = {
+  x: FIELD_CENTER.x,
+  y: FIELD_CENTER.y,
+  heat: 0,
+  radius: 0.014,
+};
 let needsReset = true;
 
 const params = {
@@ -1206,11 +1205,18 @@ for (const [key, input] of Object.entries(controls)) {
 }
 
 window.addEventListener("message", (event) => {
-  if (!event.data || event.data.type !== "black-hole-dive") {
+  if (event.origin !== window.location.origin || !event.data) {
     return;
   }
 
-  diveState.target = clamp(Number(event.data.progress) || 0, 0, 1);
+  if (event.data.type === "black-hole-dive") {
+    diveState.target = clamp(Number(event.data.progress) || 0, 0, 1);
+    return;
+  }
+
+  if (event.data.type === "black-hole-cursor") {
+    handleCursorMove(Number(event.data.x), Number(event.data.y));
+  }
 });
 
 let iframeTouchY = null;
@@ -1225,52 +1231,54 @@ function postDiveInput(delta) {
   );
 }
 
-window.addEventListener(
-  "wheel",
-  (event) => {
-    if (event.ctrlKey) {
-      return;
-    }
+if (!RUNS_IN_PARENT_OVERLAY) {
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      if (event.ctrlKey) {
+        return;
+      }
 
-    event.preventDefault();
-    const deltaScale =
-      event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-    postDiveInput((event.deltaY * deltaScale) / 1400);
-  },
-  { passive: false },
-);
+      event.preventDefault();
+      const deltaScale =
+        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      postDiveInput((event.deltaY * deltaScale) / 1400);
+    },
+    { passive: false },
+  );
 
-window.addEventListener(
-  "touchstart",
-  (event) => {
-    if (event.touches.length === 0) {
-      return;
-    }
+  window.addEventListener(
+    "touchstart",
+    (event) => {
+      if (event.touches.length === 0) {
+        return;
+      }
 
-    iframeTouchY = event.touches[0].clientY;
-  },
-  { passive: true },
-);
+      iframeTouchY = event.touches[0].clientY;
+    },
+    { passive: true },
+  );
 
-window.addEventListener(
-  "touchmove",
-  (event) => {
-    if (event.touches.length === 0 || iframeTouchY === null) {
-      return;
-    }
+  window.addEventListener(
+    "touchmove",
+    (event) => {
+      if (event.touches.length === 0 || iframeTouchY === null) {
+        return;
+      }
 
-    event.preventDefault();
-    const nextTouchY = event.touches[0].clientY;
-    const delta = iframeTouchY - nextTouchY;
-    iframeTouchY = nextTouchY;
-    postDiveInput(delta / Math.max(window.innerHeight, 1));
-  },
-  { passive: false },
-);
+      event.preventDefault();
+      const nextTouchY = event.touches[0].clientY;
+      const delta = iframeTouchY - nextTouchY;
+      iframeTouchY = nextTouchY;
+      postDiveInput(delta / Math.max(window.innerHeight, 1));
+    },
+    { passive: false },
+  );
 
-window.addEventListener("touchend", () => {
-  iframeTouchY = null;
-});
+  window.addEventListener("touchend", () => {
+    iframeTouchY = null;
+  });
+}
 
 document.querySelector("#reset").addEventListener("click", () => {
   streamlets.length = 0;
@@ -1343,13 +1351,16 @@ function endDragOrbit(event) {
   }
 }
 
-canvas.addEventListener("pointermove", (event) => {
-  updateDragOrbit(event);
+function handleCursorMove(clientX, clientY, now = performance.now()) {
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
-  const now = performance.now();
-  const nextScreenX = (event.clientX - rect.left) / rect.width;
-  const nextScreenY = 1 - (event.clientY - rect.top) / rect.height;
+  const rectWidth = Math.max(rect.width, 1);
+  const rectHeight = Math.max(rect.height, 1);
+  const nextScreenX = (clientX - rect.left) / rectWidth;
+  const nextScreenY = 1 - (clientY - rect.top) / rectHeight;
   const nextWorld = screenToWorld(nextScreenX, nextScreenY);
   const emissionStrength = diveEmissionStrength();
   const insideHorizon =
@@ -1379,8 +1390,8 @@ canvas.addEventListener("pointermove", (event) => {
   pointer.previousY = pointer.y;
   pointer.x = nextWorld.x;
   pointer.y = nextWorld.y;
-  const dxScreen = (pointer.screenX - pointer.previousScreenX) * rect.width;
-  const dyScreen = (pointer.screenY - pointer.previousScreenY) * rect.height;
+  const dxScreen = (pointer.screenX - pointer.previousScreenX) * rectWidth;
+  const dyScreen = (pointer.screenY - pointer.previousScreenY) * rectHeight;
   const distance = Math.hypot(dxScreen, dyScreen);
   const elapsed = Math.max(16, now - pointer.lastMoveTime);
   const speed = distance / elapsed;
@@ -1392,12 +1403,19 @@ canvas.addEventListener("pointermove", (event) => {
     activeStreamlet = null;
     pointer.travelSincePoint = 0;
     pointer.lastMoveTime = now;
+    cursorHotspot.heat = 0;
     return;
   }
 
   const dxWorld = pointer.x - pointer.previousX;
   const dyWorld = pointer.y - pointer.previousY;
   const emissionIntensity = intensity * emissionStrength;
+  const motion = normalizedMotion(dxWorld, dyWorld);
+  const leadDistance = 0.013 + emissionIntensity * 0.018;
+  cursorHotspot.x = pointer.x + motion.flowX * leadDistance;
+  cursorHotspot.y = pointer.y + motion.flowY * leadDistance;
+  cursorHotspot.heat = Math.max(cursorHotspot.heat * 0.72, emissionIntensity * 0.46);
+  cursorHotspot.radius = 0.006 + emissionIntensity * 0.006;
 
   if (distance > 0.65 && emissionIntensity > 0.035) {
     pointer.travelSincePoint += distance;
@@ -1405,6 +1423,11 @@ canvas.addEventListener("pointermove", (event) => {
   }
 
   pointer.lastMoveTime = now;
+}
+
+canvas.addEventListener("pointermove", (event) => {
+  updateDragOrbit(event);
+  handleCursorMove(event.clientX, event.clientY);
 });
 
 canvas.addEventListener("pointerup", endDragOrbit);
@@ -1449,6 +1472,7 @@ function frame(now) {
   lastTime = now;
   const diveFollow = 1 - Math.exp(-dt * 6.4);
   diveState.progress += (diveState.target - diveState.progress) * diveFollow;
+  cursorHotspot.heat *= Math.exp(-dt * 7.8);
 
   if (!dragOrbit.isDragging) {
     dragOrbit.targetYaw += dragOrbit.velocityYaw * dt;
@@ -1478,6 +1502,7 @@ function frame(now) {
   if (diveEmissionStrength() <= 0.02) {
     activeStreamlet = null;
     pointer.travelSincePoint = 0;
+    cursorHotspot.heat = 0;
   }
   updateStreamlets(dt, now / 1000);
 
@@ -1489,7 +1514,7 @@ function frame(now) {
 
   if (diveState.progress >= 0.992) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     requestAnimationFrame(frame);
     return;
@@ -1866,6 +1891,7 @@ function step(dt, time) {
   uniform1i(advectProgram, "uStreamCount", streamlets.length);
   uniform4fv(advectProgram, "uStreamMeta", streamMetaUniforms);
   uniform4fv(advectProgram, "uStreamWave", streamWaveUniforms);
+  uniform4f(advectProgram, "uCursorHotspot", cursorHotspot.x, cursorHotspot.y, cursorHotspot.heat, cursorHotspot.radius);
   uniform2f(advectProgram, "uTexel", 1 / simWidth, 1 / simHeight);
   uniform1f(advectProgram, "uAspect", width / height);
   uniform1f(advectProgram, "uTime", time);

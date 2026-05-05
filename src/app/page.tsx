@@ -1,10 +1,10 @@
-import { OrbitalHero } from "@/components/orbital/orbital-hero";
+import { OrbitalHeroTsbxw3 } from "@/components/orbital/orbital-hero-tsbxw3";
 import { ProjectJourney } from "@/components/projects/project-journey";
 
 export default function Home() {
   return (
     <>
-      <OrbitalHero />
+      <OrbitalHeroTsbxw3 />
       <ProjectJourney />
     </>
   );

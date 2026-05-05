@@ -35,6 +35,12 @@ out vec4 outColor;
 #define _Steps 12.0
 #define _Size 0.3
 
+const float REST_ZOOM_DISTANCE = 9.70;
+const float DIVE_ZOOM_DISTANCE = 0.42;
+const vec2 REST_FRAME_OFFSET = vec2(-0.032, -0.012);
+const vec2 DIVE_FRAME_OFFSET = vec2(0.0, 0.0);
+const float STAR_DRIFT_SPEED = 0.006;
+
 float hash(float x) { return fract(sin(x) * 152754.742); }
 float hash2(vec2 x) { return hash(x.x + hash(x.y)); }
 
@@ -56,6 +62,7 @@ vec4 background(vec3 ray) {
   vec2 uv = ray.xy;
   if (abs(ray.x) > 0.5) uv.x = ray.z;
   else if (abs(ray.y) > 0.5) uv.y = ray.z;
+  uv -= vec2(iTime * STAR_DRIFT_SPEED, 0.0);
 
   float brightness = value(uv * 3.0, 100.0);
   float color = value(uv * 2.0, 20.0);
@@ -141,25 +148,29 @@ void Rotate(inout vec3 vector, vec2 angle) {
 void mainImage(out vec4 colOut, in vec2 fragCoord) {
   colOut = vec4(0.0);
 
-  vec2 fragCoordRot;
-  fragCoordRot.x = fragCoord.x * 0.985 + fragCoord.y * 0.174;
-  fragCoordRot.y = fragCoord.y * 0.985 - fragCoord.x * 0.174;
-  fragCoordRot += vec2(-0.06, 0.12) * iResolution.xy;
-
   for (int j = 0; j < AA; j++) {
     for (int i = 0; i < AA; i++) {
       // Scroll dive = camera zoom. uDiveProgress 0.0 -> far, 1.0 -> deep into BH.
       // Cursor drag = rotation only (yaw/pitch). No auto-spin.
       float diveT = clamp(uDiveProgress, 0.0, 1.0);
-      float zoomDistance = mix(7.0, 0.6, smoothstep(0.0, 1.0, diveT));
+      float focusT = smoothstep(0.18, 1.0, diveT);
+      vec2 frameOffset = mix(REST_FRAME_OFFSET, DIVE_FRAME_OFFSET, focusT);
+      float zoomDistance = mix(REST_ZOOM_DISTANCE, DIVE_ZOOM_DISTANCE, smoothstep(0.0, 1.0, diveT));
+
+      vec2 centeredCoord = fragCoord - iResolution.xy * 0.5;
+      vec2 fragCoordRot;
+      fragCoordRot.x = centeredCoord.x * 0.985 + centeredCoord.y * 0.174;
+      fragCoordRot.y = centeredCoord.y * 0.985 - centeredCoord.x * 0.174;
+      fragCoordRot += iResolution.xy * 0.5 + frameOffset * iResolution.xy;
 
       vec3 ray = normalize(vec3((fragCoordRot - iResolution.xy * 0.5 + vec2(i, j) / float(AA)) / iResolution.x, 1.0));
-      vec3 pos = vec3(0.0, 0.05, -zoomDistance);
+      float cameraLift = mix(0.05, 0.0, focusT);
+      vec3 pos = vec3(0.0, cameraLift, -zoomDistance);
       // Default pitch 0.2 gives a slight tilt so the disk reads as 3D on first paint.
       vec2 angle = vec2(uDragYaw, 0.2 + uDragPitch);
       float dist = length(pos);
       Rotate(pos, angle);
-      angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5);
+      angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5) * (1.0 - focusT);
       Rotate(ray, angle);
 
       vec4 col = vec4(0.0);
@@ -266,10 +277,8 @@ let height = 1;
 
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-  const displayLimit = 800;
-  const displayScale = Math.min(dpr, displayLimit / Math.max(window.innerWidth, window.innerHeight));
-  width = Math.max(1, Math.floor(window.innerWidth * displayScale));
-  height = Math.max(1, Math.floor(window.innerHeight * displayScale));
+  width = Math.max(1, Math.floor(window.innerWidth * dpr));
+  height = Math.max(1, Math.floor(window.innerHeight * dpr));
   canvas.width = width;
   canvas.height = height;
 }
@@ -318,6 +327,10 @@ let dragPointerId = null;
 let dragLastX = 0;
 let dragLastY = 0;
 canvas.addEventListener("pointerdown", (event) => {
+  window.parent?.postMessage(
+    { type: "black-hole-cursor", x: event.clientX, y: event.clientY },
+    window.location.origin,
+  );
   dragging = true;
   dragPointerId = event.pointerId;
   dragLastX = event.clientX;
@@ -325,6 +338,10 @@ canvas.addEventListener("pointerdown", (event) => {
   canvas.setPointerCapture(event.pointerId);
 });
 canvas.addEventListener("pointermove", (event) => {
+  window.parent?.postMessage(
+    { type: "black-hole-cursor", x: event.clientX, y: event.clientY },
+    window.location.origin,
+  );
   if (!dragging || event.pointerId !== dragPointerId) return;
   const dx = (event.clientX - dragLastX) / Math.max(window.innerWidth, 1);
   const dy = (event.clientY - dragLastY) / Math.max(window.innerHeight, 1);

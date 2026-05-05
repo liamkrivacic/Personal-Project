@@ -2,7 +2,7 @@
 
 **Liam Krivacic - Personal Portfolio Website**
 Stack: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS -> Vercel
-Current focus: checkpoint 9 black-hole scroll dive plus the post-dive project journey.
+Current focus: checkpoint 15 — tsBXW3 black-hole promoted to main page.
 
 ## Session Memory
 Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-portfolio/`
@@ -18,10 +18,10 @@ Vault: `C:/Users/krili/OneDrive - UNSW/UNSW/Obsidian Vault/Claude/projects/liam-
 - `npm run test:fluid` - Playwright visual/runtime smoke tests
 
 ## Current Runtime
-- Hero shell: `src/components/orbital/orbital-hero.tsx`
-- Black-hole shader runtime: `public/black-hole-fluid/index.html` and `public/black-hole-fluid/fluid.js`
+- Hero shell: `src/components/orbital/orbital-hero-tsbxw3.tsx`
+- Black-hole shader runtime: `public/black-hole-tsbxw3/index.html` and `public/black-hole-tsbxw3/fluid.js`
+- Cursor trail overlay: `public/black-hole-cursor-streamlets/fluid.js`
 - Post-dive project section: `src/components/projects/project-journey.tsx`
-- Next black-hole task: `docs/2026-04-28-black-hole-status.md`
 
 ## Rules
 - TypeScript strict mode

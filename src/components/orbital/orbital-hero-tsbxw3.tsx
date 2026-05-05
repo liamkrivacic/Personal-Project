@@ -7,8 +7,9 @@ const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
 // Phase 2: locally-hosted port of tsBXW3 with dive integration.
-// Scroll-dive drives the camera zoom via postMessage. Cursor drag rotates.
-const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-1";
+// Scroll-dive drives the camera zoom via postMessage. Cursor light is the old WebGL streamlet overlay.
+const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-3";
+const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";
 
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
@@ -29,12 +30,14 @@ function resolveDiveProgress(depth: number) {
 export function OrbitalHeroTsbxw3() {
   const sceneRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const scene = sceneRef.current;
     const frame = frameRef.current;
+    const cursorCanvas = cursorCanvasRef.current;
 
-    if (!scene || !frame) {
+    if (!scene || !frame || !cursorCanvas) {
       return;
     }
 
@@ -81,11 +84,32 @@ export function OrbitalHeroTsbxw3() {
     lockPageScroll();
     window.scrollTo(0, 0);
 
+    const scriptId = "black-hole-cursor-streamlets-script";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.type = "module";
+      script.src = cursorScriptSrc;
+      document.body.appendChild(script);
+    }
+
     const postProgress = (progress: number) => {
-      frame.contentWindow?.postMessage(
+      const message = {
+        type: "black-hole-dive",
+        progress,
+      };
+
+      frame.contentWindow?.postMessage(message, window.location.origin);
+      window.postMessage(message, window.location.origin);
+    };
+
+    const postCursorLight = (clientX: number, clientY: number) => {
+      window.postMessage(
         {
-          type: "black-hole-dive",
-          progress,
+          type: "black-hole-cursor",
+          target: "cursor-overlay",
+          x: clientX,
+          y: clientY,
         },
         window.location.origin,
       );
@@ -116,11 +140,20 @@ export function OrbitalHeroTsbxw3() {
     };
 
     const handleMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== window.location.origin ||
-        !event.data ||
-        event.data.type !== "black-hole-dive-input"
-      ) {
+      if (event.origin !== window.location.origin || !event.data) {
+        return;
+      }
+
+      if (event.data.type === "black-hole-cursor") {
+        if (event.data.target === "cursor-overlay") {
+          return;
+        }
+
+        postCursorLight(Number(event.data.x), Number(event.data.y));
+        return;
+      }
+
+      if (event.data.type !== "black-hole-dive-input") {
         return;
       }
 
@@ -196,9 +229,14 @@ export function OrbitalHeroTsbxw3() {
       touchY = null;
     };
 
+    const handleScenePointerMove = (event: PointerEvent) => {
+      postCursorLight(event.clientX, event.clientY);
+    };
+
     applyDepth(0);
     frame.addEventListener("load", handleLoad);
     window.addEventListener("message", handleMessage);
+    scene.addEventListener("pointermove", handleScenePointerMove);
     scene.addEventListener("wheel", handleWheel, { passive: false });
     scene.addEventListener("touchstart", handleTouchStart, { passive: true });
     scene.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -207,6 +245,7 @@ export function OrbitalHeroTsbxw3() {
     return () => {
       frame.removeEventListener("load", handleLoad);
       window.removeEventListener("message", handleMessage);
+      scene.removeEventListener("pointermove", handleScenePointerMove);
       scene.removeEventListener("wheel", handleWheel);
       scene.removeEventListener("touchstart", handleTouchStart);
       scene.removeEventListener("touchmove", handleTouchMove);
@@ -230,6 +269,23 @@ export function OrbitalHeroTsbxw3() {
             title=""
             allow="autoplay"
           />
+        </div>
+
+        <canvas
+          ref={cursorCanvasRef}
+          id="fluid-canvas"
+          aria-hidden="true"
+          className="hero-cursor-frame"
+        />
+
+        <div className="cursor-streamlet-controls" aria-hidden="true">
+          <input id="rimHeat" type="range" value="0.34" readOnly />
+          <input id="swirl" type="range" value="2.92" readOnly />
+          <input id="pull" type="range" value="0.98" readOnly />
+          <input id="cursorHeat" type="range" value="0.65" readOnly />
+          <input id="dissipation" type="range" value="0.984" readOnly />
+          <button id="reset" type="button">Reset</button>
+          <span id="status">initializing</span>
         </div>
 
         <div className="hero-shell">
