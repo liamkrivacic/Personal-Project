@@ -45,6 +45,7 @@ export function OrbitalHeroTsbxw3() {
     let progress = 0;
     let releasedForProjects = false;
     let isScrollingToProjects = false;
+    let hasScrolledToProjects = false;
     let touchY: number | null = null;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
@@ -53,6 +54,7 @@ export function OrbitalHeroTsbxw3() {
 
     const lockPageScroll = () => {
       releasedForProjects = false;
+      hasScrolledToProjects = false;
       document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
       document.documentElement.style.overscrollBehavior = "none";
@@ -79,6 +81,7 @@ export function OrbitalHeroTsbxw3() {
 
     const scrollToFirstProject = () => {
       isScrollingToProjects = true;
+      hasScrolledToProjects = true;
       const projects = document.getElementById("projects");
 
       if (projects) {
@@ -89,11 +92,11 @@ export function OrbitalHeroTsbxw3() {
       window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
     };
 
-    // Re-lock the hero the instant the page scrolls back above the projects section,
-    // preventing a half-hero / half-projects overlap. The isScrollingToProjects guard
-    // stops this from firing during the programmatic scroll-to-projects animation.
+    // Re-lock the hero the instant the page scrolls back above the projects section.
+    // hasScrolledToProjects prevents this from firing at scrollY=0 right after the
+    // dive completes (before scrollToFirstProject has run).
     const handlePageScroll = () => {
-      if (!releasedForProjects || isScrollingToProjects) return;
+      if (!releasedForProjects || isScrollingToProjects || !hasScrolledToProjects) return;
       if (window.scrollY < window.innerHeight - 8) {
         lockPageScroll();
         window.scrollTo(0, 0);
