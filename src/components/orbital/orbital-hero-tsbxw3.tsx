@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 const biography =
@@ -28,6 +29,7 @@ function resolveDiveProgress(depth: number) {
 }
 
 export function OrbitalHeroTsbxw3() {
+  const router = useRouter();
   const sceneRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,14 +73,7 @@ export function OrbitalHeroTsbxw3() {
     };
 
     const scrollToFirstProject = () => {
-      const projects = document.getElementById("projects");
-
-      if (projects) {
-        projects.scrollIntoView({ block: "start", behavior: "smooth" });
-        return;
-      }
-
-      window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+      router.push("/projects");
     };
 
     lockPageScroll();
@@ -255,7 +250,7 @@ export function OrbitalHeroTsbxw3() {
       document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
     };
-  }, []);
+  }, [router]);
 
   return (
     <main ref={sceneRef} className="home-page hero-dive" aria-labelledby="hero-title-tsbxw3">
