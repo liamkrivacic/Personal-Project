@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
 
 const biography =
@@ -29,7 +28,6 @@ function resolveDiveProgress(depth: number) {
 }
 
 export function OrbitalHeroTsbxw3() {
-  const router = useRouter();
   const sceneRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,6 +56,8 @@ export function OrbitalHeroTsbxw3() {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overscrollBehavior = "none";
       document.body.style.overscrollBehavior = "none";
+      // Restore CSS scroll-snap so the hero snaps correctly when re-entered.
+      document.documentElement.style.scrollSnapType = "";
     };
 
     const releasePageScroll = () => {
@@ -70,10 +70,19 @@ export function OrbitalHeroTsbxw3() {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
+      // Disable scroll-snap so the projects list scrolls freely.
+      document.documentElement.style.scrollSnapType = "none";
     };
 
     const scrollToFirstProject = () => {
-      router.push("/projects");
+      const projects = document.getElementById("projects");
+
+      if (projects) {
+        projects.scrollIntoView({ block: "start", behavior: "smooth" });
+        return;
+      }
+
+      window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
     };
 
     lockPageScroll();
@@ -250,7 +259,7 @@ export function OrbitalHeroTsbxw3() {
       document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
     };
-  }, [router]);
+  }, []);
 
   return (
     <main ref={sceneRef} className="home-page hero-dive" aria-labelledby="hero-title-tsbxw3">

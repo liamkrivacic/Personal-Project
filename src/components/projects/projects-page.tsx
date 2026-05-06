@@ -4,87 +4,132 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { projects } from "@/data/projects";
 
 export function ProjectsPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const eyeRef = useRef<HTMLParagraphElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const ioRef = useRef<IntersectionObserver | null>(null);
+  const rowIoRef = useRef<IntersectionObserver | null>(null);
+  // Incremented each time entrance fires; stale timeouts check this.
+  const genRef = useRef(0);
 
   const [activeFilters, setActiveFilters] = useState<{ type: string; ctx: string }>({
     type: "all",
     ctx: "all",
   });
 
-  // Disable html scroll-snap while on the projects page (home page uses it).
+  // Entrance animation — runs each time the section enters the viewport after a dive.
+  // Re-arms itself when the section exits back above the fold (user scrolled to hero).
   useEffect(() => {
-    const prev = document.documentElement.style.scrollSnapType;
-    document.documentElement.style.scrollSnapType = "none";
-    return () => {
-      document.documentElement.style.scrollSnapType = prev;
-    };
-  }, []);
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Entrance animation — runs once on mount.
-  useEffect(() => {
-    const eyeEl = eyeRef.current;
-    const titleEl = titleRef.current;
-    const contactEl = contactRef.current;
-    const filterEl = filterRef.current;
-    const listEl = listRef.current;
+    let isEntered = false;
 
-    if (!eyeEl || !titleEl || !contactEl || !filterEl || !listEl) return;
+    function resetAll() {
+      if (rowIoRef.current) {
+        rowIoRef.current.disconnect();
+        rowIoRef.current = null;
+      }
+      const eyeEl = eyeRef.current;
+      const titleEl = titleRef.current;
+      const contactEl = contactRef.current;
+      const filterEl = filterRef.current;
+      const listEl = listRef.current;
+      if (!eyeEl || !titleEl || !contactEl || !filterEl || !listEl) return;
 
-    const words = Array.from(titleEl.querySelectorAll<HTMLElement>(".prj-title-word"));
-    const rows = Array.from(listEl.querySelectorAll<HTMLElement>(".prj-row-wrap"));
-    const allEls: HTMLElement[] = [eyeEl, ...words, contactEl, filterEl, ...rows];
+      const words = Array.from(titleEl.querySelectorAll<HTMLElement>(".prj-title-word"));
+      const rows = Array.from(listEl.querySelectorAll<HTMLElement>(".prj-row-wrap"));
+      [...[eyeEl], ...words, [contactEl], [filterEl], ...rows].flat().forEach((el) => {
+        el.classList.remove("in");
+      });
+    }
 
-    // Reset everything to hidden state.
-    allEls.forEach((el) => {
-      el.classList.remove("in");
-      el.classList.add("prj-will-animate");
-    });
+    function runEntrance() {
+      const gen = ++genRef.current;
 
-    // Force reflow so the hidden state is registered before transitions can fire.
-    void document.body.offsetHeight;
+      if (rowIoRef.current) {
+        rowIoRef.current.disconnect();
+        rowIoRef.current = null;
+      }
 
-    // Staggered reveals.
-    setTimeout(() => eyeEl.classList.add("in"), 280);
-    words.forEach((w, i) => setTimeout(() => w.classList.add("in"), 400 + i * 100));
-    setTimeout(() => contactEl.classList.add("in"), 520);
-    setTimeout(() => filterEl.classList.add("in"), 640);
+      const eyeEl = eyeRef.current;
+      const titleEl = titleRef.current;
+      const contactEl = contactRef.current;
+      const filterEl = filterRef.current;
+      const listEl = listRef.current;
+      if (!eyeEl || !titleEl || !contactEl || !filterEl || !listEl) return;
 
-    // Rows: on-screen rows get staggered timeouts; off-screen rows go straight to the IO.
-    const onScreen = rows.filter((r) => r.getBoundingClientRect().top < window.innerHeight + 40);
-    const offScreen = rows.filter((r) => r.getBoundingClientRect().top >= window.innerHeight + 40);
+      const words = Array.from(titleEl.querySelectorAll<HTMLElement>(".prj-title-word"));
+      const rows = Array.from(listEl.querySelectorAll<HTMLElement>(".prj-row-wrap"));
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-          } else {
-            // Only reset if element is below viewport — keep visible when scrolled off top.
-            if (e.boundingClientRect.top > 0) {
+      // Ensure hidden state before scheduling reveals.
+      [...[eyeEl], ...words, [contactEl], [filterEl], ...rows].flat().forEach((el) => {
+        el.classList.remove("in");
+        el.classList.add("prj-will-animate");
+      });
+      void document.body.offsetHeight;
+
+      const guard = (fn: () => void) => () => { if (genRef.current === gen) fn(); };
+
+      setTimeout(guard(() => eyeEl.classList.add("in")), 280);
+      words.forEach((w, i) => setTimeout(guard(() => w.classList.add("in")), 400 + i * 100));
+      setTimeout(guard(() => contactEl.classList.add("in")), 520);
+      setTimeout(guard(() => filterEl.classList.add("in")), 640);
+
+      const onScreen = rows.filter((r) => r.getBoundingClientRect().top < window.innerHeight + 40);
+      const offScreen = rows.filter((r) => r.getBoundingClientRect().top >= window.innerHeight + 40);
+
+      const rowIo = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+            } else if (e.boundingClientRect.top > 0) {
+              // Below fold — reset so it re-animates when scrolled back into view.
               e.target.classList.remove("in");
             }
-          }
-        });
+          });
+        },
+        { threshold: 0.06, rootMargin: "0px 0px -32px 0px" },
+      );
+
+      rowIoRef.current = rowIo;
+      offScreen.forEach((el) => rowIo.observe(el));
+
+      onScreen.forEach((row, i) => {
+        setTimeout(
+          guard(() => {
+            row.classList.add("in");
+            rowIo.observe(row);
+          }),
+          760 + i * 130,
+        );
+      });
+    }
+
+    // Observe the container: enter → run entrance; exit back above fold → reset + re-arm.
+    const sectionIo = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isEntered) {
+          isEntered = true;
+          runEntrance();
+        } else if (!entry.isIntersecting && entry.boundingClientRect.top > 0 && isEntered) {
+          // Section scrolled back above the fold — user returned to hero.
+          isEntered = false;
+          resetAll();
+        }
       },
-      { threshold: 0.06, rootMargin: "0px 0px -32px 0px" },
+      { threshold: 0.01 },
     );
 
-    ioRef.current = io;
-    offScreen.forEach((el) => io.observe(el));
+    sectionIo.observe(container);
 
-    onScreen.forEach((row, i) => {
-      setTimeout(() => {
-        row.classList.add("in");
-        io.observe(row);
-      }, 760 + i * 130);
-    });
-
-    return () => io.disconnect();
+    return () => {
+      sectionIo.disconnect();
+      if (rowIoRef.current) rowIoRef.current.disconnect();
+    };
   }, []);
 
   function handleFilter(dim: "type" | "ctx", val: string) {
@@ -110,7 +155,7 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="prj-page">
+    <div id="projects" className="prj-page" ref={containerRef}>
       {/* SVG symbol definitions — referenced by project rows via <use href="#id"> */}
       <svg style={{ display: "none" }}>
         <symbol id="img-rf" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
