@@ -44,6 +44,7 @@ export function OrbitalHeroTsbxw3() {
     let depth = 0;
     let progress = 0;
     let releasedForProjects = false;
+    let isScrollingToProjects = false;
     let touchY: number | null = null;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
@@ -56,8 +57,9 @@ export function OrbitalHeroTsbxw3() {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overscrollBehavior = "none";
       document.body.style.overscrollBehavior = "none";
-      // Restore CSS scroll-snap so the hero snaps correctly when re-entered.
+      // Clear inline overrides so the CSS rules (y mandatory) take back over.
       document.documentElement.style.scrollSnapType = "";
+      document.body.style.scrollSnapType = "";
     };
 
     const releasePageScroll = () => {
@@ -70,11 +72,13 @@ export function OrbitalHeroTsbxw3() {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overscrollBehavior = previousHtmlOverscroll;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
-      // Disable scroll-snap so the projects list scrolls freely.
+      // Disable scroll-snap on BOTH html and body so the projects list scrolls freely.
       document.documentElement.style.scrollSnapType = "none";
+      document.body.style.scrollSnapType = "none";
     };
 
     const scrollToFirstProject = () => {
+      isScrollingToProjects = true;
       const projects = document.getElementById("projects");
 
       if (projects) {
@@ -83,6 +87,22 @@ export function OrbitalHeroTsbxw3() {
       }
 
       window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
+    };
+
+    // Re-lock the hero the instant the page scrolls back above the projects section,
+    // preventing a half-hero / half-projects overlap. The isScrollingToProjects guard
+    // stops this from firing during the programmatic scroll-to-projects animation.
+    const handlePageScroll = () => {
+      if (!releasedForProjects || isScrollingToProjects) return;
+      if (window.scrollY < window.innerHeight - 8) {
+        lockPageScroll();
+        window.scrollTo(0, 0);
+      }
+    };
+
+    // Clear the guard once the smooth scroll-to-projects animation finishes.
+    const handleScrollEnd = () => {
+      isScrollingToProjects = false;
     };
 
     lockPageScroll();
@@ -240,6 +260,8 @@ export function OrbitalHeroTsbxw3() {
     applyDepth(0);
     frame.addEventListener("load", handleLoad);
     window.addEventListener("message", handleMessage);
+    window.addEventListener("scroll", handlePageScroll, { passive: true });
+    window.addEventListener("scrollend", handleScrollEnd);
     scene.addEventListener("pointermove", handleScenePointerMove);
     scene.addEventListener("wheel", handleWheel, { passive: false });
     scene.addEventListener("touchstart", handleTouchStart, { passive: true });
@@ -249,6 +271,8 @@ export function OrbitalHeroTsbxw3() {
     return () => {
       frame.removeEventListener("load", handleLoad);
       window.removeEventListener("message", handleMessage);
+      window.removeEventListener("scroll", handlePageScroll);
+      window.removeEventListener("scrollend", handleScrollEnd);
       scene.removeEventListener("pointermove", handleScenePointerMove);
       scene.removeEventListener("wheel", handleWheel);
       scene.removeEventListener("touchstart", handleTouchStart);
