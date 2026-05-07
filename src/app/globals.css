@@ -122,15 +122,13 @@ button {
 
 .hero-copy {
   max-width: 620px;
-  opacity: calc(1 - var(--entry-progress) * 1.18);
-  transform: translate3d(0, calc(var(--entry-progress) * -34px), 0);
+  opacity: clamp(0, calc(1 - var(--dive, 0) * 1.42), 1);
+  transform:
+    translate3d(calc(var(--dive, 0) * -12px), calc(var(--dive, 0) * -28px), 0)
+    scale(calc(1 - var(--dive, 0) * 0.08));
+  filter: blur(calc(var(--dive, 0) * 1.1px));
+  pointer-events: auto;
   transition: opacity 80ms linear;
-}
-
-.hero-home .hero-copy {
-  max-width: 620px;
-  opacity: 1;
-  transform: none;
 }
 
 .hero-dive {
@@ -981,8 +979,9 @@ button {
 
 /* ── Page wrapper ── */
 .prj-page {
-  /* backgroundColor interpolated #000 → #030405 via JS as user scrolls */
-  background: #000;
+  position: relative;
+  z-index: 2;
+  background: transparent;
   color: var(--text);
   font-family: var(--body-font);
   min-height: 100vh;

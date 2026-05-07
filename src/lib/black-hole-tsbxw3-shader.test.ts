@@ -9,8 +9,8 @@ describe("tsBXW3 black-hole camera framing", () => {
       join(process.cwd(), "public", "black-hole-tsbxw3", "fluid.js"),
       "utf8",
     );
-    const heroSource = readFileSync(
-      join(process.cwd(), "src", "components", "orbital", "orbital-hero-tsbxw3.tsx"),
+    const journeySource = readFileSync(
+      join(process.cwd(), "src", "components", "scroll-journey.tsx"),
       "utf8",
     );
     const cssSource = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
@@ -56,26 +56,25 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(shaderSource).toContain(
       "angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5) * (1.0 - focusT);",
     );
-    expect(heroSource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-3";');
-    expect(heroSource).toContain(
+    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-3";');
+    expect(journeySource).toContain(
       'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";',
     );
-    expect(heroSource).toContain("const cursorCanvasRef = useRef<HTMLCanvasElement>(null);");
-    expect(heroSource).toContain("script.src = cursorScriptSrc;");
-    expect(heroSource).toContain("window.postMessage(message, window.location.origin);");
-    expect(heroSource).toContain("window.postMessage(");
-    expect(heroSource).toContain('event.data.type === "black-hole-cursor"');
-    expect(heroSource).toContain('className="hero-cursor-frame"');
-    expect(heroSource).toContain('id="fluid-canvas"');
-    expect(heroSource).not.toContain("cursorFrame.contentWindow");
-    expect(heroSource).not.toContain('<iframe\n          ref={cursorFrameRef}');
-    expect(heroSource).not.toContain('getContext("2d"');
-    expect(heroSource).not.toContain("function renderWavefrontVisual(");
+    expect(journeySource).toContain("script.src = cursorScriptSrc;");
+    expect(journeySource).toContain("window.postMessage(message, window.location.origin);");
+    expect(journeySource).toContain("window.postMessage(");
+    expect(journeySource).toContain('event.data.type === "black-hole-cursor"');
+    expect(journeySource).toContain('className="journey-bg-cursor"');
+    expect(journeySource).toContain('id="fluid-canvas"');
+    expect(journeySource).not.toContain("cursorFrame.contentWindow");
+    expect(journeySource).not.toContain('<iframe\n          ref={cursorFrameRef}');
+    expect(journeySource).not.toContain('getContext("2d"');
+    expect(journeySource).not.toContain("function renderWavefrontVisual(");
     expect(shaderSource).toContain('type: "black-hole-cursor"');
     expect(shaderSource).toContain("x: event.clientX");
     expect(shaderSource).toContain("y: event.clientY");
-    expect(cssSource).toContain(".hero-cursor-frame");
-    expect(cssSource).not.toContain("mix-blend-mode: screen;");
+    expect(cssSource).toContain(".journey-bg-cursor");
+    expect(cssSource).toContain("mix-blend-mode: screen;");
     expect(cursorOverlayHtml).toContain('<canvas id="fluid-canvas"');
     expect(cursorOverlayHtml).toContain('src="./fluid.js?v=old-cursor-4"');
     expect(cursorOverlaySource).toContain("const FIELD_CENTER = { x: 0.5, y: 0.5 };");

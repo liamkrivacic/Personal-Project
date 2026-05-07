@@ -1,38 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { projects } from "@/data/projects";
 
 export function ProjectsPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const [activeFilters, setActiveFilters] = useState<{ type: string; ctx: string }>({
     type: "all",
     ctx: "all",
   });
-
-  // Scroll-driven reveal: as window.scrollY increases from 0 → innerHeight,
-  // --reveal-col and --reveal-list go 0 → 1 (staggered), driving CSS opacity + translateY.
-  // Background interpolates #000 → #030405 in sync.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    function updateReveal() {
-      const t = Math.min(window.scrollY / window.innerHeight, 1);
-      const col = Math.min(t * 3, 1);
-      const list = Math.min(Math.max((t - 0.2) * 3, 0), 1);
-      container!.style.setProperty("--reveal-col", col.toFixed(4));
-      container!.style.setProperty("--reveal-list", list.toFixed(4));
-      // Interpolate background #000000 → #030405
-      container!.style.backgroundColor = `rgb(${Math.round(3 * t)},${Math.round(4 * t)},${Math.round(5 * t)})`;
-    }
-
-    updateReveal();
-    window.addEventListener("scroll", updateReveal, { passive: true });
-    return () => window.removeEventListener("scroll", updateReveal);
-  }, []);
 
   function handleFilter(dim: "type" | "ctx", val: string) {
     const next = { ...activeFilters, [dim]: val };
@@ -57,7 +34,7 @@ export function ProjectsPage() {
   }
 
   return (
-    <div id="projects" className="prj-page" ref={containerRef}>
+    <div id="projects" className="prj-page">
       {/* SVG symbol definitions — referenced by project rows via <use href="#id"> */}
       <svg style={{ display: "none" }}>
         <symbol id="img-rf" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
