@@ -208,7 +208,7 @@ button {
   height: 100%;
   border: 0;
   background: #050302;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .journey-bg-cursor {
