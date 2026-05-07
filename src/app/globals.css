@@ -175,6 +175,13 @@ button {
   .hero-copy {
     transform: none !important;
     opacity: 1 !important;
+    filter: none !important;
+  }
+
+  .prj-col,
+  .prj-list {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
