@@ -53,7 +53,7 @@ button {
 
 .hero-copy {
   max-width: 620px;
-  opacity: clamp(0, calc(1 - var(--dive, 0) * 1.42), 1);
+  opacity: clamp(0, calc(1 - var(--dive, 0) * 2.2), 1);
   pointer-events: auto;
   transition: opacity 80ms linear;
 }
@@ -299,14 +299,12 @@ button {
   margin: 0 auto;
   padding: 0 48px;
   opacity: var(--reveal-col, 0);
-  transform: translateY(calc((1 - var(--reveal-col, 0)) * 20px));
 }
 
 .prj-list {
   display: flex;
   flex-direction: column;
   opacity: var(--reveal-list, 0);
-  transform: translateY(calc((1 - var(--reveal-list, 0)) * 20px));
 }
 
 /* ── Page heading ── */
