@@ -13,6 +13,12 @@ const FIELD_CENTER = { x: 0.5, y: 0.5 };
 const HORIZON = 0.105;
 const MAX_STREAMLETS = 3;
 const STREAM_POINTS = 10;
+const LOW_POWER_DEVICE =
+  (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 6) ||
+  (navigator.deviceMemory && navigator.deviceMemory <= 8);
+const BASE_DISPLAY_LIMIT = LOW_POWER_DEVICE ? 620 : 800;
+const BASE_SIMULATION_LIMIT = LOW_POWER_DEVICE ? 390 : 520;
+const MIN_QUALITY_SCALE = LOW_POWER_DEVICE ? 0.68 : 0.78;
 
 const gl = canvas.getContext("webgl2", {
   alpha: true,
@@ -45,7 +51,6 @@ uniform sampler2D uDye;
 uniform vec2 uCenter;
 uniform vec4 uStreamMeta[3];
 uniform vec4 uStreamWave[3];
-uniform vec4 uCursorHotspot;
 uniform vec2 uTexel;
 uniform float uAspect;
 uniform float uTime;
@@ -160,9 +165,9 @@ vec2 blackHoleVelocity(vec2 uv) {
   float surge = diveSurge();
   float violence = diveViolence();
   float rim = smoothstep(uHorizon * 8.5, uHorizon * 0.84, d);
-  float farReach = 1.0 - smoothstep(uHorizon * 3.2, uHorizon * 9.2, d);
-  float captureReach = 1.0 - smoothstep(uHorizon * 2.4, uHorizon * 13.0, d);
-  float transportReach = smoothstep(uHorizon * 1.35, uHorizon * 5.8, d) * (1.0 - smoothstep(uHorizon * 10.8, uHorizon * 16.0, d));
+  float farReach = 1.0 - smoothstep(uHorizon * 3.2, uHorizon * 12.4, d);
+  float captureReach = 1.0 - smoothstep(uHorizon * 2.4, uHorizon * 17.2, d);
+  float transportReach = smoothstep(uHorizon * 1.35, uHorizon * 6.6, d) * (1.0 - smoothstep(uHorizon * 14.2, uHorizon * 22.0, d));
   float orbitBand = exp(-pow((d - uHorizon * 2.65) / (uHorizon * 1.85), 2.0));
   float slingBand = exp(-pow((d - uHorizon * 3.45) / (uHorizon * 2.15), 2.0));
   float horizonShell = exp(-pow((d - uHorizon * 1.42) / (uHorizon * 0.52), 2.0));
@@ -170,8 +175,8 @@ vec2 blackHoleVelocity(vec2 uv) {
   float spinPulse = 0.86 + 0.14 * sin(uTime * 1.55 + angle * 2.4);
   float pullDrive = (0.72 + uPull * 0.68) * (1.0 + surge * 0.24 + violence * 0.46);
   float swirlDrive = (0.34 + uSwirl * 0.84) * (1.0 + surge * 0.55 + violence * 1.15);
-  float pull = pullDrive * (rim * (0.052 / (d * d + 0.034)) + farReach * (0.058 / (d + 0.18)) + captureReach * (0.034 / (d + 0.32)) + transportReach * (0.028 / (d + 0.42))) * (0.68 + innerDrop * 0.68);
-  float swirl = swirlDrive * (max(rim, orbitBand * 1.2) * (0.132 / (d + 0.064)) + farReach * (0.024 / (d + 0.24)) + captureReach * (0.011 / (d + 0.34)) + transportReach * (0.0045 / (d + 0.36))) * spinPulse;
+  float pull = pullDrive * (rim * (0.052 / (d * d + 0.034)) + farReach * (0.068 / (d + 0.2)) + captureReach * (0.044 / (d + 0.38)) + transportReach * (0.034 / (d + 0.52))) * (0.68 + innerDrop * 0.68);
+  float swirl = swirlDrive * (max(rim, orbitBand * 1.2) * (0.132 / (d + 0.064)) + farReach * (0.027 / (d + 0.28)) + captureReach * (0.014 / (d + 0.42)) + transportReach * (0.006 / (d + 0.5))) * spinPulse;
   float slingGate = smoothstep(0.18, 1.0, sin(angle * 2.0 + uTime * 0.88 + fbm(p * 2.4) * 2.0));
   float sling = slingBand * slingGate * (0.52 + farReach * 0.4);
   float turbulence = fbm(p * 3.4 + vec2(uTime * 0.065, -uTime * 0.04));
@@ -212,21 +217,11 @@ vec3 wavefrontSource(vec2 uv) {
     float organic = 0.9 + 0.1 * fbm(waveDelta * 24.0 + vec2(seed * 11.0, uTime * 0.24));
     float waveHeat = (crest * 0.64 + glow * 0.36) * meta.w * uCursorHeat * organic * mix(1.0, 0.48, escapeSpread);
     float whiteHot = smoothstep(0.74, 1.5, waveHeat) * 0.18;
-    source = max(source, colorRamp(clamp(waveHeat, 0.0, 0.9), whiteHot) * waveHeat * 0.19);
+    source = max(source, colorRamp(clamp(waveHeat, 0.0, 0.9), whiteHot) * waveHeat * 0.23);
 
   }
 
   return source;
-}
-
-vec3 cursorHotspotSource(vec2 uv) {
-  vec2 delta = vec2((uv.x - uCursorHotspot.x) * uAspect, uv.y - uCursorHotspot.y);
-  float radius = max(uCursorHotspot.w, 0.001);
-  float core = exp(-dot(delta, delta) / (radius * radius));
-  float halo = exp(-dot(delta, delta) / (radius * radius * 5.8));
-  float heat = (core * 1.12 + halo * 0.24) * uCursorHotspot.z * uCursorHeat * 0.36;
-  float whiteHot = smoothstep(0.34, 0.92, heat);
-  return colorRamp(clamp(heat, 0.0, 1.0), whiteHot) * heat * 0.34;
 }
 
 void main() {
@@ -267,7 +262,6 @@ void main() {
   float capScale = min(1.0, stainCap / max(dyeMax, 0.001));
   dye *= mix(capScale, 1.0, packetField);
   dye += wavefrontSource(vUv);
-  dye += cursorHotspotSource(vUv);
   dye *= 1.0 - hole;
   dye = clamp(dye, 0.0, 1.0);
   outColor = vec4(dye, 1.0);
@@ -288,7 +282,6 @@ uniform int uStreamCount;
 uniform float uCursorHeat;
 uniform float uDiveProgress;
 uniform vec4 uDragOrbit;
-uniform vec4 uCursorHotspot;
 
 in vec2 vUv;
 out vec4 outColor;
@@ -678,10 +671,10 @@ vec3 wavefrontVisual(vec2 uv) {
     float crest = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth)) * frontMask * sideMask;
     float glow = exp(-(shellDistance * shellDistance) / (waveDepth * waveDepth * 5.0)) * frontMask * sideMask;
     float trough = exp(-pow((shellDistance + waveDepth * 1.55) / (waveDepth * 1.35), 2.0)) * frontMask * sideMask;
-    float organic = 0.9 + 0.1 * sin(meta.y * 12.0 + uTime * 1.8);
+    float organic = 0.96 + 0.04 * sin(meta.y * 12.0 + uTime * 1.8);
     float waveHeat = (crest * 0.62 + glow * 0.38) * meta.w * uCursorHeat * organic * mix(1.0, 0.5, escapeSpread);
     vec3 waveColor = mix(vec3(0.85, 0.14, 0.008), vec3(1.0, 0.55, 0.1), crest);
-    effect += waveColor * waveHeat * 0.38;
+    effect += waveColor * waveHeat * 0.46;
     effect -= vec3(0.04, 0.019, 0.006) * trough * meta.w * (0.2 + uCursorHeat * 0.045) * mix(1.0, 0.58, escapeSpread);
   }
 
@@ -698,16 +691,6 @@ vec3 colorRamp(float heat, float whiteHot) {
   c = mix(c, white, smoothstep(0.55, 0.95, heat));
   c = mix(c, vec3(1.0, 0.98, 0.94), whiteHot);
   return c;
-}
-
-vec3 cursorHotspotDisplay(vec2 worldUv) {
-  vec2 delta = vec2((worldUv.x - uCursorHotspot.x) * uAspect, worldUv.y - uCursorHotspot.y);
-  float radius = max(uCursorHotspot.w, 0.001);
-  float core = exp(-dot(delta, delta) / (radius * radius));
-  float halo = exp(-dot(delta, delta) / (radius * radius * 5.8));
-  float heat = (core * 1.12 + halo * 0.24) * uCursorHotspot.z * uCursorHeat;
-  float whiteHot = smoothstep(0.34, 0.92, heat);
-  return colorRamp(clamp(heat, 0.0, 1.0), whiteHot) * heat * 1.2;
 }
 
 struct AccretionField {
@@ -1129,15 +1112,10 @@ void main() {
   color *= 1.0 - centerCull;
   float frameRadius = distance(rolledUv, vec2(0.5));
   color *= (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
-  color += cursorHotspotDisplay(worldUv) * (1.0 - centerCull) * (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
   color = vec3(1.0) - exp(-color * mix(1.26, 1.72, surge));
   float maxChannel = clamp(max(max(color.r, color.g), color.b), 0.0, 1.0);
   float dyeAlpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;
-  vec2 cursorDelta = vec2((worldUv.x - uCursorHotspot.x) * uAspect, worldUv.y - uCursorHotspot.y);
-  float cursorRadiusAlpha = max(uCursorHotspot.w, 0.001);
-  float cursorPresence = exp(-dot(cursorDelta, cursorDelta) / (cursorRadiusAlpha * cursorRadiusAlpha * 7.0)) * uCursorHotspot.z * uCursorHeat;
-  float cursorAlpha = smoothstep(0.0, 0.32, cursorPresence) * 0.92 * (1.0 - centerCull) * (1.0 - smoothstep(0.9, 1.12, frameRadius)) * diveFade;
-  float alpha = max(dyeAlpha, cursorAlpha);
+  float alpha = dyeAlpha;
   color *= alpha;
   outColor = vec4(color, alpha);
 }`;
@@ -1173,6 +1151,10 @@ let simHeight = 1;
 let read = null;
 let write = null;
 let lastTime = performance.now();
+let qualityScale = LOW_POWER_DEVICE ? 0.88 : 1;
+let slowFrameTime = 0;
+let resizeQueued = false;
+const uniformLocationCache = new WeakMap();
 let streamletId = 0;
 let pointer = {
   screenX: 0.5,
@@ -1211,12 +1193,6 @@ let activeStreamlet = null;
 const streamlets = [];
 const streamMetaUniforms = new Float32Array(MAX_STREAMLETS * 4);
 const streamWaveUniforms = new Float32Array(MAX_STREAMLETS * 4);
-const cursorHotspot = {
-  x: FIELD_CENTER.x,
-  y: FIELD_CENTER.y,
-  heat: 0,
-  radius: 0.014,
-};
 let needsReset = true;
 
 const params = {
@@ -1427,24 +1403,19 @@ function handleCursorMove(clientX, clientY, now = performance.now()) {
   const speedIntensity = clamp((speed - 0.035) / 0.95, 0, 1);
   const distanceIntensity = clamp(distance / 46, 0, 0.72);
   const intensity = Math.max(speedIntensity, distanceIntensity);
+  const outerDistance = Math.hypot((nextScreenX - 0.5) * (rectWidth / rectHeight), nextScreenY - 0.5);
+  const outerBoost = 1 + smoothstep(0.22, 0.68, outerDistance) * 0.65;
 
   if (insideHorizon) {
     activeStreamlet = null;
     pointer.travelSincePoint = 0;
     pointer.lastMoveTime = now;
-    cursorHotspot.heat = 0;
     return;
   }
 
   const dxWorld = pointer.x - pointer.previousX;
   const dyWorld = pointer.y - pointer.previousY;
-  const emissionIntensity = intensity * emissionStrength;
-  const motion = normalizedMotion(dxWorld, dyWorld);
-  const leadDistance = 0.013 + emissionIntensity * 0.018;
-  cursorHotspot.x = pointer.x + motion.flowX * leadDistance;
-  cursorHotspot.y = pointer.y + motion.flowY * leadDistance;
-  cursorHotspot.heat = Math.max(cursorHotspot.heat, emissionIntensity * 0.46);
-  cursorHotspot.radius = 0.006 + emissionIntensity * 0.006;
+  const emissionIntensity = intensity * emissionStrength * outerBoost;
 
   if (distance > 0.65 && emissionIntensity > 0.035) {
     pointer.travelSincePoint += distance;
@@ -1473,7 +1444,8 @@ resize();
 requestAnimationFrame(frame);
 
 function resize() {
-  const displayLimit = 800;
+  resizeQueued = false;
+  const displayLimit = BASE_DISPLAY_LIMIT * qualityScale;
   const displayScale = Math.min(
     window.devicePixelRatio || 1,
     1.5,
@@ -1486,22 +1458,50 @@ function resize() {
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
 
-  const simulationLimit = 520;
-  const target = Math.min(simulationLimit, Math.max(320, Math.floor(window.innerWidth * 0.46)));
+  const simulationLimit = Math.floor(BASE_SIMULATION_LIMIT * qualityScale);
+  const target = Math.min(simulationLimit, Math.max(260, Math.floor(window.innerWidth * 0.42 * qualityScale)));
   simWidth = target;
   simHeight = Math.max(240, Math.floor(target * window.innerHeight / window.innerWidth));
+  destroyTarget(read);
+  destroyTarget(write);
   read = createTarget(simWidth, simHeight);
   write = createTarget(simWidth, simHeight);
   needsReset = true;
-  status.textContent = `${simWidth} x ${simHeight}`;
+  status.textContent = `${simWidth} x ${simHeight} @ ${Math.round(qualityScale * 100)}%`;
+}
+
+function updateAdaptiveQuality(frameMs, now) {
+  if (resizeQueued || qualityScale <= MIN_QUALITY_SCALE || document.hidden) {
+    return;
+  }
+  if (pointer.hasPosition && now - pointer.lastMoveTime < 1200) {
+    slowFrameTime = 0;
+    return;
+  }
+
+  if (frameMs > 24) {
+    slowFrameTime += frameMs;
+  } else {
+    slowFrameTime = Math.max(0, slowFrameTime - frameMs * 1.5);
+  }
+
+  if (slowFrameTime < 900) {
+    return;
+  }
+
+  qualityScale = Math.max(MIN_QUALITY_SCALE, qualityScale - 0.12);
+  slowFrameTime = 0;
+  resizeQueued = true;
+  requestAnimationFrame(resize);
 }
 
 function frame(now) {
-  const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+  const frameMs = now - lastTime;
+  const dt = Math.min(frameMs / 1000, 1 / 30);
   lastTime = now;
+  updateAdaptiveQuality(frameMs, now);
   const diveFollow = 1 - Math.exp(-dt * 6.4);
   diveState.progress += (diveState.target - diveState.progress) * diveFollow;
-  cursorHotspot.heat *= Math.exp(-dt * 7.8);
 
   if (!dragOrbit.isDragging) {
     dragOrbit.targetYaw += dragOrbit.velocityYaw * dt;
@@ -1531,7 +1531,6 @@ function frame(now) {
   if (diveEmissionStrength() <= 0.02) {
     activeStreamlet = null;
     pointer.travelSincePoint = 0;
-    cursorHotspot.heat = 0;
   }
   updateStreamlets(dt, now / 1000);
 
@@ -1691,7 +1690,7 @@ function updateStreamlets(dt, time) {
       const ageFade = point.escape ? 1 : 1 - smoothstep(point.life * 0.68, point.life, point.age);
       const horizonFade = smoothstep(HORIZON * 0.82, HORIZON * 1.28, force.distance);
       const tailFade = 1 - pointIndex / Math.max(streamlet.points.length - 1, 1) * 0.42;
-      const pulse = 0.92 + Math.sin(time * 2.0 + point.phase) * 0.08;
+      const pulse = 0.98 + Math.sin(time * 2.0 + point.phase) * 0.02;
       point.heat = point.baseHeat * ageFade * horizonFade * tailFade * pulse * (1 - collapse * 0.72);
       point.radius = point.baseRadius * (1 + force.nearHorizon * 0.28 + Math.sin(time * 1.4 + point.phase) * 0.07);
 
@@ -1732,9 +1731,9 @@ function blackHoleForce(point, aspect, time) {
   };
   const tangent = { x: -direction.y, y: direction.x };
   const angle = Math.atan2(p.y, p.x);
-  const gravityRange = 1 - smoothstep(HORIZON * 1.02, HORIZON * 9.6, distance);
-  const farReach = 1 - smoothstep(HORIZON * 3.2, HORIZON * 9.2, distance);
-  const captureReach = 1 - smoothstep(HORIZON * 2.4, HORIZON * 13.0, distance);
+  const gravityRange = 1 - smoothstep(HORIZON * 1.02, HORIZON * 12.4, distance);
+  const farReach = 1 - smoothstep(HORIZON * 3.2, HORIZON * 12.4, distance);
+  const captureReach = 1 - smoothstep(HORIZON * 2.4, HORIZON * 17.2, distance);
   const orbitBand = Math.exp(-Math.pow((distance - HORIZON * 2.65) / (HORIZON * 1.95), 2));
   const horizonShell = Math.exp(-Math.pow((distance - HORIZON * 1.42) / (HORIZON * 0.52), 2));
   const slingBand = Math.exp(-Math.pow((distance - HORIZON * 3.55) / (HORIZON * 2.15), 2));
@@ -1748,13 +1747,13 @@ function blackHoleForce(point, aspect, time) {
   const pullDrive = (0.72 + params.pull * 0.68) * (1 + surge * 0.24 + violence * 0.46);
   const pullStrength =
     pullDrive *
-    (gravityRange * (0.046 / (distance + 0.12)) + farReach * (0.052 / (distance + 0.2)) + captureReach * (0.044 / (distance + 0.34))) *
+    (gravityRange * (0.05 / (distance + 0.14)) + farReach * (0.064 / (distance + 0.24)) + captureReach * (0.052 / (distance + 0.42))) *
     (0.66 + nearHorizon * 0.68);
   const swirlStrength =
     params.swirl *
     (1 + surge * 0.55 + violence * 1.15) *
-    (orbitBand * 0.116 + gravityRange * 0.02 + farReach * 0.017 + captureReach * 0.009) /
-    (distance + 0.16);
+    (orbitBand * 0.116 + gravityRange * 0.024 + farReach * 0.021 + captureReach * 0.012) /
+    (distance + 0.18);
   const escapeRawX = tangent.x - direction.x * 0.58;
   const escapeRawY = tangent.y - direction.y * 0.58;
   const escapeLength = Math.max(Math.hypot(escapeRawX, escapeRawY), 0.0001);
@@ -1920,7 +1919,6 @@ function step(dt, time) {
   uniform1i(advectProgram, "uStreamCount", streamlets.length);
   uniform4fv(advectProgram, "uStreamMeta", streamMetaUniforms);
   uniform4fv(advectProgram, "uStreamWave", streamWaveUniforms);
-  uniform4f(advectProgram, "uCursorHotspot", cursorHotspot.x, cursorHotspot.y, cursorHotspot.heat, cursorHotspot.radius);
   uniform2f(advectProgram, "uTexel", 1 / simWidth, 1 / simHeight);
   uniform1f(advectProgram, "uAspect", width / height);
   uniform1f(advectProgram, "uTime", time);
@@ -1955,17 +1953,23 @@ function draw(time) {
   uniform1f(displayProgram, "uHorizon", HORIZON);
   uniform1f(displayProgram, "uCursorHeat", cursorHeat);
   uniform1f(displayProgram, "uDiveProgress", diveState.progress);
-  uniform4f(displayProgram, "uCursorHotspot", cursorHotspot.x, cursorHotspot.y, cursorHotspot.heat, cursorHotspot.radius);
   uniform4f(displayProgram, "uDragOrbit", dragOrbit.yaw, dragOrbit.pitch, dragOrbit.spinSpeed, dragOrbit.engagement);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
 function clearTarget(target) {
+  if (!target) return;
   gl.bindVertexArray(vao);
   gl.useProgram(clearProgram);
   gl.viewport(0, 0, target.width, target.height);
   gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+function destroyTarget(target) {
+  if (!target) return;
+  gl.deleteFramebuffer(target.framebuffer);
+  gl.deleteTexture(target.texture);
 }
 
 function createTarget(targetWidth, targetHeight) {
@@ -2030,22 +2034,36 @@ function compileShader(type, source) {
 }
 
 function uniform1i(program, name, value) {
-  gl.uniform1i(gl.getUniformLocation(program, name), value);
+  gl.uniform1i(getUniformLocation(program, name), value);
 }
 
 function uniform1f(program, name, value) {
-  gl.uniform1f(gl.getUniformLocation(program, name), value);
+  gl.uniform1f(getUniformLocation(program, name), value);
 }
 
 function uniform2f(program, name, x, y) {
-  gl.uniform2f(gl.getUniformLocation(program, name), x, y);
+  gl.uniform2f(getUniformLocation(program, name), x, y);
 }
 
 function uniform4f(program, name, x, y, z, w) {
-  gl.uniform4f(gl.getUniformLocation(program, name), x, y, z, w);
+  gl.uniform4f(getUniformLocation(program, name), x, y, z, w);
 }
 
 function uniform4fv(program, name, value) {
-  const location = gl.getUniformLocation(program, name) || gl.getUniformLocation(program, `${name}[0]`);
+  const location = getUniformLocation(program, name) || getUniformLocation(program, `${name}[0]`);
   gl.uniform4fv(location, value);
+}
+
+function getUniformLocation(program, name) {
+  let programCache = uniformLocationCache.get(program);
+  if (!programCache) {
+    programCache = new Map();
+    uniformLocationCache.set(program, programCache);
+  }
+
+  if (!programCache.has(name)) {
+    programCache.set(name, gl.getUniformLocation(program, name));
+  }
+
+  return programCache.get(name);
 }

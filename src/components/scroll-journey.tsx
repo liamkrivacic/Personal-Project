@@ -9,7 +9,7 @@ const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
 const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";
-const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-5";
+const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-9";
 
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
@@ -204,7 +204,7 @@ export function ScrollJourney() {
         <input id="rimHeat" type="range" defaultValue="0.34" readOnly />
         <input id="swirl" type="range" defaultValue="2.92" readOnly />
         <input id="pull" type="range" defaultValue="0.98" readOnly />
-        <input id="cursorHeat" type="range" defaultValue="1.08" readOnly />
+        <input id="cursorHeat" type="range" defaultValue="1.2" readOnly />
         <input id="dissipation" type="range" defaultValue="0.984" readOnly />
         <button id="reset" type="button">Reset</button>
         <span id="status">initializing</span>
