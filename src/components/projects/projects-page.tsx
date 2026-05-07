@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { projects } from "@/data/projects";
 
 export function ProjectsPage() {
+  const pageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const [activeFilters, setActiveFilters] = useState<{ type: string; ctx: string }>({
@@ -33,8 +34,36 @@ export function ProjectsPage() {
     });
   }
 
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+
+    let frame = 0;
+    const updateHeight = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty(
+          "--projects-page-height",
+          `${page.scrollHeight}px`,
+        );
+      });
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(page);
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", updateHeight);
+      document.documentElement.style.removeProperty("--projects-page-height");
+    };
+  }, []);
+
   return (
-    <div id="projects" className="prj-page">
+    <div id="projects" className="prj-page" ref={pageRef}>
       {/* SVG symbol definitions — referenced by project rows via <use href="#id"> */}
       <svg style={{ display: "none" }}>
         <symbol id="img-rf" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
@@ -178,7 +207,7 @@ export function ProjectsPage() {
               Selected work
             </p>
             <h1 className="prj-head-title">
-              {"My Projects".split(" ").map((word, i) => (
+              {"My Projects".split(" ").map((word) => (
                 <span key={word} className="prj-title-word">
                   {word}&nbsp;
                 </span>

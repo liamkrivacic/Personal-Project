@@ -290,23 +290,49 @@ let dragYaw = 0;
 let dragPitch = 0;
 
 window.addEventListener("message", (event) => {
-  if (!event.data || event.data.type !== "black-hole-dive") return;
-  const next = Number(event.data.progress);
-  if (Number.isFinite(next)) diveProgress = Math.max(0, Math.min(1, next));
+  if (!event.data) return;
+  if (event.data.type === "black-hole-dive") {
+    const next = Number(event.data.progress);
+    if (Number.isFinite(next)) diveProgress = Math.max(0, Math.min(1, next));
+    return;
+  }
+  if (event.data.type === "black-hole-drag-delta") {
+    const dx = Number(event.data.dx) || 0;
+    const dy = Number(event.data.dy) || 0;
+    dragYaw += dx * 4.8;
+    dragPitch += dy * 3.4;
+    if (dragPitch > 1.4) dragPitch = 1.4;
+    if (dragPitch < -1.4) dragPitch = -1.4;
+  }
 });
 
 // Forward wheel/touch deltas to the parent's scroll. Same-origin parent so
-// scrollBy works directly; postMessage fallback for any cross-origin case.
-canvas.addEventListener("wheel", (event) => {
+// the parent owns the actual document scroll.
+function scrollParentBy(px) {
+  try {
+    const scroller =
+      window.parent?.document?.scrollingElement ??
+      window.parent?.document?.documentElement;
+    if (scroller) {
+      const before = scroller.scrollTop;
+      scroller.scrollTop = before + px;
+      if (scroller.scrollTop !== before) return;
+    }
+  } catch {
+    // Fall through to postMessage for any browser/cross-origin restriction.
+  }
+
+  window.parent?.postMessage({ type: "black-hole-scroll-delta", px }, window.location.origin);
+}
+
+function handleWheel(event) {
   event.preventDefault();
   const deltaScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
   const px = event.deltaY * deltaScale;
-  try {
-    window.parent?.scrollBy?.({ top: px });
-  } catch {
-    window.parent?.postMessage({ type: "black-hole-dive-input", delta: px / 1400 }, "*");
-  }
-}, { passive: false });
+  scrollParentBy(px);
+}
+
+window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
 
 let touchY = null;
 canvas.addEventListener("touchstart", (event) => {
@@ -319,11 +345,7 @@ canvas.addEventListener("touchmove", (event) => {
   const ny = event.touches[0].clientY;
   const px = touchY - ny;
   touchY = ny;
-  try {
-    window.parent?.scrollBy?.({ top: px });
-  } catch {
-    window.parent?.postMessage({ type: "black-hole-dive-input", delta: px / Math.max(window.innerHeight, 1) }, "*");
-  }
+  scrollParentBy(px);
 }, { passive: false });
 canvas.addEventListener("touchend", () => { touchY = null; });
 

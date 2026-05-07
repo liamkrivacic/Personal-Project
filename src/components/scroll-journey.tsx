@@ -1,5 +1,6 @@
 "use client";
 
+import type { PointerEvent } from "react";
 import { useEffect, useRef } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
@@ -7,8 +8,8 @@ import { ProjectsPage } from "@/components/projects/projects-page";
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
-const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-4";
-const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";
+const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";
+const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-5";
 
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
@@ -28,6 +29,11 @@ function resolveDiveProgress(depth: number) {
 
 export function ScrollJourney() {
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const dragRef = useRef<{ pointerId: number | null; x: number; y: number }>({
+    pointerId: null,
+    x: 0,
+    y: 0,
+  });
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -93,7 +99,19 @@ export function ScrollJourney() {
       }
       if (event.data.type === "black-hole-dive-input") {
         const delta = Number(event.data.delta) || 0;
-        if (delta !== 0) window.scrollBy({ top: delta * 1400 });
+        if (delta !== 0) {
+          const scroller = document.scrollingElement ?? document.documentElement;
+          scroller.scrollTop += delta * 1400;
+        }
+        return;
+      }
+      if (event.data.type === "black-hole-scroll-delta") {
+        if (event.origin !== window.location.origin) return;
+        const px = Number(event.data.px) || 0;
+        if (px !== 0) {
+          const scroller = document.scrollingElement ?? document.documentElement;
+          scroller.scrollTop += px;
+        }
       }
     };
 
@@ -125,6 +143,39 @@ export function ScrollJourney() {
     };
   }, []);
 
+  const postDragDelta = (dx: number, dy: number) => {
+    frameRef.current?.contentWindow?.postMessage(
+      { type: "black-hole-drag-delta", dx, dy },
+      window.location.origin,
+    );
+  };
+
+  const onInputPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onInputPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (drag.pointerId !== event.pointerId) return;
+
+    const dx = (event.clientX - drag.x) / Math.max(window.innerWidth, 1);
+    const dy = (event.clientY - drag.y) / Math.max(window.innerHeight, 1);
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    postDragDelta(dx, dy);
+  };
+
+  const onInputPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current.pointerId !== event.pointerId) return;
+    dragRef.current.pointerId = null;
+  };
+
   return (
     <main className="journey">
       <div className="journey-bg" aria-hidden="true">
@@ -136,6 +187,14 @@ export function ScrollJourney() {
           title=""
           allow="autoplay"
         />
+        <div
+          className="journey-input-layer"
+          onPointerDown={onInputPointerDown}
+          onPointerMove={onInputPointerMove}
+          onPointerUp={onInputPointerEnd}
+          onPointerCancel={onInputPointerEnd}
+          aria-hidden="true"
+        />
         <canvas id="fluid-canvas" className="journey-bg-cursor" aria-hidden="true" />
         <div className="journey-bg-veil" aria-hidden="true" />
         <div className="journey-bg-projects-wash" aria-hidden="true" />
@@ -145,7 +204,7 @@ export function ScrollJourney() {
         <input id="rimHeat" type="range" defaultValue="0.34" readOnly />
         <input id="swirl" type="range" defaultValue="2.92" readOnly />
         <input id="pull" type="range" defaultValue="0.98" readOnly />
-        <input id="cursorHeat" type="range" defaultValue="0.9" readOnly />
+        <input id="cursorHeat" type="range" defaultValue="1.08" readOnly />
         <input id="dissipation" type="range" defaultValue="0.984" readOnly />
         <button id="reset" type="button">Reset</button>
         <span id="status">initializing</span>
