@@ -166,7 +166,9 @@ export function ScrollJourney() {
         </div>
       </section>
 
-      <ProjectsPage />
+      <section className="projects-pin-section">
+        <ProjectsPage />
+      </section>
     </main>
   );
 }

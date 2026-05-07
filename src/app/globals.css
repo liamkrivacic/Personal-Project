@@ -54,10 +54,6 @@ button {
 .hero-copy {
   max-width: 620px;
   opacity: clamp(0, calc(1 - var(--dive, 0) * 1.42), 1);
-  transform:
-    translate3d(calc(var(--dive, 0) * -12px), calc(var(--dive, 0) * -28px), 0)
-    scale(calc(1 - var(--dive, 0) * 0.08));
-  filter: blur(calc(var(--dive, 0) * 1.1px));
   pointer-events: auto;
   transition: opacity 80ms linear;
 }
@@ -281,9 +277,15 @@ button {
    ───────────────────────────────────────────────────────── */
 
 /* ── Page wrapper ── */
-.prj-page {
+.projects-pin-section {
   position: relative;
   z-index: 2;
+  padding-bottom: 100vh;
+}
+
+.prj-page {
+  position: sticky;
+  top: 0;
   background: transparent;
   color: var(--text);
   font-family: var(--body-font);
