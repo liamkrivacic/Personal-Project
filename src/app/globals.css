@@ -885,6 +885,96 @@ button {
 }
 
 /* ─────────────────────────────────────────────────────────
+   Scroll Journey — fixed BG + dive section + sticky hero pin
+   Driven by --dive / --veil / --bg-fade / --reveal-col /
+   --reveal-list, all set on document root by ScrollJourney.
+   ───────────────────────────────────────────────────────── */
+
+.journey {
+  position: relative;
+  min-height: 100dvh;
+  background: #000;
+}
+
+.journey-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.journey-bg-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #050302;
+  pointer-events: auto;
+}
+
+.journey-bg-cursor {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  mix-blend-mode: screen;
+  opacity: calc(1 - var(--veil, 0));
+  pointer-events: none;
+}
+
+.journey-bg-veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--veil, 0);
+  pointer-events: none;
+}
+
+.journey-bg-projects-wash {
+  position: absolute;
+  inset: 0;
+  background: #030405;
+  opacity: var(--bg-fade, 0);
+  pointer-events: none;
+}
+
+.dive-section {
+  position: relative;
+  z-index: 1;
+  height: 200vh;
+  pointer-events: none;
+}
+
+.hero-pin {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  width: min(100%, 760px);
+  height: 100vh;
+  padding: 40px 52px;
+  pointer-events: none;
+}
+
+@media (max-width: 1120px) {
+  .hero-pin {
+    padding-inline: 32px;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero-pin {
+    align-items: flex-end;
+    padding: 24px 18px 40px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
    /projects page — prefixed .prj-* to avoid collision with
    existing .project-* classes from the old journey component
    ───────────────────────────────────────────────────────── */
