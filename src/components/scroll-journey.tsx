@@ -84,10 +84,16 @@ export function ScrollJourney() {
     };
 
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || !event.data) return;
+      if (!event.data) return;
       if (event.data.type === "black-hole-cursor") {
+        if (event.origin !== window.location.origin) return;
         if (event.data.target === "cursor-overlay") return;
         postCursorLight(Number(event.data.x), Number(event.data.y));
+        return;
+      }
+      if (event.data.type === "black-hole-dive-input") {
+        const delta = Number(event.data.delta) || 0;
+        if (delta !== 0) window.scrollBy({ top: delta * 1400 });
       }
     };
 
