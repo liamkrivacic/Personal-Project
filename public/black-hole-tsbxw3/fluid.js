@@ -295,15 +295,17 @@ window.addEventListener("message", (event) => {
   if (Number.isFinite(next)) diveProgress = Math.max(0, Math.min(1, next));
 });
 
-// Forward wheel/touch deltas back to parent so the existing dive-scroll
-// orchestration in orbital-hero-tsbxw3.tsx can compute progress and lock/release scroll.
+// Forward wheel/touch deltas to the parent's scroll. Same-origin parent so
+// scrollBy works directly; postMessage fallback for any cross-origin case.
 canvas.addEventListener("wheel", (event) => {
   event.preventDefault();
   const deltaScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-  window.parent?.postMessage(
-    { type: "black-hole-dive-input", delta: (event.deltaY * deltaScale) / 1400 },
-    "*",
-  );
+  const px = event.deltaY * deltaScale;
+  try {
+    window.parent?.scrollBy?.({ top: px });
+  } catch {
+    window.parent?.postMessage({ type: "black-hole-dive-input", delta: px / 1400 }, "*");
+  }
 }, { passive: false });
 
 let touchY = null;
@@ -315,9 +317,13 @@ canvas.addEventListener("touchmove", (event) => {
   if (event.touches.length === 0 || touchY === null) return;
   event.preventDefault();
   const ny = event.touches[0].clientY;
-  const delta = (touchY - ny) / Math.max(window.innerHeight, 1);
+  const px = touchY - ny;
   touchY = ny;
-  window.parent?.postMessage({ type: "black-hole-dive-input", delta }, "*");
+  try {
+    window.parent?.scrollBy?.({ top: px });
+  } catch {
+    window.parent?.postMessage({ type: "black-hole-dive-input", delta: px / Math.max(window.innerHeight, 1) }, "*");
+  }
 }, { passive: false });
 canvas.addEventListener("touchend", () => { touchY = null; });
 

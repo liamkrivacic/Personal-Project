@@ -7,7 +7,7 @@ import { ProjectsPage } from "@/components/projects/projects-page";
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
-const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-3";
+const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-4";
 const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";
 
 function clamp01(value: number) {

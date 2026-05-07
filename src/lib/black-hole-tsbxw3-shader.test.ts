@@ -56,7 +56,7 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(shaderSource).toContain(
       "angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5) * (1.0 - focusT);",
     );
-    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-3";');
+    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-4";');
     expect(journeySource).toContain(
       'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";',
     );
