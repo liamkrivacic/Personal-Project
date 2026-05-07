@@ -26,7 +26,6 @@ html {
   overflow-x: hidden;
   scroll-behavior: smooth;
   scroll-padding-top: 0;
-  scroll-snap-type: y mandatory;
   background: var(--bg);
 }
 
@@ -34,7 +33,6 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-x: hidden;
-  scroll-snap-type: y mandatory;
   background: var(--bg);
   color: var(--text);
   font-family: var(--body-font);
@@ -140,8 +138,6 @@ button {
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   background:
     radial-gradient(circle at 76% 42%, rgba(152, 57, 10, 0.16), transparent 34%),
     linear-gradient(120deg, rgba(2, 5, 6, 0.98), rgba(5, 4, 3, 0.94) 54%, rgba(1, 2, 3, 0.98));
@@ -293,7 +289,6 @@ button {
   background: #000;
   font-family: "JetBrains Mono", "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  scroll-snap-align: start;
 }
 
 .project-sticky-header {
@@ -425,8 +420,6 @@ button {
   height: 100svh;
   min-height: 100svh;
   overflow: clip;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
 /* Grain overlay — screens over the black background, fades out on reveal */
