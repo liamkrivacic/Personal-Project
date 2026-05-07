@@ -284,12 +284,12 @@ button {
 }
 
 .prj-page {
-  position: sticky;
-  top: 0;
   background: transparent;
   color: var(--text);
   font-family: var(--body-font);
   min-height: 100vh;
+  transform: translateY(var(--projects-pin-y, 0px));
+  will-change: transform;
 }
 
 /* ── Scroll-driven reveal ── */

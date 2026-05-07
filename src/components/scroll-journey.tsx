@@ -59,11 +59,17 @@ export function ScrollJourney() {
       const revealCol = smoothstep01((y - 2.0 * vh) / (0.6 * vh));
       const revealList = smoothstep01((y - 2.2 * vh) / (0.7 * vh));
 
+      // JS-driven pin: keep .prj-page visually at viewport top during 200-300vh,
+      // then unpin and let it scroll naturally. translateY counters the scroll
+      // until it hits its cap.
+      const pinPx = Math.min(Math.max(y - 2.0 * vh, 0), 1.0 * vh);
+
       root.setProperty("--dive", dive.toFixed(4));
       root.setProperty("--veil", veil.toFixed(4));
       root.setProperty("--bg-fade", bgFade.toFixed(4));
       root.setProperty("--reveal-col", revealCol.toFixed(4));
       root.setProperty("--reveal-list", revealList.toFixed(4));
+      root.setProperty("--projects-pin-y", `${pinPx}px`);
 
       postProgress(resolveDiveProgress(dive));
     };
