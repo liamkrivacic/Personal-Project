@@ -44,8 +44,7 @@ export function OrbitalHeroTsbxw3() {
     let depth = 0;
     let progress = 0;
     let releasedForProjects = false;
-    let isScrollingToProjects = false;
-    let hasScrolledToProjects = false;
+    let hasScrolledAway = false;
     let touchY: number | null = null;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
@@ -54,7 +53,7 @@ export function OrbitalHeroTsbxw3() {
 
     const lockPageScroll = () => {
       releasedForProjects = false;
-      hasScrolledToProjects = false;
+      hasScrolledAway = false;
       document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
       document.documentElement.style.overscrollBehavior = "none";
@@ -79,33 +78,18 @@ export function OrbitalHeroTsbxw3() {
       document.body.style.scrollSnapType = "none";
     };
 
-    const scrollToFirstProject = () => {
-      isScrollingToProjects = true;
-      hasScrolledToProjects = true;
-      const projects = document.getElementById("projects");
-
-      if (projects) {
-        projects.scrollIntoView({ block: "start", behavior: "smooth" });
-        return;
-      }
-
-      window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
-    };
-
-    // Re-lock the hero the instant the page scrolls back above the projects section.
-    // hasScrolledToProjects prevents this from firing at scrollY=0 right after the
-    // dive completes (before scrollToFirstProject has run).
+    // Re-lock only once the user has scrolled away from the top and then returned.
+    // Without hasScrolledAway, the scroll event at scrollY=0 right after release
+    // would immediately re-lock before the user can scroll down.
     const handlePageScroll = () => {
-      if (!releasedForProjects || isScrollingToProjects || !hasScrolledToProjects) return;
-      if (window.scrollY < window.innerHeight - 8) {
+      if (!releasedForProjects) return;
+      if (window.scrollY > 20) {
+        hasScrolledAway = true;
+      }
+      if (hasScrolledAway && window.scrollY < 4) {
         lockPageScroll();
         window.scrollTo(0, 0);
       }
-    };
-
-    // Clear the guard once the smooth scroll-to-projects animation finishes.
-    const handleScrollEnd = () => {
-      isScrollingToProjects = false;
     };
 
     lockPageScroll();
@@ -186,36 +170,36 @@ export function OrbitalHeroTsbxw3() {
 
       const delta = Number(event.data.delta) || 0;
 
-      if (progress >= 0.995 && delta > 0) {
-        releasePageScroll();
-        scrollToFirstProject();
+      if (releasedForProjects) {
+        if (hasScrolledAway && window.scrollY < 4 && delta < 0) {
+          lockPageScroll();
+          updateProgress(delta);
+        } else if (delta > 0) {
+          window.scrollBy({ top: delta * window.innerHeight * 0.5 });
+        }
         return;
-      }
-
-      if (window.scrollY <= 1 && progress < 0.995 && releasedForProjects) {
-        lockPageScroll();
       }
 
       updateProgress(delta);
     };
 
     const handleWheel = (event: WheelEvent) => {
-      if (progress >= 0.995 && event.deltaY > 0) {
-        event.preventDefault();
-        releasePageScroll();
-        scrollToFirstProject();
+      if (releasedForProjects) {
+        // Scroll up at the very top after having scrolled away: re-lock and reverse the dive.
+        if (hasScrolledAway && window.scrollY < 4 && event.deltaY < 0) {
+          event.preventDefault();
+          lockPageScroll();
+          const deltaScale =
+            event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+          updateProgress((event.deltaY * deltaScale) / 1400);
+        }
+        // All other cases: let the browser handle natural page scroll.
         return;
       }
 
       event.preventDefault();
-
       const deltaScale =
         event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-
-      if (window.scrollY <= 1 && releasedForProjects) {
-        lockPageScroll();
-      }
-
       updateProgress((event.deltaY * deltaScale) / 1400);
     };
 
@@ -234,21 +218,19 @@ export function OrbitalHeroTsbxw3() {
 
       const nextTouchY = event.touches[0].clientY;
       const delta = touchY - nextTouchY;
+      touchY = nextTouchY;
 
-      if (progress >= 0.995 && delta > 0) {
-        releasePageScroll();
-        scrollToFirstProject();
-        touchY = nextTouchY;
+      if (releasedForProjects) {
+        // Swipe down (delta < 0) at the top after having scrolled away: re-lock and reverse.
+        if (hasScrolledAway && window.scrollY < 4 && delta < 0) {
+          event.preventDefault();
+          lockPageScroll();
+          updateProgress(delta / Math.max(window.innerHeight, 1));
+        }
         return;
       }
 
       event.preventDefault();
-      touchY = nextTouchY;
-
-      if (window.scrollY <= 1 && releasedForProjects) {
-        lockPageScroll();
-      }
-
       updateProgress(delta / Math.max(window.innerHeight, 1));
     };
 
@@ -264,7 +246,6 @@ export function OrbitalHeroTsbxw3() {
     frame.addEventListener("load", handleLoad);
     window.addEventListener("message", handleMessage);
     window.addEventListener("scroll", handlePageScroll, { passive: true });
-    window.addEventListener("scrollend", handleScrollEnd);
     scene.addEventListener("pointermove", handleScenePointerMove);
     scene.addEventListener("wheel", handleWheel, { passive: false });
     scene.addEventListener("touchstart", handleTouchStart, { passive: true });
@@ -275,7 +256,6 @@ export function OrbitalHeroTsbxw3() {
       frame.removeEventListener("load", handleLoad);
       window.removeEventListener("message", handleMessage);
       window.removeEventListener("scroll", handlePageScroll);
-      window.removeEventListener("scrollend", handleScrollEnd);
       scene.removeEventListener("pointermove", handleScenePointerMove);
       scene.removeEventListener("wheel", handleWheel);
       scene.removeEventListener("touchstart", handleTouchStart);

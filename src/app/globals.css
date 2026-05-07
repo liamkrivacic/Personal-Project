@@ -896,35 +896,30 @@ button {
    existing .project-* classes from the old journey component
    ───────────────────────────────────────────────────────── */
 
-/* ── Animation: Drift + Blur ── */
-.prj-will-animate {
-  opacity: 0;
-  filter: blur(8px);
-  transform: translateY(20px);
-  transition:
-    opacity 0.9s ease,
-    filter 0.9s ease,
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.prj-will-animate.in {
-  opacity: 1;
-  filter: blur(0px);
-  transform: translateY(0);
-}
-
 /* ── Page wrapper ── */
 .prj-page {
-  background: var(--bg);
+  /* backgroundColor interpolated #000 → #030405 via JS as user scrolls */
+  background: #000;
   color: var(--text);
   font-family: var(--body-font);
   min-height: 100vh;
 }
 
-/* ── Centred column ── */
+/* ── Scroll-driven reveal ── */
+/* --reveal-col (0→1) and --reveal-list (0→1) are set by JS on .prj-page */
 .prj-col {
   max-width: 1040px;
   margin: 0 auto;
   padding: 0 48px;
+  opacity: var(--reveal-col, 0);
+  transform: translateY(calc((1 - var(--reveal-col, 0)) * 20px));
+}
+
+.prj-list {
+  display: flex;
+  flex-direction: column;
+  opacity: var(--reveal-list, 0);
+  transform: translateY(calc((1 - var(--reveal-list, 0)) * 20px));
 }
 
 /* ── Page heading ── */
@@ -1064,15 +1059,12 @@ button {
 }
 
 /* ── List + rows ── */
-.prj-list {
-  display: flex;
-  flex-direction: column;
-}
 .prj-row-wrap {
   max-width: 1040px;
   margin: 0 auto;
   padding: 0 48px;
   width: 100%;
+  transition: opacity 0.3s ease;
 }
 .prj-row {
   position: relative;
