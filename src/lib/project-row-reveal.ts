@@ -39,14 +39,10 @@ export function projectRowReveal({
 
   const count = Math.max(1, rowCount);
   const index = Math.min(Math.max(rowIndex, 0), count - 1);
-  const entryDelay = 0.16;
+  const entryDelay = 0.44;
   const sequencedEntryProgress = smoothstep01((entryProgress - entryDelay) / (1 - entryDelay));
   const entryDuration = index < 2 ? 0.36 : 0.18;
-  const firstFollowerStart = 0.48;
-  const followerWindow = 0.34;
-  const followerCount = Math.max(1, count - 2);
-  const entryStart =
-    index === 0 ? 0 : firstFollowerStart + ((index - 1) / followerCount) * followerWindow;
+  const entryStart = index === 0 ? 0 : index === 1 ? 0.62 : 0.82;
   const entryReveal = smoothstep01((sequencedEntryProgress - entryStart) / entryDuration);
   const headingReveal =
     headingProgress === undefined ? 1 : smoothstep01((headingProgress - 0.9) / 0.08);
