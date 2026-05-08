@@ -19,6 +19,11 @@ build/
 .superpowers/
 .worktrees/
 .verification/
+CLAUDE.md
+CODEX.md
+docs/superpowers/
+docs/design-archive/
+public/mockups/
 ~/
 
 # logs
@@ -26,6 +31,8 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 .main-project-server*.log
+.next-*.log
+debug.log
 playwright-report/
 test-results/
 

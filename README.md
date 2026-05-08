@@ -1,6 +1,6 @@
 # Personal Portfolio
 
-Next.js portfolio site for Liam Krivacic. The current checkpoint is built around a cinematic black-hole scroll dive that hands off into a post-dive project journey.
+Next.js portfolio site for Liam Krivacic. The homepage is a scroll-driven black-hole journey that reveals a recruiter-focused project section.
 
 ## Run Locally
 
@@ -15,14 +15,17 @@ Then open `http://127.0.0.1:5176`.
 
 ```powershell
 npm test
-npm run test:fluid
 npm run lint
 npm run build
+npm run test:fluid
 ```
 
-## Current Direction
+## Current Structure
 
-- The first screen is the interactive black-hole hero in `public/black-hole-fluid`.
-- `src/components/orbital/orbital-hero.tsx` maps wheel/touch input to the shader dive.
-- `src/components/projects/project-journey.tsx` owns the post-dive project sequence.
-- The next visual task is documented in `docs/2026-04-28-black-hole-status.md`: improve the black-hole side-view disc so the horizontal band connects and flows into the outer accretion disc.
+- `src/components/scroll-journey.tsx` coordinates the fixed black-hole background, cursor overlay, scroll timing, and project-section handoff.
+- `src/components/projects/projects-page.tsx` renders the project cards, filters, and row reveal behavior.
+- `src/data/projects.ts` is the source of truth for project titles, blurbs, skills, filters, thumbnails, and ordering.
+- `public/black-hole-tsbxw3/` contains the WebGL black-hole iframe.
+- `public/black-hole-cursor-streamlets/` contains the cursor-responsive lighting overlay.
+- `public/projects/` and `public/skill-logos/` contain the card thumbnails and hard-skill logos.
+- `docs/project-case-study-drafts.md` keeps deeper project notes and image references for future project detail pages.

@@ -53,8 +53,10 @@ describe("project card layout source", () => {
   });
 
   it("uses the same row reveal transition when filter results appear", () => {
-    expect(componentSource).toContain('wrap.style.setProperty("--row-opacity", "0");');
-    expect(componentSource).toContain('wrap.style.setProperty("--row-shift", "14px");');
+    expect(componentSource).toContain("function resetRowRevealState(row: HTMLElement)");
+    expect(componentSource).toContain('row.style.setProperty("--row-opacity", "0");');
+    expect(componentSource).toContain('row.style.setProperty("--row-shift", "14px");');
+    expect(componentSource).toContain("resetRowRevealState(wrap);");
     expect(componentSource).toContain("void listRef.current.offsetHeight;");
     expect(componentSource).not.toContain("setTimeout(() =>");
     expect(componentSource).not.toContain('wrap.style.opacity = "0";');

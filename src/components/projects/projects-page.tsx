@@ -2,21 +2,37 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { projects } from "@/data/projects";
+import type { ProjectFocus } from "@/data/projects";
 import { projectRowReveal } from "@/lib/project-row-reveal";
+
+type FocusFilter = ProjectFocus | "all";
 
 const focusFilters = [
   { val: "all", label: "All" },
   { val: "electrical", label: "Electrical Engineering" },
   { val: "software", label: "Software & Computer Science" },
   { val: "personal", label: "Personal & Creative" },
-] as const;
+] satisfies Array<{ val: FocusFilter; label: string }>;
+
+function setRowRevealState(row: HTMLElement, reveal: number) {
+  row.style.setProperty("--row-reveal", reveal.toFixed(4));
+  const opacity = reveal <= 0 ? 0 : 0.22 + reveal * 0.78;
+  row.style.setProperty("--row-opacity", opacity.toFixed(4));
+  row.style.setProperty("--row-shift", `${((1 - reveal) * 14).toFixed(2)}px`);
+}
+
+function resetRowRevealState(row: HTMLElement) {
+  row.style.setProperty("--row-reveal", "0");
+  row.style.setProperty("--row-opacity", "0");
+  row.style.setProperty("--row-shift", "14px");
+}
 
 export function ProjectsPage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const revealFrameRef = useRef(0);
 
-  const [activeFocus, setActiveFocus] = useState<string>("all");
+  const [activeFocus, setActiveFocus] = useState<FocusFilter>("all");
 
   const updateRowReveals = useCallback(() => {
     if (!listRef.current) return;
@@ -37,10 +53,7 @@ export function ProjectsPage() {
         rowIndex,
         rowCount: visibleRows.length,
       });
-      wrap.style.setProperty("--row-reveal", reveal.toFixed(4));
-      const opacity = reveal <= 0 ? 0 : 0.22 + reveal * 0.78;
-      wrap.style.setProperty("--row-opacity", opacity.toFixed(4));
-      wrap.style.setProperty("--row-shift", `${((1 - reveal) * 14).toFixed(2)}px`);
+      setRowRevealState(wrap, reveal);
     });
   }, []);
 
@@ -52,7 +65,7 @@ export function ProjectsPage() {
     });
   }, [updateRowReveals]);
 
-  function handleFilter(val: string) {
+  function handleFilter(val: FocusFilter) {
     setActiveFocus(val);
 
     if (!listRef.current) return;
@@ -64,15 +77,11 @@ export function ProjectsPage() {
         const wasHidden = wrap.style.display === "none";
         wrap.style.display = "";
         if (wasHidden) {
-          wrap.style.setProperty("--row-reveal", "0");
-          wrap.style.setProperty("--row-opacity", "0");
-          wrap.style.setProperty("--row-shift", "14px");
+          resetRowRevealState(wrap);
         }
       } else {
         wrap.style.display = "none";
-        wrap.style.setProperty("--row-reveal", "0");
-        wrap.style.setProperty("--row-opacity", "0");
-        wrap.style.setProperty("--row-shift", "14px");
+        resetRowRevealState(wrap);
       }
     });
 
