@@ -95,6 +95,7 @@ export function ProjectsPage() {
     const observer = new ResizeObserver(updateHeight);
     observer.observe(page);
     window.addEventListener("scroll", scheduleRowReveals, { passive: true });
+    window.addEventListener("project-entry-timing-update", scheduleRowReveals);
     window.addEventListener("resize", updateHeight);
     window.addEventListener("resize", scheduleRowReveals);
 
@@ -103,6 +104,7 @@ export function ProjectsPage() {
       cancelAnimationFrame(revealFrameRef.current);
       observer.disconnect();
       window.removeEventListener("scroll", scheduleRowReveals);
+      window.removeEventListener("project-entry-timing-update", scheduleRowReveals);
       window.removeEventListener("resize", updateHeight);
       window.removeEventListener("resize", scheduleRowReveals);
       document.documentElement.style.removeProperty("--projects-page-height");

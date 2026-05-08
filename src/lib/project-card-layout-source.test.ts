@@ -40,8 +40,17 @@ describe("project card layout source", () => {
     expect(componentSource).toContain("rowCount: visibleRows.length");
     expect(componentSource).toContain("scheduleRowReveals");
     expect(componentSource).toContain('window.addEventListener("scroll", scheduleRowReveals');
+    expect(componentSource).toContain(
+      'window.addEventListener("project-entry-timing-update", scheduleRowReveals);',
+    );
     expect(cssSource).toMatch(/\.prj-list\s*{(?![^}]*opacity:\s*var\(--reveal-list\)[^}]*})[^}]*}/s);
     expect(cssSource).toMatch(/\.prj-row-wrap\s*{[^}]*opacity:\s*var\(--row-opacity,\s*0\);/s);
+  });
+
+  it("keeps the projects page pinned long enough for the first two-card intro", () => {
+    expect(cssSource).toMatch(
+      /\.projects-pin-section\s*{[^}]*height:\s*calc\(var\(--projects-page-height,\s*100vh\) \+ 200vh\);/s,
+    );
   });
 
   it("uses compact inline hard-skill logo styling", () => {

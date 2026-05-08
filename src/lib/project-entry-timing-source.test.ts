@@ -18,4 +18,10 @@ describe("project entry timing source", () => {
     expect(scrollJourneySource).not.toContain("const bgFade = clamp01((y - 2.0 * vh)");
     expect(scrollJourneySource).not.toContain("const revealCol = smoothstep01((y - 2.0 * vh)");
   });
+
+  it("notifies project rows after project entry timing variables change", () => {
+    expect(scrollJourneySource).toContain(
+      'window.dispatchEvent(new Event("project-entry-timing-update"));',
+    );
+  });
 });

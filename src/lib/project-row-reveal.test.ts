@@ -71,7 +71,7 @@ describe("projectRowReveal", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.6,
+      entryProgress: 0.5,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -79,7 +79,7 @@ describe("projectRowReveal", () => {
     const secondRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.6,
+      entryProgress: 0.5,
       headingProgress: 1,
       rowIndex: 1,
       rowCount: 9,
@@ -90,12 +90,12 @@ describe("projectRowReveal", () => {
     expect(secondRow).toBe(0);
   });
 
-  it("adds scroll after the heading before the first project card starts", () => {
+  it("keeps only a short beat after the heading before the first project card starts", () => {
     expect(
       projectRowReveal({
         rowTop: 500,
         viewportHeight: 800,
-        entryProgress: 0.42,
+        entryProgress: 0.23,
         headingProgress: 1,
         rowIndex: 0,
         rowCount: 9,
@@ -103,11 +103,33 @@ describe("projectRowReveal", () => {
     ).toBe(0);
   });
 
+  it("starts the first project card soon after the heading has appeared", () => {
+    const firstRow = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.3,
+      headingProgress: 1,
+      rowIndex: 0,
+      rowCount: 9,
+    });
+    const secondRow = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.3,
+      headingProgress: 1,
+      rowIndex: 1,
+      rowCount: 9,
+    });
+
+    expect(firstRow).toBeGreaterThan(0);
+    expect(secondRow).toBe(0);
+  });
+
   it("takes about twice as long to fully reveal each of the first two project cards", () => {
     const firstRowMidReveal = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.6,
+      entryProgress: 0.5,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -115,7 +137,7 @@ describe("projectRowReveal", () => {
     const secondRowMidReveal = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.86,
+      entryProgress: 0.84,
       headingProgress: 1,
       rowIndex: 1,
       rowCount: 9,
@@ -127,7 +149,7 @@ describe("projectRowReveal", () => {
     expect(secondRowMidReveal).toBeLessThan(0.9);
   });
 
-  it("adds scroll between the first and second project card entry beats", () => {
+  it("adds extra scroll between the first and second project card entry beats", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,

@@ -293,7 +293,7 @@ button {
 .projects-pin-section {
   position: relative;
   z-index: 2;
-  height: calc(var(--projects-page-height, 100vh) + 100vh);
+  height: calc(var(--projects-page-height, 100vh) + 200vh);
 }
 
 .prj-page {

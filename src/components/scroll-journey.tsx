@@ -69,6 +69,7 @@ export function ScrollJourney() {
       root.setProperty("--bg-fade", bgFade.toFixed(4));
       root.setProperty("--reveal-col", revealCol.toFixed(4));
       root.setProperty("--reveal-list", revealList.toFixed(4));
+      window.dispatchEvent(new Event("project-entry-timing-update"));
 
       postProgress(resolveDiveProgress(dive));
     };
