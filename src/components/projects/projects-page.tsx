@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { projects } from "@/data/projects";
 import { projectRowReveal } from "@/lib/project-row-reveal";
 
@@ -14,22 +14,26 @@ const focusFilters = [
 export function ProjectsPage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const revealFrameRef = useRef(0);
 
   const [activeFocus, setActiveFocus] = useState<string>("all");
 
-  function updateRowReveals() {
+  const updateRowReveals = useCallback(() => {
     if (!listRef.current) return;
     const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
     const visibleRows = rows.filter((wrap) => wrap.style.display !== "none");
-    const entryProgressRaw = getComputedStyle(document.documentElement)
-      .getPropertyValue("--reveal-list");
+    const rootStyle = getComputedStyle(document.documentElement);
+    const entryProgressRaw = rootStyle.getPropertyValue("--reveal-list");
+    const headingProgressRaw = rootStyle.getPropertyValue("--reveal-col");
     const entryProgress = Number.parseFloat(entryProgressRaw);
+    const headingProgress = Number.parseFloat(headingProgressRaw);
 
     visibleRows.forEach((wrap, rowIndex) => {
       const reveal = projectRowReveal({
         rowTop: wrap.getBoundingClientRect().top,
         viewportHeight: window.innerHeight,
         entryProgress: Number.isFinite(entryProgress) ? entryProgress : 0,
+        headingProgress: Number.isFinite(headingProgress) ? headingProgress : 0,
         rowIndex,
         rowCount: visibleRows.length,
       });
@@ -38,7 +42,12 @@ export function ProjectsPage() {
       wrap.style.setProperty("--row-opacity", opacity.toFixed(4));
       wrap.style.setProperty("--row-shift", `${((1 - reveal) * 14).toFixed(2)}px`);
     });
-  }
+  }, []);
+
+  const scheduleRowReveals = useCallback(() => {
+    cancelAnimationFrame(revealFrameRef.current);
+    revealFrameRef.current = requestAnimationFrame(updateRowReveals);
+  }, [updateRowReveals]);
 
   function handleFilter(val: string) {
     setActiveFocus(val);
@@ -61,7 +70,7 @@ export function ProjectsPage() {
       }
     });
 
-    requestAnimationFrame(updateRowReveals);
+    scheduleRowReveals();
   }
 
   useEffect(() => {
@@ -76,26 +85,27 @@ export function ProjectsPage() {
           "--projects-page-height",
           `${page.scrollHeight}px`,
         );
-        updateRowReveals();
+        scheduleRowReveals();
       });
     };
 
     updateHeight();
     const observer = new ResizeObserver(updateHeight);
     observer.observe(page);
-    window.addEventListener("scroll", updateRowReveals, { passive: true });
+    window.addEventListener("scroll", scheduleRowReveals, { passive: true });
     window.addEventListener("resize", updateHeight);
-    window.addEventListener("resize", updateRowReveals);
+    window.addEventListener("resize", scheduleRowReveals);
 
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(revealFrameRef.current);
       observer.disconnect();
-      window.removeEventListener("scroll", updateRowReveals);
+      window.removeEventListener("scroll", scheduleRowReveals);
       window.removeEventListener("resize", updateHeight);
-      window.removeEventListener("resize", updateRowReveals);
+      window.removeEventListener("resize", scheduleRowReveals);
       document.documentElement.style.removeProperty("--projects-page-height");
     };
-  }, []);
+  }, [scheduleRowReveals]);
 
   return (
     <div id="projects" className="prj-page" ref={pageRef}>

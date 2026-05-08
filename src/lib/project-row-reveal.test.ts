@@ -32,11 +32,25 @@ describe("projectRowReveal", () => {
     ).toBe(0);
   });
 
+  it("keeps rows hidden until the projects heading is almost fully revealed", () => {
+    expect(
+      projectRowReveal({
+        rowTop: 500,
+        viewportHeight: 800,
+        entryProgress: 1,
+        headingProgress: 0.86,
+        rowIndex: 0,
+        rowCount: 4,
+      }),
+    ).toBe(0);
+  });
+
   it("waits for each row's entry slot even when the row is already in view", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
       entryProgress: 0.24,
+      headingProgress: 1,
       rowIndex: 0,
       rowCount: 4,
     });
@@ -44,11 +58,34 @@ describe("projectRowReveal", () => {
       rowTop: 500,
       viewportHeight: 800,
       entryProgress: 0.24,
+      headingProgress: 1,
       rowIndex: 1,
       rowCount: 4,
     });
 
     expect(firstRow).toBeGreaterThan(0);
+    expect(secondRow).toBe(0);
+  });
+
+  it("gives the first project card its own entry beat before the second card appears", () => {
+    const firstRow = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.52,
+      headingProgress: 1,
+      rowIndex: 0,
+      rowCount: 9,
+    });
+    const secondRow = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.52,
+      headingProgress: 1,
+      rowIndex: 1,
+      rowCount: 9,
+    });
+
+    expect(firstRow).toBe(1);
     expect(secondRow).toBe(0);
   });
 
@@ -58,6 +95,7 @@ describe("projectRowReveal", () => {
         rowTop: 500,
         viewportHeight: 800,
         entryProgress: 1,
+        headingProgress: 1,
         rowIndex: 8,
         rowCount: 9,
       }),

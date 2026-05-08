@@ -11,12 +11,14 @@ export function projectRowReveal({
   rowTop,
   viewportHeight,
   entryProgress,
+  headingProgress,
   rowIndex,
   rowCount,
 }: {
   rowTop: number;
   viewportHeight: number;
   entryProgress?: number;
+  headingProgress?: number;
   rowIndex?: number;
   rowCount?: number;
 }) {
@@ -39,10 +41,15 @@ export function projectRowReveal({
   const index = Math.min(Math.max(rowIndex, 0), count - 1);
   const entryDelay = 0.16;
   const sequencedEntryProgress = smoothstep01((entryProgress - entryDelay) / (1 - entryDelay));
-  const entryStaggerWindow = 0.82;
   const entryDuration = 0.18;
-  const entryStart = count === 1 ? 0 : (index / (count - 1)) * entryStaggerWindow;
+  const firstFollowerStart = 0.48;
+  const followerWindow = 0.34;
+  const followerCount = Math.max(1, count - 2);
+  const entryStart =
+    index === 0 ? 0 : firstFollowerStart + ((index - 1) / followerCount) * followerWindow;
   const entryReveal = smoothstep01((sequencedEntryProgress - entryStart) / entryDuration);
+  const headingReveal =
+    headingProgress === undefined ? 1 : smoothstep01((headingProgress - 0.9) / 0.08);
 
-  return Math.min(viewportReveal, entryReveal);
+  return Math.min(viewportReveal, entryReveal, headingReveal);
 }

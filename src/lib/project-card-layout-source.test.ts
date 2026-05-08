@@ -33,9 +33,13 @@ describe("project card layout source", () => {
 
   it("uses the black-hole entry progress to reveal project rows sequentially", () => {
     expect(componentSource).toContain('getPropertyValue("--reveal-list")');
+    expect(componentSource).toContain('getPropertyValue("--reveal-col")');
     expect(componentSource).toContain("visibleRows.forEach((wrap, rowIndex)");
     expect(componentSource).toContain("entryProgress");
+    expect(componentSource).toContain("headingProgress");
     expect(componentSource).toContain("rowCount: visibleRows.length");
+    expect(componentSource).toContain("scheduleRowReveals");
+    expect(componentSource).toContain('window.addEventListener("scroll", scheduleRowReveals');
     expect(cssSource).toMatch(/\.prj-list\s*{(?![^}]*opacity:\s*var\(--reveal-list\)[^}]*})[^}]*}/s);
     expect(cssSource).toMatch(/\.prj-row-wrap\s*{[^}]*opacity:\s*var\(--row-opacity,\s*0\);/s);
   });
