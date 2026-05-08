@@ -4,6 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
+import { projectEntryTiming } from "@/lib/project-entry-timing";
 
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
@@ -58,12 +59,10 @@ export function ScrollJourney() {
     const update = () => {
       const y = window.scrollY;
       const vh = window.innerHeight;
-
-      const dive = clamp01(y / (1.8 * vh));
-      const veil = smoothstep01((y - 1.3 * vh) / (0.7 * vh));
-      const bgFade = clamp01((y - 2.0 * vh) / (0.8 * vh));
-      const revealCol = smoothstep01((y - 2.0 * vh) / (0.6 * vh));
-      const revealList = smoothstep01((y - 2.2 * vh) / (0.7 * vh));
+      const { dive, veil, bgFade, revealCol, revealList } = projectEntryTiming({
+        scrollY: y,
+        viewportHeight: vh,
+      });
 
       root.setProperty("--dive", dive.toFixed(4));
       root.setProperty("--veil", veil.toFixed(4));
