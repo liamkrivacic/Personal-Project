@@ -2,7 +2,8 @@ export type ProjectFocus = "electrical" | "software" | "personal";
 
 export type ProjectSkill = {
   label: string;
-  icon?: string;
+  logo: string;
+  logoAlt: string;
 };
 
 export type Project = {
@@ -17,7 +18,80 @@ export type Project = {
   hard: ProjectSkill[];
   soft: string[];
   img: string;
+  imagePosition: string;
 };
+
+const skillLogos = {
+  "ANSYS HFSS": {
+    logo: "/skill-logos/ansys.svg",
+    logoAlt: "ANSYS logo for ANSYS HFSS",
+  },
+  IronPython: {
+    logo: "/skill-logos/python.svg",
+    logoAlt: "Python logo for IronPython",
+  },
+  Python: {
+    logo: "/skill-logos/python.svg",
+    logoAlt: "Python logo",
+  },
+  LTspice: {
+    logo: "/skill-logos/ltspice.svg",
+    logoAlt: "LTspice logo",
+  },
+  "Fusion 360": {
+    logo: "/skill-logos/fusion360.svg",
+    logoAlt: "Fusion 360 logo",
+  },
+  Arduino: {
+    logo: "/skill-logos/arduino.svg",
+    logoAlt: "Arduino logo",
+  },
+  "C/C++": {
+    logo: "/skill-logos/cplusplus.svg",
+    logoAlt: "C++ logo for C/C++",
+  },
+  "Synology DSM": {
+    logo: "/skill-logos/synology.svg",
+    logoAlt: "Synology logo for Synology DSM",
+  },
+  WordPress: {
+    logo: "/skill-logos/wordpress.svg",
+    logoAlt: "WordPress logo",
+  },
+  PHP: {
+    logo: "/skill-logos/php.svg",
+    logoAlt: "PHP logo",
+  },
+  Mailchimp: {
+    logo: "/skill-logos/mailchimp.svg",
+    logoAlt: "Mailchimp logo",
+  },
+  "Next.js": {
+    logo: "/skill-logos/nextdotjs.svg",
+    logoAlt: "Next.js logo",
+  },
+  React: {
+    logo: "/skill-logos/react.svg",
+    logoAlt: "React logo",
+  },
+  TypeScript: {
+    logo: "/skill-logos/typescript.svg",
+    logoAlt: "TypeScript logo",
+  },
+  WebGL: {
+    logo: "/skill-logos/webgl.svg",
+    logoAlt: "WebGL logo",
+  },
+} satisfies Record<string, Pick<ProjectSkill, "logo" | "logoAlt">>;
+
+type ProjectHardSkillLabel = keyof typeof skillLogos;
+
+function hardSkill(label: ProjectHardSkillLabel): ProjectSkill {
+  return {
+    label,
+    ...skillLogos[label],
+  };
+}
 
 export const projects: Project[] = [
   {
@@ -30,14 +104,10 @@ export const projects: Project[] = [
     title: "HFSS Directional Coupler and Coax Adapter",
     signal:
       "Designed WR340 RF measurement hardware in ANSYS HFSS, including a cross-guide directional coupler and waveguide-to-coax transition for VNA and spectrum-analyser access.",
-    hard: [
-      { label: "ANSYS HFSS", icon: "HFSS" },
-      { label: "WR340 waveguide" },
-      { label: "S-parameters" },
-      { label: "VNA planning" },
-    ],
+    hard: [hardSkill("ANSYS HFSS")],
     soft: ["Research rigour", "Design iteration", "Technical reporting"],
     img: "/projects/rf-coupler-coax.png",
+    imagePosition: "center center",
   },
   {
     id: "stub-tuner-optimisation",
@@ -49,14 +119,10 @@ export const projects: Project[] = [
     title: "Automated Stub-Tuner Optimisation",
     signal:
       "Used IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search, reducing reflected microwave power across simulated plasma load conditions.",
-    hard: [
-      { label: "IronPython", icon: "Py" },
-      { label: "ANSYS HFSS", icon: "HFSS" },
-      { label: "Gradient descent" },
-      { label: "Impedance matching" },
-    ],
+    hard: [hardSkill("IronPython"), hardSkill("ANSYS HFSS")],
     soft: ["Algorithmic thinking", "Debugging", "Systems modelling"],
     img: "/projects/stub-tuner-hfss.png",
+    imagePosition: "center center",
   },
   {
     id: "hv-magnetron-supply",
@@ -68,14 +134,10 @@ export const projects: Project[] = [
     title: "High-Voltage Magnetron Supply and Enclosure",
     signal:
       "Explored a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
-    hard: [
-      { label: "LTspice", icon: "LT" },
-      { label: "Fusion 360", icon: "F360" },
-      { label: "4 kV HV safety" },
-      { label: "Enclosure design" },
-    ],
+    hard: [hardSkill("LTspice"), hardSkill("Fusion 360")],
     soft: ["Risk awareness", "Documentation", "Practical engineering"],
     img: "/projects/hv-magnetron-enclosure.png",
+    imagePosition: "center center",
   },
   {
     id: "sumobot-winner",
@@ -87,14 +149,10 @@ export const projects: Project[] = [
     title: "UNSW SumoBots Advanced Stream Winner",
     signal:
       "Won the advanced stream by building an autonomous Arduino robot with ultrasonic sensing, IR line detection, C/C++ control logic, and a Fusion 360 chassis fabricated by laser cutting and 3D printing.",
-    hard: [
-      { label: "Arduino", icon: "ARD" },
-      { label: "C/C++", icon: "C++" },
-      { label: "Ultrasonic sensors" },
-      { label: "Fusion 360", icon: "F360" },
-    ],
+    hard: [hardSkill("Arduino"), hardSkill("C/C++"), hardSkill("Fusion 360")],
     soft: ["Rapid prototyping", "Competition strategy", "Iterative testing"],
     img: "/projects/sumobot-chassis.png",
+    imagePosition: "center center",
   },
   {
     id: "nas-infrastructure",
@@ -106,14 +164,10 @@ export const projects: Project[] = [
     title: "NAS and Self-Hosted Web Infrastructure",
     signal:
       "Set up Synology NAS infrastructure for redundant cloud file storage, remote access, SSL-backed reverse proxying, and WordPress sites hosted under small-business constraints.",
-    hard: [
-      { label: "Synology NAS", icon: "NAS" },
-      { label: "RAID" },
-      { label: "Reverse proxy" },
-      { label: "SSL certificates" },
-    ],
+    hard: [hardSkill("Synology DSM"), hardSkill("WordPress")],
     soft: ["Ownership", "Cost awareness", "Operational reliability"],
     img: "/projects/nas-infrastructure.png",
+    imagePosition: "center center",
   },
   {
     id: "wordpress-marketing",
@@ -126,13 +180,14 @@ export const projects: Project[] = [
     signal:
       "Built maintainable WordPress websites and marketing workflows using child themes, custom PHP, CRM data processing, Mailchimp integration, and DNS/hosting administration.",
     hard: [
-      { label: "WordPress", icon: "WP" },
-      { label: "PHP", icon: "PHP" },
-      { label: "Python", icon: "Py" },
-      { label: "Mailchimp", icon: "Mail" },
+      hardSkill("WordPress"),
+      hardSkill("PHP"),
+      hardSkill("Python"),
+      hardSkill("Mailchimp"),
     ],
     soft: ["Client communication", "Maintainability", "Process improvement"],
     img: "/projects/wordpress-marketing.png",
+    imagePosition: "center top",
   },
   {
     id: "atomcraft-rf-leadership",
@@ -144,14 +199,10 @@ export const projects: Project[] = [
     title: "AtomCraft RF Heating System Leadership",
     signal:
       "Led a 9-person RF team on AtomCraft's 2.45 GHz microwave heating system, coordinating simulation, safety, procurement, testing plans, and cross-disciplinary delivery.",
-    hard: [
-      { label: "RF systems", icon: "RF" },
-      { label: "ANSYS HFSS", icon: "HFSS" },
-      { label: "S-parameters" },
-      { label: "Safety docs" },
-    ],
+    hard: [hardSkill("ANSYS HFSS"), hardSkill("LTspice"), hardSkill("Fusion 360")],
     soft: ["Team leadership", "Stakeholder updates", "Work planning"],
     img: "/projects/atomcraft-rf-leadership.png",
+    imagePosition: "center center",
   },
   {
     id: "personal-website-black-hole",
@@ -164,13 +215,14 @@ export const projects: Project[] = [
     signal:
       "Built this portfolio as a Next.js, React, and TypeScript interface with a scroll-driven journey, interactive black-hole shader, cursor-responsive lighting, and automated verification.",
     hard: [
-      { label: "Next.js", icon: "Next" },
-      { label: "React", icon: "React" },
-      { label: "TypeScript", icon: "TS" },
-      { label: "Canvas/WebGL" },
+      hardSkill("Next.js"),
+      hardSkill("React"),
+      hardSkill("TypeScript"),
+      hardSkill("WebGL"),
     ],
     soft: ["Product polish", "Visual systems", "Iterative refinement"],
     img: "/projects/personal-website-black-hole.png",
+    imagePosition: "center center",
   },
   {
     id: "visual-arts-portfolio",
@@ -182,13 +234,9 @@ export const projects: Project[] = [
     title: "Visual Arts Portfolio",
     signal:
       "A body of artwork recognised through an ARTEXPRESS nomination, gallery exhibition at Tamworth Regional Gallery, and media interview, showing visual communication and sustained creative craft.",
-    hard: [
-      { label: "Visual composition", icon: "Art" },
-      { label: "Concept development" },
-      { label: "Presentation" },
-      { label: "Iteration" },
-    ],
+    hard: [],
     soft: ["Creative discipline", "Attention to detail", "Communication"],
     img: "/projects/artwork-collection.png",
+    imagePosition: "center center",
   },
 ];

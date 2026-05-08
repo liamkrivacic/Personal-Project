@@ -129,19 +129,13 @@ export function ProjectsPage() {
             <div className="prj-row">
               <span className="prj-row-num">{p.num}</span>
               <div className="prj-row-img-col">
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 280 148"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <image
-                    href={p.img}
-                    width="280"
-                    height="148"
-                    preserveAspectRatio="xMidYMid meet"
-                  />
-                </svg>
+                <img
+                  className="prj-row-img"
+                  src={p.img}
+                  alt=""
+                  aria-hidden="true"
+                  style={{ objectPosition: p.imagePosition }}
+                />
               </div>
               <div className="prj-row-body">
                 <div>
@@ -153,21 +147,31 @@ export function ProjectsPage() {
                   <p className="prj-row-signal">{p.signal}</p>
                   <div className="prj-skills-block">
                     <div className="prj-skills-row">
-                      <div className="prj-skills-group">
-                        <span className="prj-skills-group-label">Hard skills</span>
-                        <div className="prj-skills-pills">
-                          {p.hard.map((skill) => (
-                            <span key={skill.label} className="prj-skill-pill hard">
-                              {skill.icon ? (
-                                <span className="prj-skill-logo" aria-hidden="true">
-                                  {skill.icon}
-                                </span>
-                              ) : null}
-                              <span>{skill.label}</span>
-                            </span>
-                          ))}
+                      {p.hard.length > 0 ? (
+                        <div className="prj-skills-group">
+                          <span className="prj-skills-group-label">Hard skills</span>
+                          <div className="prj-skills-pills">
+                            {p.hard.map((skill) => (
+                              <span key={skill.label} className="prj-skill-pill hard">
+                                {skill.label}
+                              </span>
+                            ))}
+                          </div>
+                          <div
+                            className="prj-skill-logo-strip"
+                            aria-label="Software and tool logos"
+                          >
+                            {p.hard.map((skill) => (
+                              <span
+                                key={`${skill.label}-logo`}
+                                className="prj-skill-logo-tile"
+                              >
+                                <img src={skill.logo} alt={skill.logoAlt} />
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
                       <div className="prj-skills-group">
                         <span className="prj-skills-group-label">Soft skills</span>
                         <div className="prj-skills-pills">
