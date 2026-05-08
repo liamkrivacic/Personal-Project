@@ -25,6 +25,10 @@ describe("project card layout source", () => {
     expect(cssSource).toMatch(/\.prj-row-img\s*{[^}]*height:\s*100%;[^}]*object-fit:\s*cover;/s);
   });
 
+  it("keeps breathing room beneath the final project card", () => {
+    expect(cssSource).toMatch(/\.prj-list\s*{[^}]*padding-bottom:\s*clamp\(72px,\s*10vh,\s*128px\);/s);
+  });
+
   it("retains the bottom case-study CTA and hover highlight", () => {
     expect(componentSource).toContain('className="prj-row-cta"');
     expect(componentSource).toContain("View case study");

@@ -318,6 +318,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-bottom: clamp(72px, 10vh, 128px);
 }
 
 /* ── Page heading ── */
