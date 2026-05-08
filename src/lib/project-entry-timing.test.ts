@@ -42,4 +42,11 @@ describe("projectEntryTiming", () => {
     expect(timing.revealCol).toBeGreaterThan(timing.revealList);
     expect(timing.revealList).toBeGreaterThan(0);
   });
+
+  it("keeps card-reveal progress low for extra scroll after the heading has appeared", () => {
+    const timing = at(3.0);
+
+    expect(timing.revealCol).toBe(1);
+    expect(timing.revealList).toBeLessThan(0.44);
+  });
 });

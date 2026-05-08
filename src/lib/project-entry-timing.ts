@@ -33,6 +33,6 @@ export function projectEntryTiming({
     veil: progressWindow(scrollY, viewportHeight, 1.3, 0.7),
     bgFade: progressWindow(scrollY, viewportHeight, 2.0, 0.28),
     revealCol: progressWindow(scrollY, viewportHeight, 2.32, 0.58),
-    revealList: progressWindow(scrollY, viewportHeight, 2.54, 0.72),
+    revealList: progressWindow(scrollY, viewportHeight, 2.54, 1.44),
   };
 }

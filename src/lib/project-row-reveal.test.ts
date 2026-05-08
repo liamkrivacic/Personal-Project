@@ -149,6 +149,19 @@ describe("projectRowReveal", () => {
     expect(secondRow).toBe(0);
   });
 
+  it("keeps later project cards waiting until the first two-card intro sequence is complete", () => {
+    expect(
+      projectRowReveal({
+        rowTop: 500,
+        viewportHeight: 800,
+        entryProgress: 0.9,
+        headingProgress: 1,
+        rowIndex: 2,
+        rowCount: 9,
+      }),
+    ).toBe(0);
+  });
+
   it("falls back to the original viewport reveal once entry sequencing is complete", () => {
     expect(
       projectRowReveal({
