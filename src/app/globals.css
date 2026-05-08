@@ -175,6 +175,7 @@ button {
   }
 
   .prj-col,
+  .prj-row-wrap,
   .prj-list {
     opacity: 1 !important;
     transform: none !important;
@@ -316,6 +317,7 @@ button {
 .prj-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   opacity: var(--reveal-list, 0);
 }
 
@@ -461,7 +463,11 @@ button {
   margin: 0 auto;
   padding: 0 48px;
   width: 100%;
-  transition: opacity 0.3s ease;
+  opacity: var(--row-opacity, 0.22);
+  transform: translateY(var(--row-shift, 14px));
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
 }
 .prj-row {
   position: relative;
@@ -626,12 +632,12 @@ button {
 .prj-skills-block { margin-top: 12px; }
 .prj-skills-row {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 24px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 .prj-skills-group { display: flex; flex-direction: column; gap: 4px; }
-.prj-skills-group + .prj-skills-group { padding-top: 28px; }
+.prj-skills-group + .prj-skills-group { padding-top: 0; }
 .prj-skills-group-label {
   font-family: var(--mono-font);
   font-size: 8px;
@@ -655,18 +661,18 @@ button {
 .prj-skill-logo-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 6px;
+  gap: 12px;
+  margin-top: 8px;
 }
 .prj-skill-logo-tile {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 24px;
-  padding: 4px;
-  border: 1px solid rgba(162, 186, 198, 0.15);
-  background: rgba(255, 255, 255, 0.035);
+  width: 42px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .prj-skill-logo-tile img {
   display: block;

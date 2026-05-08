@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { projects } from "@/data/projects";
+import { projectRowReveal } from "@/lib/project-row-reveal";
 
 const focusFilters = [
   { val: "all", label: "All" },
@@ -15,6 +16,22 @@ export function ProjectsPage() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const [activeFocus, setActiveFocus] = useState<string>("all");
+
+  function updateRowReveals() {
+    if (!listRef.current) return;
+    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
+
+    rows.forEach((wrap) => {
+      if (wrap.style.display === "none") return;
+      const reveal = projectRowReveal({
+        rowTop: wrap.getBoundingClientRect().top,
+        viewportHeight: window.innerHeight,
+      });
+      wrap.style.setProperty("--row-reveal", reveal.toFixed(4));
+      wrap.style.setProperty("--row-opacity", (0.22 + reveal * 0.78).toFixed(4));
+      wrap.style.setProperty("--row-shift", `${((1 - reveal) * 14).toFixed(2)}px`);
+    });
+  }
 
   function handleFilter(val: string) {
     setActiveFocus(val);
@@ -36,6 +53,8 @@ export function ProjectsPage() {
         wrap.style.opacity = "";
       }
     });
+
+    requestAnimationFrame(updateRowReveals);
   }
 
   useEffect(() => {
@@ -50,18 +69,23 @@ export function ProjectsPage() {
           "--projects-page-height",
           `${page.scrollHeight}px`,
         );
+        updateRowReveals();
       });
     };
 
     updateHeight();
     const observer = new ResizeObserver(updateHeight);
     observer.observe(page);
+    window.addEventListener("scroll", updateRowReveals, { passive: true });
     window.addEventListener("resize", updateHeight);
+    window.addEventListener("resize", updateRowReveals);
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      window.removeEventListener("scroll", updateRowReveals);
       window.removeEventListener("resize", updateHeight);
+      window.removeEventListener("resize", updateRowReveals);
       document.documentElement.style.removeProperty("--projects-page-height");
     };
   }, []);
