@@ -56,9 +56,9 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(shaderSource).toContain(
       "angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5) * (1.0 - focusT);",
     );
-    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-4";');
+    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";');
     expect(journeySource).toContain(
-      'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-4";',
+      'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-12";',
     );
     expect(journeySource).toContain("script.src = cursorScriptSrc;");
     expect(journeySource).toContain("window.postMessage(message, window.location.origin);");
@@ -76,34 +76,29 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(cssSource).toContain(".journey-bg-cursor");
     expect(cssSource).toContain("mix-blend-mode: screen;");
     expect(cursorOverlayHtml).toContain('<canvas id="fluid-canvas"');
-    expect(cursorOverlayHtml).toContain('src="./fluid.js?v=old-cursor-4"');
+    expect(cursorOverlayHtml).toContain('src="./fluid.js?v=old-cursor-12"');
     expect(cursorOverlaySource).toContain("const FIELD_CENTER = { x: 0.5, y: 0.5 };");
     expect(cursorOverlaySource).toContain("const RUNS_IN_PARENT_OVERLAY = window.parent === window;");
-    expect(cursorOverlaySource).toContain("const cursorHotspot = {");
     expect(cursorOverlaySource).toContain("const MAX_STREAMLETS = 3;");
     expect(cursorOverlaySource).toContain("const STREAM_POINTS = 10;");
     expect(cursorOverlaySource).toContain('canvas.getContext("webgl2", {');
     expect(cursorOverlaySource).toContain("alpha: true,");
     expect(cursorOverlaySource).toContain("vec3 wavefrontSource(vec2 uv)");
-    expect(cursorOverlaySource).toContain("uniform vec4 uCursorHotspot;");
-    expect(cursorOverlaySource).toContain("vec3 cursorHotspotSource(vec2 uv)");
-    expect(cursorOverlaySource).toContain("dye += cursorHotspotSource(vUv);");
     expect(cursorOverlaySource).toContain("vec3 wavefrontVisual(vec2 uv)");
     expect(cursorOverlaySource).toContain("dye *= 1.0 - hole;");
     expect(cursorOverlaySource).toContain("function handleCursorMove(clientX, clientY, now = performance.now())");
-    expect(cursorOverlaySource).toContain("cursorHotspot.x = pointer.x + motion.flowX * leadDistance;");
-    expect(cursorOverlaySource).toContain("cursorHotspot.heat = Math.max(cursorHotspot.heat * 0.72, emissionIntensity * 0.46);");
     expect(cursorOverlaySource).toContain("function pushStreamPoint(");
     expect(cursorOverlaySource).toContain("function createStreamlet(");
     expect(cursorOverlaySource).toContain("function createStreamPoint(");
+    expect(cursorOverlaySource).toContain("function wavefrontWidthForIntensity(intensity)");
     expect(cursorOverlaySource).toContain("function updateStreamlets(dt, time)");
     expect(cursorOverlaySource).toContain("function blackHoleForce(point, aspect, time)");
-    expect(cursorOverlaySource).toContain('uniform4f(advectProgram, "uCursorHotspot", cursorHotspot.x, cursorHotspot.y, cursorHotspot.heat, cursorHotspot.radius);');
     expect(cursorOverlaySource).toContain('event.data.type === "black-hole-cursor"');
     expect(cursorOverlaySource).toContain("if (!RUNS_IN_PARENT_OVERLAY) {");
     expect(cursorOverlaySource).toContain("float centerCull = 1.0 - smoothstep(horizon * 0.78, horizon * 1.18, d);");
     expect(cursorOverlaySource).toContain("color *= 1.0 - centerCull;");
-    expect(cursorOverlaySource).toContain("float alpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;");
+    expect(cursorOverlaySource).toContain("float dyeAlpha = smoothstep(0.018, 0.36, maxChannel) * 0.92;");
+    expect(cursorOverlaySource).toContain("float alpha = dyeAlpha;");
     expect(cursorOverlaySource).toContain("color *= alpha;");
     expect(cursorOverlaySource).toContain("outColor = vec4(color, alpha);");
     expect(cursorOverlaySource).toContain("gl.clearColor(0, 0, 0, 0);");

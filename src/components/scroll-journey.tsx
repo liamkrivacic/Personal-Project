@@ -1,6 +1,6 @@
 "use client";
 
-import type { PointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
@@ -9,7 +9,7 @@ const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
 const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";
-const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-9";
+const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-12";
 
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
@@ -85,7 +85,7 @@ export function ScrollJourney() {
 
     const onResize = () => update();
 
-    const onPointerMove = (event: PointerEvent) => {
+    const onPointerMove = (event: globalThis.PointerEvent) => {
       postCursorLight(event.clientX, event.clientY);
     };
 
@@ -150,7 +150,7 @@ export function ScrollJourney() {
     );
   };
 
-  const onInputPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+  const onInputPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "touch") return;
     dragRef.current = {
       pointerId: event.pointerId,
@@ -160,7 +160,7 @@ export function ScrollJourney() {
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const onInputPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+  const onInputPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (drag.pointerId !== event.pointerId) return;
 
@@ -171,7 +171,7 @@ export function ScrollJourney() {
     postDragDelta(dx, dy);
   };
 
-  const onInputPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+  const onInputPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (dragRef.current.pointerId !== event.pointerId) return;
     dragRef.current.pointerId = null;
   };

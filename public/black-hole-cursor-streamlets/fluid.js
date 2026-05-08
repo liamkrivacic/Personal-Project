@@ -1576,7 +1576,7 @@ function pushStreamPoint(x, y, motionX, motionY, intensity, now) {
   streamlet.normalX = streamlet.normalX * 0.68 + motion.normalX * 0.32;
   streamlet.normalY = streamlet.normalY * 0.68 + motion.normalY * 0.32;
   streamlet.waveStrength = Math.max(streamlet.waveStrength, 0.14 + intensity * 0.22);
-  streamlet.waveWidth = Math.max(streamlet.waveWidth, 0.03 + intensity * 0.066);
+  streamlet.waveWidth = wavefrontWidthForIntensity(intensity);
   streamlet.waveAge = 0;
 
   if (pointer.travelSincePoint >= pointSpacing) {
@@ -1613,7 +1613,7 @@ function createStreamlet(x, y, motion, intensity, now) {
     seed,
     waveAge: 0,
     waveStrength: 0.24 + intensity * 0.32,
-    waveWidth: 0.03 + intensity * 0.066,
+    waveWidth: wavefrontWidthForIntensity(intensity),
   };
   streamlet.points.push(createStreamPoint(x, y, motion, intensity, seed));
   streamlet.points.push(
@@ -1647,6 +1647,10 @@ function createStreamPoint(x, y, motion, intensity, seed) {
   };
 }
 
+function wavefrontWidthForIntensity(intensity) {
+  return 0.064 + intensity * 0.032;
+}
+
 function updateStreamlets(dt, time) {
   const emissionStrength = diveEmissionStrength();
   const collapse = 1 - emissionStrength;
@@ -1663,7 +1667,6 @@ function updateStreamlets(dt, time) {
     }
     streamlet.waveAge += dt;
     streamlet.waveStrength *= Math.exp(-dt * (streamlet.escape ? 0.38 : 0.52) * waveDecayBoost);
-    streamlet.waveWidth += dt * (0.0018 + streamlet.intensity * 0.003);
 
     for (let pointIndex = streamlet.points.length - 1; pointIndex >= 0; pointIndex--) {
       const point = streamlet.points[pointIndex];
