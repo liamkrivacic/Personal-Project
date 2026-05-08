@@ -177,20 +177,12 @@ export function ProjectsPage() {
                           <div className="prj-skills-pills">
                             {p.hard.map((skill) => (
                               <span key={skill.label} className="prj-skill-pill hard">
-                                {skill.label}
-                              </span>
-                            ))}
-                          </div>
-                          <div
-                            className="prj-skill-logo-strip"
-                            aria-label="Software and tool logos"
-                          >
-                            {p.hard.map((skill) => (
-                              <span
-                                key={`${skill.label}-logo`}
-                                className="prj-skill-logo-tile"
-                              >
-                                <img src={skill.logo} alt={skill.logoAlt} />
+                                <span>{skill.label}</span>
+                                <img
+                                  className="prj-skill-logo"
+                                  src={skill.logo}
+                                  alt={skill.logoAlt}
+                                />
                               </span>
                             ))}
                           </div>

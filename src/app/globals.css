@@ -478,7 +478,8 @@ button {
   cursor: pointer;
   overflow: hidden;
   transition: background 0.25s;
-  min-height: 178px;
+  height: 230px;
+  min-height: 0;
 }
 .prj-row::before {
   content: "";
@@ -512,19 +513,21 @@ button {
   border-right: 1px solid rgba(255, 243, 213, 0.10);
 }
 .prj-row-img-col {
-  display: flex;
-  align-items: center;
+  position: relative;
+  height: 230px;
   border-right: 1px solid rgba(255, 243, 213, 0.10);
   overflow: hidden;
 }
 .prj-row-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
 .prj-row-body {
-  padding: 22px 0 22px 40px;
+  padding: 16px 0 16px 40px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -548,7 +551,7 @@ button {
 .prj-row-signal {
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.48;
+  line-height: 1.42;
   max-width: 58ch;
   margin: 0;
 }
@@ -629,12 +632,12 @@ button {
 }
 
 /* ── Skills ── */
-.prj-skills-block { margin-top: 12px; }
+.prj-skills-block { margin-top: 8px; }
 .prj-skills-row {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 7px;
 }
 .prj-skills-group { display: flex; flex-direction: column; gap: 4px; }
 .prj-skills-group + .prj-skills-group { padding-top: 0; }
@@ -658,26 +661,13 @@ button {
   border: 1px solid rgba(162, 186, 198, 0.17);
   color: var(--dim);
 }
-.prj-skill-logo-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
+.prj-skill-pill.hard {
+  gap: 7px;
 }
-.prj-skill-logo-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-.prj-skill-logo-tile img {
+.prj-skill-logo {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 .prj-skill-pill.soft {
@@ -699,7 +689,8 @@ button {
     border-top: 1px solid rgba(162, 186, 198, 0.17);
     padding-top: 20px;
   }
-  .prj-row { grid-template-columns: 48px 220px 1fr; }
+  .prj-row { grid-template-columns: 48px 220px 1fr; height: 230px; }
+  .prj-row-img-col { height: 230px; }
   .prj-row-body { padding-left: 28px; }
 }
 
@@ -707,7 +698,7 @@ button {
   .prj-col { padding: 0 16px; }
   .prj-row-wrap { padding: 0 16px; }
   .prj-head { padding: 48px 0 32px; }
-  .prj-row { grid-template-columns: 1fr; min-height: auto; }
+  .prj-row { grid-template-columns: 1fr; height: auto; min-height: auto; }
   .prj-row-num { display: none; }
   .prj-row-img-col {
     border-right: 0;
