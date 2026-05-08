@@ -478,7 +478,7 @@ button {
   cursor: pointer;
   overflow: hidden;
   transition: background 0.25s;
-  height: 230px;
+  height: 275px;
   min-height: 0;
 }
 .prj-row::before {
@@ -514,7 +514,7 @@ button {
 }
 .prj-row-img-col {
   position: relative;
-  height: 230px;
+  height: 275px;
   border-right: 1px solid rgba(255, 243, 213, 0.10);
   overflow: hidden;
 }
@@ -527,7 +527,7 @@ button {
   object-fit: cover;
 }
 .prj-row-body {
-  padding: 16px 0 16px 40px;
+  padding: 20px 0 20px 40px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -632,12 +632,12 @@ button {
 }
 
 /* ── Skills ── */
-.prj-skills-block { margin-top: 8px; }
+.prj-skills-block { margin-top: 10px; }
 .prj-skills-row {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  gap: 9px;
 }
 .prj-skills-group { display: flex; flex-direction: column; gap: 4px; }
 .prj-skills-group + .prj-skills-group { padding-top: 0; }
@@ -689,8 +689,8 @@ button {
     border-top: 1px solid rgba(162, 186, 198, 0.17);
     padding-top: 20px;
   }
-  .prj-row { grid-template-columns: 48px 220px 1fr; height: 230px; }
-  .prj-row-img-col { height: 230px; }
+  .prj-row { grid-template-columns: 48px 220px 1fr; height: 275px; }
+  .prj-row-img-col { height: 275px; }
   .prj-row-body { padding-left: 28px; }
 }
 

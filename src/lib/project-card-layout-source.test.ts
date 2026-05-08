@@ -19,13 +19,21 @@ describe("project card layout source", () => {
   });
 
   it("keeps desktop project media compact while filling its image area", () => {
-    expect(cssSource).toMatch(/\.prj-row\s*{[^}]*height:\s*230px;/s);
+    expect(cssSource).toMatch(/\.prj-row\s*{[^}]*height:\s*275px;/s);
     expect(cssSource).toMatch(/\.prj-row\s*{[^}]*min-height:\s*0;/s);
-    expect(cssSource).toMatch(/\.prj-row-img-col\s*{[^}]*height:\s*230px;/s);
+    expect(cssSource).toMatch(/\.prj-row-img-col\s*{[^}]*height:\s*275px;/s);
     expect(cssSource).toMatch(/\.prj-row-img\s*{[^}]*height:\s*100%;[^}]*object-fit:\s*cover;/s);
   });
 
+  it("retains the bottom case-study CTA and hover highlight", () => {
+    expect(componentSource).toContain('className="prj-row-cta"');
+    expect(componentSource).toContain("View case study");
+    expect(cssSource).toMatch(/\.prj-row:hover \.prj-row-cta\s*{[^}]*color:\s*var\(--accent\);[^}]*opacity:\s*1;/s);
+  });
+
   it("uses compact inline hard-skill logo styling", () => {
+    expect(cssSource).toMatch(/\.prj-row-body\s*{[^}]*padding:\s*20px 0 20px 40px;/s);
+    expect(cssSource).toMatch(/\.prj-skills-row\s*{[^}]*gap:\s*9px;/s);
     expect(cssSource).toMatch(/\.prj-skill-pill\.hard\s*{[^}]*gap:\s*7px;/s);
     expect(cssSource).toMatch(/\.prj-skill-logo\s*{[^}]*width:\s*18px;[^}]*height:\s*18px;/s);
     expect(cssSource).not.toContain(".prj-skill-logo-strip");
