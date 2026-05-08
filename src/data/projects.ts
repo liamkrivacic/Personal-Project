@@ -1,4 +1,11 @@
-export type ProjectType = "rf" | "robotics" | "software" | "hardware";
+export type ProjectType =
+  | "rf"
+  | "robotics"
+  | "software"
+  | "hardware"
+  | "infrastructure"
+  | "creative";
+
 export type ProjectCtx = "uni" | "work" | "hobby";
 
 export type Project = {
@@ -18,63 +25,123 @@ export type Project = {
 
 export const projects: Project[] = [
   {
-    id: "rf-plasma",
+    id: "atomcraft-rf-leadership",
     num: "01",
     type: "rf",
     ctx: "uni",
     cat: "rf",
-    catLabel: "RF / Plasma",
+    catLabel: "RF / Leadership",
     ctxLabel: "University",
-    title: "RF Plasma",
+    title: "AtomCraft RF Heating System Leadership",
     signal:
-      "Bench energy made observable. A hardware-first investigation into controlled RF energy, measurement loops, and the boundary between simulation and physical behaviour.",
-    hard: ["RF systems", "Instrumentation", "Signal analysis"],
-    soft: ["Technical writing", "Problem decomposition", "Research rigour"],
-    img: "img-rf",
+      "Leading a 9-person RF team on AtomCraft's 2.45 GHz microwave heating system, coordinating simulation, safety, procurement, testing plans, and cross-disciplinary delivery.",
+    hard: ["RF systems", "ANSYS HFSS", "S-parameters", "Safety docs"],
+    soft: ["Team leadership", "Stakeholder updates", "Work planning"],
+    img: "img-rf-system",
   },
   {
-    id: "sumobot",
+    id: "hfss-coupler-coax",
     num: "02",
+    type: "rf",
+    ctx: "uni",
+    cat: "rf",
+    catLabel: "RF Design",
+    ctxLabel: "University",
+    title: "HFSS Directional Coupler and Coax Adapter",
+    signal:
+      "Designed WR340 RF measurement hardware in ANSYS HFSS, including a cross-guide directional coupler and waveguide-to-coax transition for VNA and spectrum-analyser access.",
+    hard: ["ANSYS HFSS", "WR340 waveguide", "Monte Carlo analysis", "VNA planning"],
+    soft: ["Research rigour", "Design iteration", "Technical reporting"],
+    img: "img-coupler",
+  },
+  {
+    id: "stub-tuner-optimisation",
+    num: "03",
+    type: "software",
+    ctx: "uni",
+    cat: "software",
+    catLabel: "RF Software",
+    ctxLabel: "University",
+    title: "Automated Stub-Tuner Optimisation",
+    signal:
+      "Used IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search, reducing reflected microwave power across simulated plasma load conditions.",
+    hard: ["IronPython", "Python", "Gradient descent", "Impedance matching"],
+    soft: ["Algorithmic thinking", "Debugging", "Systems modelling"],
+    img: "img-tuner",
+  },
+  {
+    id: "hv-magnetron-supply",
+    num: "04",
+    type: "hardware",
+    ctx: "uni",
+    cat: "hardware",
+    catLabel: "Power Hardware",
+    ctxLabel: "University",
+    title: "High-Voltage Magnetron Supply and Enclosure",
+    signal:
+      "Explored a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
+    hard: ["LTspice", "4 kV HV safety", "Fusion 360", "Enclosure design"],
+    soft: ["Risk awareness", "Documentation", "Practical engineering"],
+    img: "img-hv",
+  },
+  {
+    id: "fmcg-nas-infrastructure",
+    num: "05",
+    type: "infrastructure",
+    ctx: "work",
+    cat: "hardware",
+    catLabel: "Infrastructure",
+    ctxLabel: "Work",
+    title: "FMCG NAS and Self-Hosted Web Infrastructure",
+    signal:
+      "Set up Synology NAS infrastructure for redundant cloud file storage, remote access, SSL-backed reverse proxying, and WordPress sites hosted under small-business constraints.",
+    hard: ["Synology NAS", "RAID", "Reverse proxy", "SSL certificates"],
+    soft: ["Ownership", "Cost awareness", "Operational reliability"],
+    img: "img-nas",
+  },
+  {
+    id: "fmcg-wordpress-marketing",
+    num: "06",
+    type: "software",
+    ctx: "work",
+    cat: "software",
+    catLabel: "Web / Automation",
+    ctxLabel: "Work",
+    title: "FMCG WordPress Websites and Marketing Systems",
+    signal:
+      "Built maintainable WordPress websites and marketing workflows using child themes, custom PHP, CRM data processing, Mailchimp integration, and DNS/hosting administration.",
+    hard: ["WordPress", "PHP", "Python", "Mailchimp"],
+    soft: ["Client communication", "Maintainability", "Process improvement"],
+    img: "img-wordpress",
+  },
+  {
+    id: "sumobot-winner",
+    num: "07",
     type: "robotics",
     ctx: "uni",
     cat: "robotics",
     catLabel: "Robotics",
     ctxLabel: "University",
-    title: "Sumobot",
+    title: "UNSW SumoBots Advanced Stream Winner",
     signal:
-      "Small robot, hard real-time instincts. Built around fast sensing, decisive control logic, and physical design that survives contact with the arena.",
-    hard: ["Embedded C", "Motor control", "PCB design"],
-    soft: ["Iterative design", "Systems thinking", "Rapid prototyping"],
-    img: "img-sumo",
+      "Won the advanced stream by building an autonomous Arduino robot with ultrasonic sensing, IR line detection, C/C++ control logic, and a Fusion 360 chassis fabricated by laser cutting and 3D printing.",
+    hard: ["Arduino", "C/C++", "Ultrasonic sensors", "Fusion 360"],
+    soft: ["Rapid prototyping", "Competition strategy", "Iterative testing"],
+    img: "/projects/sumobot-chassis.png",
   },
   {
-    id: "fmcg-web",
-    num: "03",
-    type: "software",
-    ctx: "work",
+    id: "visual-arts-portfolio",
+    num: "08",
+    type: "creative",
+    ctx: "hobby",
     cat: "software",
-    catLabel: "Software",
-    ctxLabel: "Work",
-    title: "FMCG Web",
+    catLabel: "Creative",
+    ctxLabel: "Hobby",
+    title: "Visual Arts Portfolio",
     signal:
-      "Operational data without the spreadsheet gravity well. A web workflow shaped around interruption and speed — readable when people are moving quickly.",
-    hard: ["Next.js", "TypeScript", "UI / UX"],
-    soft: ["Client comms", "Requirement gathering", "Product thinking"],
-    img: "img-fmcg",
-  },
-  {
-    id: "lab-demo",
-    num: "04",
-    type: "hardware",
-    ctx: "uni",
-    cat: "hardware",
-    catLabel: "Hardware",
-    ctxLabel: "University",
-    title: "Lab Demo",
-    signal:
-      "Reliable demos for fragile physical systems. Infrastructure shaped around repeatability: wiring, setup, docs, and recovery paths.",
-    hard: ["Electronics", "Schematic design", "Test flow"],
-    soft: ["Teaching", "Knowledge transfer", "Process design"],
-    img: "img-lab",
+      "A body of artwork recognised through an ARTEXPRESS nomination, gallery exhibition at Tamworth Regional Gallery, and media interview, showing visual communication and sustained creative craft.",
+    hard: ["Visual composition", "Concept development", "Presentation", "Iteration"],
+    soft: ["Creative discipline", "Attention to detail", "Communication"],
+    img: "/projects/artwork-collection.png",
   },
 ];

@@ -94,6 +94,68 @@ export function ProjectsPage() {
           </text>
         </symbol>
 
+        <symbol id="img-rf-system" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#050708" />
+          <line x1="0" y1="74" x2="280" y2="74" stroke="#8997a022" strokeWidth="1" />
+          <rect x="18" y="56" width="46" height="36" rx="3" stroke="#ffd16670" strokeWidth="1.2" fill="#ffd16608" />
+          <text x="28" y="77" fill="#ffd166" fontSize="7" fontFamily="monospace" opacity="0.75">MAG</text>
+          <rect x="82" y="56" width="48" height="36" rx="3" stroke="#c89cf770" strokeWidth="1.2" fill="#c89cf708" />
+          <text x="91" y="77" fill="#c89cf7" fontSize="7" fontFamily="monospace" opacity="0.75">CPLR</text>
+          <rect x="148" y="56" width="48" height="36" rx="3" stroke="#88e89a70" strokeWidth="1.2" fill="#88e89a08" />
+          <text x="159" y="77" fill="#88e89a" fontSize="7" fontFamily="monospace" opacity="0.75">TUNE</text>
+          <circle cx="238" cy="74" r="22" stroke="#7ec8f770" strokeWidth="1.2" fill="#7ec8f706" />
+          <text x="227" y="77" fill="#7ec8f7" fontSize="7" fontFamily="monospace" opacity="0.75">POT</text>
+          <path d="M64 74 H82 M130 74 H148 M196 74 H216" stroke="#fff3d555" strokeWidth="3" />
+          <path d="M64 74 H82 M130 74 H148 M196 74 H216" stroke="#ffd166" strokeWidth="0.8" opacity="0.7" />
+          <path d="M100 56 C100 42 113 42 113 28" stroke="#c89cf765" fill="none" strokeWidth="1" />
+          <path d="M112 92 C112 110 126 108 126 124" stroke="#c89cf740" fill="none" strokeWidth="1" />
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            2.45 GHz RF HEATING LINE
+          </text>
+        </symbol>
+
+        <symbol id="img-coupler" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#050708" />
+          <rect x="34" y="58" width="212" height="32" rx="3" stroke="#c89cf770" strokeWidth="1.3" fill="#c89cf706" />
+          <rect x="112" y="20" width="56" height="108" rx="3" stroke="#7ec8f760" strokeWidth="1" fill="#7ec8f705" />
+          <line x1="48" y1="74" x2="232" y2="74" stroke="#ffd16675" strokeWidth="1.4" />
+          <path d="M124 52 L156 96 M156 52 L124 96" stroke="#88e89a70" strokeWidth="1" />
+          <circle cx="64" cy="74" r="5" stroke="#ffd166" strokeWidth="1" fill="none" opacity="0.8" />
+          <circle cx="216" cy="74" r="5" stroke="#ffd166" strokeWidth="1" fill="none" opacity="0.8" />
+          <circle cx="140" cy="34" r="4" stroke="#7ec8f7" strokeWidth="1" fill="none" opacity="0.75" />
+          <circle cx="140" cy="114" r="4" stroke="#7ec8f7" strokeWidth="1" fill="none" opacity="0.75" />
+          <text x="92" y="49" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.55">WR340</text>
+          <text x="174" y="105" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.55">-40 dB TAP</text>
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            COUPLER + COAX TRANSITION
+          </text>
+        </symbol>
+
+        <symbol id="img-tuner" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#050708" />
+          <rect x="32" y="66" width="148" height="28" rx="3" stroke="#88e89a60" strokeWidth="1.2" fill="#88e89a06" />
+          <line x1="44" y1="80" x2="168" y2="80" stroke="#ffd16670" strokeWidth="1.4" />
+          {[68, 106, 144].map((x) => (
+            <g key={x}>
+              <rect x={x - 5} y="28" width="10" height="38" rx="2" stroke="#c89cf770" strokeWidth="1" fill="#c89cf708" />
+              <line x1={x} y1="28" x2={x} y2="18" stroke="#c89cf750" />
+            </g>
+          ))}
+          <rect x="194" y="28" width="64" height="92" rx="3" stroke="#8997a025" strokeWidth="1" fill="#0a0d12" />
+          <polyline
+            points="202,104 210,96 218,98 226,82 234,76 242,61 250,55"
+            stroke="#7ec8f7"
+            strokeWidth="1.5"
+            fill="none"
+            opacity="0.8"
+          />
+          <circle cx="250" cy="55" r="3" fill="#ffd166" opacity="0.8" />
+          <text x="203" y="42" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.55">LOSS</text>
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            3-STUB GRADIENT SEARCH
+          </text>
+        </symbol>
+
         <symbol id="img-sumo" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
           <rect width="280" height="148" fill="#050706" />
           <rect x="76" y="24" width="128" height="100" rx="6" stroke="#88e89a" strokeWidth="1.5" fill="#88e89a07" />
@@ -197,6 +259,66 @@ export function ProjectsPage() {
             SCHEMATIC REV 2
           </text>
         </symbol>
+
+        <symbol id="img-hv" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#060708" />
+          <line x1="20" y1="26" x2="260" y2="26" stroke="#f77e7e55" strokeWidth="1.5" />
+          <line x1="20" y1="122" x2="260" y2="122" stroke="#7ec8f755" strokeWidth="1.5" />
+          <text x="8" y="29" fill="#f77e7e" fontSize="7" fontFamily="monospace" opacity="0.7">4kV</text>
+          <rect x="40" y="52" width="34" height="42" rx="2" stroke="#ffd16670" strokeWidth="1.2" fill="#ffd16608" />
+          <text x="47" y="76" fill="#ffd166" fontSize="7" fontFamily="monospace" opacity="0.75">XFMR</text>
+          <path d="M92 54 H130 M92 66 H130 M92 78 H130 M92 90 H130" stroke="#88e89a70" strokeWidth="1" />
+          <path d="M104 48 L118 96 M118 48 L104 96" stroke="#88e89a70" strokeWidth="1" />
+          <rect x="154" y="52" width="34" height="42" rx="2" stroke="#c89cf770" strokeWidth="1.2" fill="#c89cf708" />
+          <text x="163" y="76" fill="#c89cf7" fontSize="7" fontFamily="monospace" opacity="0.75">CAP</text>
+          <rect x="214" y="46" width="34" height="54" rx="2" stroke="#f77e7e70" strokeWidth="1.2" fill="#f77e7e08" />
+          <text x="219" y="76" fill="#f77e7e" fontSize="7" fontFamily="monospace" opacity="0.75">MAG</text>
+          <path d="M74 74 H92 M130 74 H154 M188 74 H214" stroke="#fff3d545" strokeWidth="1.4" />
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            HV PSU + SAFETY ENCLOSURE
+          </text>
+        </symbol>
+
+        <symbol id="img-nas" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#04060a" />
+          <rect x="36" y="28" width="72" height="92" rx="4" stroke="#7ec8f760" strokeWidth="1.2" fill="#7ec8f706" />
+          {[44, 58, 72, 86].map((x) => (
+            <rect key={x} x={x} y="42" width="10" height="50" rx="2" fill="#8997a018" stroke="#8997a035" strokeWidth="0.8" />
+          ))}
+          <circle cx="96" cy="105" r="3" fill="#88e89a" opacity="0.75" />
+          <path d="M108 74 H144 C158 74 158 52 174 52 H228" stroke="#ffd16660" strokeWidth="1.2" fill="none" />
+          <path d="M108 84 H144 C158 84 158 104 174 104 H228" stroke="#c89cf760" strokeWidth="1.2" fill="none" />
+          <rect x="178" y="32" width="58" height="36" rx="4" stroke="#ffd16670" strokeWidth="1.2" fill="#ffd16608" />
+          <text x="188" y="54" fill="#ffd166" fontSize="7" fontFamily="monospace" opacity="0.75">SSL</text>
+          <rect x="178" y="88" width="58" height="36" rx="4" stroke="#c89cf770" strokeWidth="1.2" fill="#c89cf708" />
+          <text x="186" y="110" fill="#c89cf7" fontSize="7" fontFamily="monospace" opacity="0.75">PROXY</text>
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            NAS / RAID / REVERSE PROXY
+          </text>
+        </symbol>
+
+        <symbol id="img-wordpress" viewBox="0 0 280 148" preserveAspectRatio="xMidYMid slice">
+          <rect width="280" height="148" fill="#04060a" />
+          <rect width="280" height="22" fill="#0a0d12" />
+          <circle cx="12" cy="11" r="3.5" fill="#ff605c28" />
+          <circle cx="24" cy="11" r="3.5" fill="#ffbd4428" />
+          <circle cx="36" cy="11" r="3.5" fill="#28ca4128" />
+          <text x="54" y="15" fill="#8997a060" fontSize="8" fontFamily="monospace">CMS + CRM</text>
+          <rect x="24" y="38" width="88" height="72" rx="3" fill="#0c1018" stroke="#8997a018" strokeWidth="0.8" />
+          <rect x="36" y="50" width="64" height="8" rx="2" fill="#7ec8f728" />
+          <rect x="36" y="66" width="44" height="5" rx="1" fill="#8997a025" />
+          <rect x="36" y="78" width="54" height="5" rx="1" fill="#8997a025" />
+          <rect x="36" y="90" width="34" height="5" rx="1" fill="#ffd16635" />
+          <path d="M112 74 H148" stroke="#ffd16660" strokeWidth="1.2" />
+          <rect x="148" y="38" width="48" height="72" rx="3" fill="#0c1018" stroke="#8997a018" strokeWidth="0.8" />
+          <text x="158" y="76" fill="#88e89a" fontSize="8" fontFamily="monospace" opacity="0.75">CRM</text>
+          <path d="M196 74 H226" stroke="#c89cf760" strokeWidth="1.2" />
+          <circle cx="242" cy="74" r="20" stroke="#c89cf770" strokeWidth="1.2" fill="#c89cf708" />
+          <text x="228" y="77" fill="#c89cf7" fontSize="7" fontFamily="monospace" opacity="0.75">MAIL</text>
+          <text x="8" y="142" fill="#8997a0" fontSize="7" fontFamily="monospace" opacity="0.5">
+            WORDPRESS / PHP / AUTOMATION
+          </text>
+        </symbol>
       </svg>
 
       {/* Page header */}
@@ -239,10 +361,12 @@ export function ProjectsPage() {
             {(
               [
                 { val: "all", label: "All" },
-                { val: "software", label: "Software" },
+                { val: "rf", label: "RF / Microwave" },
+                { val: "software", label: "Software / Web" },
                 { val: "hardware", label: "Hardware" },
+                { val: "infrastructure", label: "Infrastructure" },
                 { val: "robotics", label: "Robotics" },
-                { val: "rf", label: "RF / Plasma" },
+                { val: "creative", label: "Creative" },
               ] as const
             ).map(({ val, label }) => (
               <button
@@ -297,9 +421,18 @@ export function ProjectsPage() {
                   width="100%"
                   height="100%"
                   viewBox="0 0 280 148"
-                  preserveAspectRatio="xMidYMid slice"
+                  preserveAspectRatio={p.img.includes("sumobot") ? "xMidYMid meet" : "xMidYMid slice"}
                 >
-                  <use href={`#${p.img}`} />
+                  {p.img.startsWith("/") ? (
+                    <image
+                      href={p.img}
+                      width="280"
+                      height="148"
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  ) : (
+                    <use href={`#${p.img}`} />
+                  )}
                 </svg>
               </div>
               <div className="prj-row-body">
