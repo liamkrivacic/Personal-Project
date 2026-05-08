@@ -52,6 +52,15 @@ describe("project card layout source", () => {
     expect(cssSource).toMatch(/\.prj-row-wrap\s*{[^}]*opacity:\s*var\(--row-opacity,\s*0\);/s);
   });
 
+  it("uses the same row reveal transition when filter results appear", () => {
+    expect(componentSource).toContain('wrap.style.setProperty("--row-opacity", "0");');
+    expect(componentSource).toContain('wrap.style.setProperty("--row-shift", "14px");');
+    expect(componentSource).toContain("void listRef.current.offsetHeight;");
+    expect(componentSource).not.toContain("setTimeout(() =>");
+    expect(componentSource).not.toContain('wrap.style.opacity = "0";');
+    expect(componentSource).not.toContain('wrap.style.opacity = "";');
+  });
+
   it("keeps the projects page pinned long enough for the first two-card intro", () => {
     expect(cssSource).toMatch(
       /\.projects-pin-section\s*{[^}]*height:\s*calc\(var\(--projects-page-height,\s*100vh\) \+ 200vh\);/s,

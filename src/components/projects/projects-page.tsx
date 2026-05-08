@@ -58,21 +58,25 @@ export function ProjectsPage() {
     if (!listRef.current) return;
     const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
 
-    rows.forEach((wrap, i) => {
+    rows.forEach((wrap) => {
       const focusOk = val === "all" || wrap.dataset.focus === val;
       if (focusOk) {
+        const wasHidden = wrap.style.display === "none";
         wrap.style.display = "";
-        wrap.style.opacity = "0";
-        void wrap.offsetHeight;
-        setTimeout(() => {
-          wrap.style.opacity = "";
-        }, i * 80);
+        if (wasHidden) {
+          wrap.style.setProperty("--row-reveal", "0");
+          wrap.style.setProperty("--row-opacity", "0");
+          wrap.style.setProperty("--row-shift", "14px");
+        }
       } else {
         wrap.style.display = "none";
-        wrap.style.opacity = "";
+        wrap.style.setProperty("--row-reveal", "0");
+        wrap.style.setProperty("--row-opacity", "0");
+        wrap.style.setProperty("--row-shift", "14px");
       }
     });
 
+    void listRef.current.offsetHeight;
     scheduleRowReveals();
   }
 
