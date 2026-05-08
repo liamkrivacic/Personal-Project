@@ -20,15 +20,22 @@ export function ProjectsPage() {
   function updateRowReveals() {
     if (!listRef.current) return;
     const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
+    const visibleRows = rows.filter((wrap) => wrap.style.display !== "none");
+    const entryProgressRaw = getComputedStyle(document.documentElement)
+      .getPropertyValue("--reveal-list");
+    const entryProgress = Number.parseFloat(entryProgressRaw);
 
-    rows.forEach((wrap) => {
-      if (wrap.style.display === "none") return;
+    visibleRows.forEach((wrap, rowIndex) => {
       const reveal = projectRowReveal({
         rowTop: wrap.getBoundingClientRect().top,
         viewportHeight: window.innerHeight,
+        entryProgress: Number.isFinite(entryProgress) ? entryProgress : 0,
+        rowIndex,
+        rowCount: visibleRows.length,
       });
       wrap.style.setProperty("--row-reveal", reveal.toFixed(4));
-      wrap.style.setProperty("--row-opacity", (0.22 + reveal * 0.78).toFixed(4));
+      const opacity = reveal <= 0 ? 0 : 0.22 + reveal * 0.78;
+      wrap.style.setProperty("--row-opacity", opacity.toFixed(4));
       wrap.style.setProperty("--row-shift", `${((1 - reveal) * 14).toFixed(2)}px`);
     });
   }

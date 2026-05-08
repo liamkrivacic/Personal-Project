@@ -31,6 +31,15 @@ describe("project card layout source", () => {
     expect(cssSource).toMatch(/\.prj-row:hover \.prj-row-cta\s*{[^}]*color:\s*var\(--accent\);[^}]*opacity:\s*1;/s);
   });
 
+  it("uses the black-hole entry progress to reveal project rows sequentially", () => {
+    expect(componentSource).toContain('getPropertyValue("--reveal-list")');
+    expect(componentSource).toContain("visibleRows.forEach((wrap, rowIndex)");
+    expect(componentSource).toContain("entryProgress");
+    expect(componentSource).toContain("rowCount: visibleRows.length");
+    expect(cssSource).toMatch(/\.prj-list\s*{(?![^}]*opacity:\s*var\(--reveal-list\)[^}]*})[^}]*}/s);
+    expect(cssSource).toMatch(/\.prj-row-wrap\s*{[^}]*opacity:\s*var\(--row-opacity,\s*0\);/s);
+  });
+
   it("uses compact inline hard-skill logo styling", () => {
     expect(cssSource).toMatch(/\.prj-row-body\s*{[^}]*padding:\s*20px 0 20px 40px;/s);
     expect(cssSource).toMatch(/\.prj-skills-row\s*{[^}]*gap:\s*9px;/s);
