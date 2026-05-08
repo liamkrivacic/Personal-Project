@@ -581,6 +581,11 @@ button {
   color: #7ec8f7;
   border: 1px solid rgba(100, 180, 255, 0.18);
 }
+.prj-cat-badge.engineering {
+  background: rgba(200, 140, 255, 0.10);
+  color: #c89cf7;
+  border: 1px solid rgba(200, 140, 255, 0.18);
+}
 .prj-cat-badge.hardware {
   background: rgba(255, 180, 80, 0.10);
   color: #f7c46a;
@@ -595,6 +600,11 @@ button {
   background: rgba(200, 140, 255, 0.10);
   color: #c89cf7;
   border: 1px solid rgba(200, 140, 255, 0.18);
+}
+.prj-cat-badge.personal {
+  background: rgba(140, 255, 160, 0.10);
+  color: #88e89a;
+  border: 1px solid rgba(140, 255, 160, 0.18);
 }
 .prj-ctx-badge {
   display: inline-block;
@@ -623,6 +633,9 @@ button {
 }
 .prj-skills-pills { display: flex; flex-wrap: wrap; gap: 4px; }
 .prj-skill-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--mono-font);
   font-size: 9px;
   letter-spacing: 0.08em;
@@ -630,6 +643,21 @@ button {
   padding: 2px 8px;
   border: 1px solid rgba(162, 186, 198, 0.17);
   color: var(--dim);
+}
+.prj-skill-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: rgba(126, 200, 247, 0.10);
+  color: rgba(255, 243, 213, 0.82);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
 }
 .prj-skill-pill.soft {
   border-color: rgba(255, 243, 213, 0.08);
