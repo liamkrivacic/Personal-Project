@@ -45,9 +45,10 @@ export function ProjectsPage() {
   }, []);
 
   const scheduleRowReveals = useCallback(() => {
-    cancelAnimationFrame(revealFrameRef.current);
+    if (revealFrameRef.current !== 0) return;
     revealFrameRef.current = requestAnimationFrame(() => {
-      revealFrameRef.current = requestAnimationFrame(updateRowReveals);
+      revealFrameRef.current = 0;
+      updateRowReveals();
     });
   }, [updateRowReveals]);
 

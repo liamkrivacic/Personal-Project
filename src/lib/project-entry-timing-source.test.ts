@@ -12,11 +12,20 @@ describe("project entry timing source", () => {
     expect(scrollJourneySource).toContain(
       'import { projectEntryTiming } from "@/lib/project-entry-timing";',
     );
+    expect(scrollJourneySource).toContain(
+      'import { nextVisualScrollY } from "@/lib/visual-scroll-smoothing";',
+    );
     expect(scrollJourneySource).toContain("projectEntryTiming({");
-    expect(scrollJourneySource).toContain("scrollY: y");
+    expect(scrollJourneySource).toContain("scrollY: visualScrollYRef.current");
     expect(scrollJourneySource).toContain("viewportHeight: vh");
     expect(scrollJourneySource).not.toContain("const bgFade = clamp01((y - 2.0 * vh)");
     expect(scrollJourneySource).not.toContain("const revealCol = smoothstep01((y - 2.0 * vh)");
+  });
+
+  it("keeps a frame loop running until smoothed visual scroll catches the real target", () => {
+    expect(scrollJourneySource).toContain("visualScrollYRef.current = nextVisualScrollY({");
+    expect(scrollJourneySource).toContain("targetY: targetScrollYRef.current");
+    expect(scrollJourneySource).toContain("visualFrameRef.current = requestAnimationFrame(tickVisualScroll);");
   });
 
   it("notifies project rows after project entry timing variables change", () => {

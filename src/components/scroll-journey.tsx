@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
 import { projectEntryTiming } from "@/lib/project-entry-timing";
+import { nextVisualScrollY } from "@/lib/visual-scroll-smoothing";
 
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
@@ -35,13 +36,16 @@ export function ScrollJourney() {
     x: 0,
     y: 0,
   });
+  const targetScrollYRef = useRef(0);
+  const visualScrollYRef = useRef(0);
+  const lastVisualTimeRef = useRef(0);
+  const visualFrameRef = useRef(0);
 
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
 
     const root = document.documentElement.style;
-    let ticking = false;
 
     const postProgress = (p: number) => {
       const message = { type: "black-hole-dive", progress: p };
@@ -57,10 +61,9 @@ export function ScrollJourney() {
     };
 
     const update = () => {
-      const y = window.scrollY;
       const vh = window.innerHeight;
       const { dive, veil, bgFade, revealCol, revealList } = projectEntryTiming({
-        scrollY: y,
+        scrollY: visualScrollYRef.current,
         viewportHeight: vh,
       });
 
@@ -74,16 +77,33 @@ export function ScrollJourney() {
       postProgress(resolveDiveProgress(dive));
     };
 
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        update();
-        ticking = false;
+    const tickVisualScroll = (now: number) => {
+      visualFrameRef.current = 0;
+      const elapsedMs = lastVisualTimeRef.current > 0 ? now - lastVisualTimeRef.current : 16.7;
+      lastVisualTimeRef.current = now;
+      targetScrollYRef.current = window.scrollY;
+      visualScrollYRef.current = nextVisualScrollY({
+        currentY: visualScrollYRef.current,
+        targetY: targetScrollYRef.current,
+        viewportHeight: window.innerHeight,
+        elapsedMs,
       });
+      update();
+
+      if (Math.abs(targetScrollYRef.current - visualScrollYRef.current) > 0.75) {
+        visualFrameRef.current = requestAnimationFrame(tickVisualScroll);
+      }
     };
 
-    const onResize = () => update();
+    const requestVisualTick = () => {
+      targetScrollYRef.current = window.scrollY;
+      if (visualFrameRef.current !== 0) return;
+      visualFrameRef.current = requestAnimationFrame(tickVisualScroll);
+    };
+
+    const onScroll = () => requestVisualTick();
+
+    const onResize = () => requestVisualTick();
 
     const onPointerMove = (event: globalThis.PointerEvent) => {
       postCursorLight(event.clientX, event.clientY);
@@ -115,8 +135,11 @@ export function ScrollJourney() {
       }
     };
 
-    const onLoad = () => update();
+    const onLoad = () => requestVisualTick();
 
+    targetScrollYRef.current = window.scrollY;
+    visualScrollYRef.current = window.scrollY;
+    lastVisualTimeRef.current = performance.now();
     update();
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -140,6 +163,8 @@ export function ScrollJourney() {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("message", onMessage);
       frame.removeEventListener("load", onLoad);
+      cancelAnimationFrame(visualFrameRef.current);
+      visualFrameRef.current = 0;
     };
   }, []);
 

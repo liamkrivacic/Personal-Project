@@ -71,7 +71,7 @@ describe("projectRowReveal", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.5,
+      entryProgress: 0.44,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -79,7 +79,7 @@ describe("projectRowReveal", () => {
     const secondRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.5,
+      entryProgress: 0.44,
       headingProgress: 1,
       rowIndex: 1,
       rowCount: 9,
@@ -125,11 +125,11 @@ describe("projectRowReveal", () => {
     expect(secondRow).toBe(0);
   });
 
-  it("takes about twice as long to fully reveal each of the first two project cards", () => {
+  it("uses a consistent reveal duration for the first two project cards", () => {
     const firstRowMidReveal = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.5,
+      entryProgress: 0.43,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -143,17 +143,18 @@ describe("projectRowReveal", () => {
       rowCount: 9,
     });
 
-    expect(firstRowMidReveal).toBeGreaterThan(0.45);
-    expect(firstRowMidReveal).toBeLessThan(0.9);
-    expect(secondRowMidReveal).toBeGreaterThan(0.45);
-    expect(secondRowMidReveal).toBeLessThan(0.9);
+    expect(firstRowMidReveal).toBeGreaterThan(0.35);
+    expect(firstRowMidReveal).toBeLessThan(0.75);
+    expect(secondRowMidReveal).toBeGreaterThan(0.35);
+    expect(secondRowMidReveal).toBeLessThan(0.75);
+    expect(Math.abs(firstRowMidReveal - secondRowMidReveal)).toBeLessThan(0.2);
   });
 
   it("adds extra scroll between the first and second project card entry beats", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.72,
+      entryProgress: 0.62,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -161,7 +162,7 @@ describe("projectRowReveal", () => {
     const secondRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.72,
+      entryProgress: 0.62,
       headingProgress: 1,
       rowIndex: 1,
       rowCount: 9,

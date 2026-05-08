@@ -39,6 +39,11 @@ describe("project card layout source", () => {
     expect(componentSource).toContain("headingProgress");
     expect(componentSource).toContain("rowCount: visibleRows.length");
     expect(componentSource).toContain("scheduleRowReveals");
+    expect(componentSource).toContain("if (revealFrameRef.current !== 0) return;");
+    expect(componentSource).toContain("revealFrameRef.current = 0;");
+    expect(componentSource).not.toContain(
+      "revealFrameRef.current = requestAnimationFrame(() => {\n      revealFrameRef.current = requestAnimationFrame(updateRowReveals);",
+    );
     expect(componentSource).toContain('window.addEventListener("scroll", scheduleRowReveals');
     expect(componentSource).toContain(
       'window.addEventListener("project-entry-timing-update", scheduleRowReveals);',
