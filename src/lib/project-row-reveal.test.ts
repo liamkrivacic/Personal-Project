@@ -71,7 +71,7 @@ describe("projectRowReveal", () => {
     const firstRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.52,
+      entryProgress: 0.4,
       headingProgress: 1,
       rowIndex: 0,
       rowCount: 9,
@@ -79,14 +79,39 @@ describe("projectRowReveal", () => {
     const secondRow = projectRowReveal({
       rowTop: 500,
       viewportHeight: 800,
-      entryProgress: 0.52,
+      entryProgress: 0.4,
       headingProgress: 1,
       rowIndex: 1,
       rowCount: 9,
     });
 
-    expect(firstRow).toBe(1);
+    expect(firstRow).toBeGreaterThan(0);
+    expect(firstRow).toBeLessThan(1);
     expect(secondRow).toBe(0);
+  });
+
+  it("takes about twice as long to fully reveal each of the first two project cards", () => {
+    const firstRowMidReveal = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.4,
+      headingProgress: 1,
+      rowIndex: 0,
+      rowCount: 9,
+    });
+    const secondRowMidReveal = projectRowReveal({
+      rowTop: 500,
+      viewportHeight: 800,
+      entryProgress: 0.72,
+      headingProgress: 1,
+      rowIndex: 1,
+      rowCount: 9,
+    });
+
+    expect(firstRowMidReveal).toBeGreaterThan(0.45);
+    expect(firstRowMidReveal).toBeLessThan(0.9);
+    expect(secondRowMidReveal).toBeGreaterThan(0.45);
+    expect(secondRowMidReveal).toBeLessThan(0.9);
   });
 
   it("falls back to the original viewport reveal once entry sequencing is complete", () => {

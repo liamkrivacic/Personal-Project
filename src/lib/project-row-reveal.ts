@@ -41,7 +41,7 @@ export function projectRowReveal({
   const index = Math.min(Math.max(rowIndex, 0), count - 1);
   const entryDelay = 0.16;
   const sequencedEntryProgress = smoothstep01((entryProgress - entryDelay) / (1 - entryDelay));
-  const entryDuration = 0.18;
+  const entryDuration = index < 2 ? 0.36 : 0.18;
   const firstFollowerStart = 0.48;
   const followerWindow = 0.34;
   const followerCount = Math.max(1, count - 2);
