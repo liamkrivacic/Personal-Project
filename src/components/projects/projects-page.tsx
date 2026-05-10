@@ -193,7 +193,12 @@ export function ProjectsPage() {
                   src={p.img}
                   alt=""
                   aria-hidden="true"
-                  style={{ objectPosition: p.imagePosition }}
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    objectFit: p.imageFit ?? "cover",
+                    objectPosition: p.imagePosition,
+                  }}
                 />
               </div>
               <div className="prj-row-body">

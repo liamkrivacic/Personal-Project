@@ -19,6 +19,7 @@ export type Project = {
   soft: string[];
   img: string;
   imagePosition: string;
+  imageFit?: "cover" | "contain";
 };
 
 const skillLogos = {
@@ -108,6 +109,7 @@ export const projects: Project[] = [
     soft: ["Research rigour", "Design iteration", "Technical reporting"],
     img: "/projects/rf-coupler-coax.png",
     imagePosition: "center center",
+    imageFit: "contain",
   },
   {
     id: "stub-tuner-optimisation",
@@ -123,6 +125,7 @@ export const projects: Project[] = [
     soft: ["Algorithmic thinking", "Debugging", "Systems modelling"],
     img: "/projects/stub-tuner-hfss.png",
     imagePosition: "center center",
+    imageFit: "contain",
   },
   {
     id: "hv-magnetron-supply",
@@ -138,6 +141,7 @@ export const projects: Project[] = [
     soft: ["Risk awareness", "Documentation", "Practical engineering"],
     img: "/projects/hv-magnetron-enclosure.png",
     imagePosition: "center center",
+    imageFit: "contain",
   },
   {
     id: "sumobot-winner",
@@ -168,6 +172,7 @@ export const projects: Project[] = [
     soft: ["Ownership", "Cost awareness", "Operational reliability"],
     img: "/projects/nas-infrastructure.png",
     imagePosition: "center center",
+    imageFit: "contain",
   },
   {
     id: "wordpress-marketing",
@@ -188,6 +193,7 @@ export const projects: Project[] = [
     soft: ["Client communication", "Maintainability", "Process improvement"],
     img: "/projects/wordpress-marketing.png",
     imagePosition: "center top",
+    imageFit: "contain",
   },
   {
     id: "atomcraft-rf-leadership",
@@ -238,5 +244,6 @@ export const projects: Project[] = [
     soft: ["Creative discipline", "Attention to detail", "Communication"],
     img: "/projects/artwork-collection.png",
     imagePosition: "center center",
+    imageFit: "contain",
   },
 ];
