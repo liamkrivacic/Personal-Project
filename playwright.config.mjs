@@ -9,7 +9,7 @@ export default defineConfig({
   timeout: 60_000,
   workers: 1,
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run start -- --hostname 127.0.0.1 --port ${port}`,
     url: baseURL,
     reuseExistingServer: true,
     timeout: 90_000,
