@@ -1,0 +1,69 @@
+---
+slug: sumobot-chassis
+title: UNSW SumoBots Advanced Stream Winner
+summary: Won the advanced stream of the UNSW SumoBots competition in August 2024 — an autonomous Arduino robot with ultrasonic sensing, IR line detection, PWM motor control, and a Fusion 360 chassis built by laser cutting and 3D printing.
+heroImage: /projects/sumobot-chassis.webp
+date: 2024-08
+status: published
+---
+
+The UNSW SumoBots competition puts autonomous robots against each other in an arena with a
+white-bordered ring. The objective is simple: push the opponent out without crossing the line
+yourself. The advanced stream uses more capable hardware and gives the robots more room to
+implement strategy.
+
+I won the advanced stream in August 2024.
+
+<Callout title="Competition result">
+**Advanced stream winner**, UNSW SumoBots, August 2024. The robot ran fully autonomously —
+no remote control, no human input after the start signal.
+</Callout>
+
+## Mechanical design
+
+The chassis was designed in Fusion 360 and manufactured using a combination of laser cutting
+and 3D printing. Laser cutting produced the flat structural panels with precise slot-and-tab
+joints; 3D printing handled the sensor mounts and motor brackets where geometry was too
+complex for flat-sheet work.
+
+The chassis geometry was iterated across multiple revisions. Key decisions included keeping
+the centre of mass low (reduces tipping when pushing), keeping the footprint compact (harder
+to get under), and positioning the sensors so they have clear sightlines without extending
+past the robot's profile where they could be targeted.
+
+## Sensors and detection
+
+Three ultrasonic distance sensors cover forward, front-left, and front-right arcs. This
+gives the robot enough information to detect an opponent in front of it and bias its turn
+toward the strongest return — useful for homing in on a partially-visible target rather than
+committing to a blind forward charge.
+
+IR line sensors under the chassis detect the white boundary line. When a line is detected
+the robot interrupts its current behaviour and executes an escape manoeuvre away from the
+edge before resuming the search pattern.
+
+## Control logic
+
+The Arduino firmware coordinates the two subsystems: opponent detection and line avoidance.
+The main loop structure is:
+
+1. Check IR sensors first — line avoidance takes priority over any other action.
+2. If no line is detected, read the three ultrasonic sensors.
+3. If an opponent is within range, drive forward or bias toward the strongest return.
+4. If no opponent is detected, execute a slow rotation search pattern.
+
+Motor control uses PWM to set drive speed independently on each side. The start delay
+(a fixed pause after power-on) gives the human referee time to clear the arena before the
+robot becomes active — a competition requirement.
+
+## What the build demonstrated
+
+SumoBots is primarily a systems integration challenge: mechanical, electronic, and software
+decisions interact in ways that are hard to reason about separately. The chassis geometry
+affects sensor mounting positions; sensor positions affect the software logic; software
+aggressiveness affects how the chassis performs under impact. Getting all of these to work
+together in a competition setting — where you get one chance and cannot adjust between rounds
+— is a useful constraint that mirrors real embedded systems work.
+
+Winning the advanced stream was the result of iterating on all three layers together, not
+optimising each one independently.

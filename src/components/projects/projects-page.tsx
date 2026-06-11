@@ -11,10 +11,6 @@ import { SkillPills } from "@/components/skill-pills";
 
 type FocusFilter = ProjectFocus | "all";
 
-// Rows are linked to a case study only when a content file exists.
-// Hardcoded for Checkpoint 3 (one proving page); replaced in Checkpoint 4.
-const linkedSlugs = new Set<string>(["rf-coupler-coax"]);
-
 const focusFilters = [
   { val: "all", label: "All" },
   { val: "electrical", label: "Electrical Engineering" },
@@ -234,13 +230,9 @@ export function ProjectsPage() {
 
           return (
             <div key={p.id} className="prj-row-wrap" data-focus={p.focus}>
-              {linkedSlugs.has(p.slug) ? (
-                <Link href={`/projects/${p.slug}`} className="prj-row-link">
-                  {row}
-                </Link>
-              ) : (
-                row
-              )}
+              <Link href={`/projects/${p.slug}`} className="prj-row-link">
+                {row}
+              </Link>
             </div>
           );
         })}

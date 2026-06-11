@@ -1,0 +1,60 @@
+---
+slug: wordpress-marketing
+title: WordPress Websites and Marketing Systems
+summary: WordPress development and marketing automation for a small business — child themes, custom PHP, CRM data processing in Python, Excel/VBA segmentation, and Mailchimp integration to reduce manual marketing work.
+heroImage: /projects/wordpress-marketing.webp
+date: 2024-06
+status: draft
+---
+
+This page covers two related workstreams for a small business client: building and
+maintaining WordPress websites, and building the marketing automation workflows that connect
+the business's customer data to its outbound communications.
+
+<Callout title="Draft page">
+This page is a work-in-progress. Content and specific examples will be expanded with
+screenshots, site examples, and workflow diagrams when available.
+</Callout>
+
+## WordPress development
+
+The websites were built in WordPress with custom child themes and PHP templates. Using child
+themes meant that upstream WordPress updates and parent theme security patches could be
+applied without overwriting the customisations — a practical necessity for sites that are
+maintained over years rather than rebuilt each cycle.
+
+Custom PHP handled the presentation logic that WordPress's built-in block editor could not
+express: custom post type layouts, conditional display rules, and integrations with third-
+party widgets. DNS, hosting, SSL, and security hardening were handled as part of the initial
+setup and periodically reviewed.
+
+The client organisations named in the source material include `industrialfootbath` and
+`arirangnoodles`, both built to support FMCG-related business operations.
+
+The primary constraint driving technology choices was maintainability: the sites needed to
+be updated by non-technical staff without requiring a developer for every content change.
+WordPress's editor was the right fit for that constraint, even though it adds overhead
+compared to a static site.
+
+## Marketing automation
+
+The marketing workflow starts with CRM data: customer records exported from the client's CRM
+system, cleaned and transformed with Python scripts, and segmented by product type,
+purchase history, or engagement tier using Excel and VBA templates.
+
+The processed segments feed into Mailchimp as subscriber lists. Monthly automated email
+campaigns were configured in Mailchimp with dynamic content blocks so that different
+customer segments see different messaging without requiring separate campaigns to be built
+manually each month.
+
+The combination — Python for extraction and cleaning, Excel/VBA for segmentation, Mailchimp
+for delivery and automation — reduced the manual effort of each monthly send from a
+multi-day process to a review-and-confirm workflow.
+
+## What this demonstrates
+
+The project covers a range of skills that sit between web development and operations: custom
+WordPress development, PHP, DNS/hosting management, Python data processing, spreadsheet
+automation, and email marketing platform integration. The connecting theme is that each piece
+was chosen to reduce the operational burden on a small team rather than to demonstrate the
+most technically interesting tool for each job.

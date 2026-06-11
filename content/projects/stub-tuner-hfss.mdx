@@ -1,0 +1,71 @@
+---
+slug: stub-tuner-hfss
+title: Automated Stub-Tuner Optimisation
+summary: IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search — reducing reflected microwave power across simulated plasma load conditions for AtomCraft's 2.45 GHz transmission line.
+heroImage: /projects/stub-tuner-hfss.webp
+date: 2025-09
+status: published
+---
+
+The impedance of a plasma load shifts as operating conditions change. A fixed-tuned
+waveguide circuit cannot track this: reflected power climbs, efficiency drops, and the
+magnetron can be damaged. A three-stub tuner adjusts the transmission line impedance in
+real time, but searching the three-dimensional stub-depth space by hand is slow and
+impractical under live conditions.
+
+This project used IronPython scripting inside ANSYS HFSS to automate that search — turning
+the tuner into a gradient-descent loop that the simulation could run unattended.
+
+<Callout title="Key result (simulated)">
+In one test case the script reduced the load reflection coefficient from roughly **0.88 down
+to 0.25** across **20 automated tuning steps**. These are HFSS simulation results, not
+measurements on a live system.
+</Callout>
+
+## Why a three-stub tuner
+
+The three-stub tuner is the standard choice for high-power WR340 waveguide because it handles
+kilowatt-level power levels that would destroy a thin-film or ferrite-based matching network.
+Each stub is a short-circuit plunger in the broad wall of the waveguide; adjusting its depth
+changes the susceptance at that point on the line. With three stubs spaced a quarter-wavelength
+apart, the tuner can reach any load impedance within its range.
+
+For the AtomCraft RF transmission line the alternative — a four-probe reflectometer with full
+phase measurement — requires more instrumentation than was available at the design stage. The
+three-stub gradient approach keeps the system simple: perturb the stub positions, observe the
+reflected power change in simulation, and step toward the minimum.
+
+## The algorithm
+
+The IronPython script drives HFSS directly through its COM scripting interface, adjusting stub
+depths and reading back reflected-power results without any manual intervention. The loop
+structure is:
+
+1. Simulate the current stub configuration and record reflected power.
+2. Perturb each stub depth by a small step and re-simulate.
+3. Estimate the gradient (change in reflected power per unit stub movement).
+4. Move all three stubs toward the direction of lower reflected power.
+5. Repeat until the reflection coefficient falls below a target threshold or the step count
+   is reached.
+
+The tuning constant controls how aggressively each step moves. A useful result from the
+simulation runs is that overshoot is real: with a high tuning constant the algorithm
+overshoots the minimum and oscillates rather than converging cleanly. This is a genuine
+engineering lesson — automation does not replace judgement about algorithm parameters,
+especially when the simulation cost per step is high.
+
+## What the results show
+
+In the test case where the starting reflection coefficient was approximately 0.88, the script
+converged to roughly 0.25 after 20 tuning steps. In a second example with a higher tuning
+constant, the optimiser overshot, confirming that the constant needs to be calibrated to the
+sensitivity of the load.
+
+The practical implication for a future hardware system is that the algorithm parameters
+(step size, tuning constant, convergence threshold) need to be characterised for each load
+profile before the loop is run live. The simulation work established that the gradient
+approach is valid; the calibration work would follow from hardware testing.
+
+The project demonstrated that IronPython scripting can turn HFSS into an active search loop,
+not just a single-shot solver — which is the foundation for any future automated matching
+workflow in the AtomCraft RF line.

@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { getAllCaseStudies, getCaseStudy } from "./case-studies";
-import { getProjectBySlug } from "@/data/projects";
+import { getProjectBySlug, projects } from "@/data/projects";
 
 const CONTENT_DIR = join(process.cwd(), "content", "projects");
 
@@ -35,6 +35,14 @@ describe("case studies", () => {
     for (const study of getAllCaseStudies()) {
       const heroPath = join(process.cwd(), "public", study.heroImage.replace(/^\//, ""));
       expect(existsSync(heroPath), `${study.slug} heroImage ${study.heroImage} exists`).toBe(true);
+    }
+  });
+
+  it("has an MDX file for every slug in projects.ts", () => {
+    for (const project of projects) {
+      expect(mdxFiles, `${project.slug}.mdx should exist in content/projects/`).toContain(
+        `${project.slug}.mdx`,
+      );
     }
   });
 });

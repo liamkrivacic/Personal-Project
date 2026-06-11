@@ -1,0 +1,71 @@
+---
+slug: hv-magnetron-enclosure
+title: High-Voltage Magnetron Supply and Enclosure
+summary: Design and simulation work for a 4 kV magnetron power supply and sheet-metal enclosure — LTspice circuit modelling, Fusion 360 packaging, ventilation design, and high-voltage safety controls for the AtomCraft RF system.
+heroImage: /projects/hv-magnetron-enclosure.webp
+date: 2025-09
+status: published
+---
+
+A magnetron requires a high-voltage DC supply, typically a few kilovolts, to sustain the
+crossed-field electron emission that generates microwave power. For the AtomCraft RF heating
+system that supply operates around 4 kV — enough that a single unsafe interaction can be
+lethal. This project covered the circuit simulation, physical packaging, and safety framework
+for that supply.
+
+<Callout title="Design scope">
+This page covers **simulation and design work**: LTspice circuit exploration, Fusion 360
+enclosure design, and safety procedure planning. It does not claim a complete validated
+build unless further evidence is added.
+</Callout>
+
+## Circuit simulation in LTspice
+
+The supply uses a full-wave rectifier topology: mains input, a step-up transformer, a
+diode bridge, and a large filter capacitor bank to smooth the DC rail. LTspice simulation
+explored the rectifier behaviour under different load conditions, including the capacitor
+charge and discharge characteristics that are directly relevant to safety.
+
+The key circuit-level concern is the capacitor energy store. A 4 kV capacitor bank holds
+enough energy to cause lethal injury well after the mains supply is isolated. The simulation
+work informed the discharge verification procedure: before any access is permitted, the
+capacitors must be discharged through a bleed resistor and confirmed with a calibrated high-
+voltage probe.
+
+## Enclosure design in Fusion 360
+
+The enclosure translates the circuit into a manufacturable, maintainable unit. The design in
+Fusion 360 covered a sheet-metal layout in stainless steel, including the flat/net pattern
+for fabrication, ventilation cutouts for the transformer and capacitor heat load, a power
+entry cutout, and removable access panels for internal inspection and maintenance.
+
+Component placement considered the internal layout: transformer at the base for stability,
+capacitor bank isolated from the access panel side, and cabling routed clear of hot surfaces
+and sharp edges. A parts list accompanied the drawing to support procurement.
+
+## Safety framework
+
+High-voltage enclosure design is not only a mechanical problem. The full safety framework
+for the supply covers:
+
+- **Mains isolation**: a lockable isolator on the incoming supply, so the cabinet cannot be
+  energised while the access panel is open.
+- **Capacitor discharge**: a bleed resistor across the capacitor bank and a mandatory
+  discharge-and-verify step before any internal access.
+- **Procedural controls**: short-pulse operation protocols to limit the energy in the
+  transmission line during experiments; safe re-entry procedures that require two-person
+  confirmation before restoring power after an interlock trip.
+- **Physical barriers**: the enclosure isolates all high-voltage conductors from the operator
+  surface; no bare conductors within reach of a standard access panel opening.
+
+The enclosure was designed so that following the procedure is the path of least resistance:
+every step that an operator must take to open the cabinet naturally passes through a safe
+state first.
+
+## What this demonstrates
+
+The project combines three normally-separate disciplines — circuit simulation, mechanical
+packaging, and safety systems engineering — into a single deliverable. For a university
+project the combination is unusual; most safety design work at this level happens in industry.
+The strongest signal is not the individual outputs but the approach: circuit behaviour,
+physical form, and operational safety were designed together rather than sequentially.
