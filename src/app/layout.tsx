@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Inter, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -22,9 +22,29 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Liam Krivacic | Portfolio",
+  metadataBase: new URL("https://liam-krivacic.vercel.app"),
+  title: {
+    default: "Liam Krivacic | EE + CS Portfolio",
+    template: "%s | Liam Krivacic",
+  },
   description:
-    "Electrical Engineering and Computer Science portfolio exploring RF systems, robotics, infrastructure, and software projects.",
+    "Electrical Engineering and Computer Science portfolio: RF systems, robotics, infrastructure, and software.",
+  openGraph: { type: "website", siteName: "Liam Krivacic", locale: "en_AU" },
+  twitter: { card: "summary_large_image" },
+};
+
+export const viewport: Viewport = { themeColor: "#030405" };
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Liam Krivacic",
+  affiliation: { "@type": "Organization", name: "UNSW Sydney" },
+  sameAs: [
+    "https://www.linkedin.com/in/liam-krivacic-475157358/",
+    "https://github.com/liamkrivacic",
+  ],
+  email: "mailto:liam.krivacic@gmail.com",
 };
 
 export default function RootLayout({
@@ -34,7 +54,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${archivo.variable} ${inter.variable} ${jetbrains.variable}`}>
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
