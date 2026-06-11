@@ -16,9 +16,9 @@
   --muted: #c8c5b6;
   --dim: #8997a0;
   --accent: #ffd166;
-  --display-font: "Bahnschrift", "Arial Narrow", "Segoe UI Variable", sans-serif;
-  --body-font: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
-  --mono-font: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --display-font: var(--font-display), "Bahnschrift", "Arial Narrow", sans-serif;
+  --body-font: var(--font-body), "Segoe UI", sans-serif;
+  --mono-font: var(--font-mono), "Cascadia Mono", Consolas, monospace;
 }
 
 html {
@@ -72,9 +72,9 @@ button {
   margin: 18px 0 0;
   color: var(--text);
   font-family: var(--display-font);
-  font-size: clamp(4.3rem, 8vw, 7.2rem);
+  font-size: clamp(4.3rem, 8vw, 6.6rem);
   font-weight: 900;
-  letter-spacing: 0;
+  letter-spacing: -0.015em;
   line-height: 0.82;
   text-transform: uppercase;
   text-wrap: balance;
@@ -347,7 +347,7 @@ button {
   font-family: var(--display-font);
   font-size: clamp(52px, 7vw, 96px);
   font-weight: 300;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.055em;
   line-height: 0.9;
   color: var(--text);
   margin: 0;
