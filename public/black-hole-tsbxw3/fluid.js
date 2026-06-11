@@ -404,11 +404,16 @@ canvas.addEventListener("pointercancel", endDrag);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let rafId = 0;
 let loopRunning = !reducedMotion;
-let readySent = false;
+// Post "ready" every frame for the first ~2s rather than once: on a warm
+// cache the iframe can fire before the parent's message listener is attached,
+// so a single post would be lost and the background would stay hidden.
+// Repeated posts guarantee one lands after the listener exists; the parent
+// reveals on the first it catches and ignores the rest.
+let readyPostsLeft = 120;
 
 function notifyReady() {
-  if (readySent) return;
-  readySent = true;
+  if (readyPostsLeft <= 0) return;
+  readyPostsLeft--;
   window.parent?.postMessage({ type: "black-hole-ready" }, window.location.origin);
 }
 

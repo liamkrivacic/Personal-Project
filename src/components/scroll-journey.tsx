@@ -68,14 +68,19 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
 
     let renderRunning: boolean | null = null;
 
-    // Fail-safe: the iframe starts at opacity 0 and is revealed by the
-    // "black-hole-ready" message. If that message is ever missed (lost in a
-    // listener-attach race, an older cached shader, or a stalled first frame)
-    // the background would stay permanently black — so reveal it regardless
-    // after a grace period. The message path still wins for the smooth fade.
-    const revealFallback = setTimeout(() => {
+    // The iframe starts at opacity 0 and is revealed by the "black-hole-ready"
+    // message (re-posted every frame for ~2s, so a listener-attach race can't
+    // lose it). Reveal once on the first message we catch. The timer is a final
+    // fail-safe for the reduced-motion path (single post) or total message loss
+    // so the background can never be stuck black.
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      clearTimeout(revealFallback);
       frame.classList.add("journey-bg-frame--ready");
-    }, 1500);
+    };
+    const revealFallback = setTimeout(reveal, 1500);
 
     const postProgress = (p: number) => {
       const message = { type: "black-hole-dive", progress: p };
@@ -151,8 +156,8 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
     const onMessage = (event: MessageEvent) => {
       if (!event.data) return;
       if (event.data.type === "black-hole-ready") {
-        clearTimeout(revealFallback);
-        frame.classList.add("journey-bg-frame--ready");
+        if (revealed) return;
+        reveal();
         // Re-post current dive so a fresh iframe on back-nav starts at the
         // right position (the first dive message may have posted before the
         // iframe's listener was attached).
