@@ -4,11 +4,14 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
+import { MiniNav } from "@/components/mini-nav";
+import { SiteFooter } from "@/components/site-footer";
 import { projectEntryTiming } from "@/lib/project-entry-timing";
 import { nextVisualScrollY } from "@/lib/visual-scroll-smoothing";
 
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
+const availability = "Open to internships — 2026/27";
 
 const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-8";
 const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-13";
@@ -36,7 +39,11 @@ function resolveDiveProgress(depth: number) {
   return clamp01(d + capture * 0.48);
 }
 
-export function ScrollJourney() {
+type ScrollJourneyProps = {
+  showResume: boolean;
+};
+
+export function ScrollJourney({ showResume }: ScrollJourneyProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [showCursorCanvas, setShowCursorCanvas] = useState(true);
   const dragRef = useRef<{ pointerId: number | null; x: number; y: number }>({
@@ -86,6 +93,7 @@ export function ScrollJourney() {
       root.setProperty("--bg-fade", bgFade.toFixed(4));
       root.setProperty("--reveal-col", revealCol.toFixed(4));
       root.setProperty("--reveal-list", revealList.toFixed(4));
+      root.setProperty("--nav-pe", bgFade > 0.9 ? "auto" : "none");
       window.dispatchEvent(new Event("project-entry-timing-update"));
 
       postProgress(resolveDiveProgress(dive));
@@ -274,6 +282,7 @@ export function ScrollJourney() {
       >
         Skip to projects
       </a>
+      <MiniNav />
       <div className="journey-bg" aria-hidden="true">
         <iframe
           ref={frameRef}
@@ -309,6 +318,10 @@ export function ScrollJourney() {
       <section className="dive-section" aria-labelledby="hero-title-tsbxw3">
         <div className="hero-pin">
           <div className="hero-copy">
+            <div className="hero-availability">
+              <span className="hero-availability-dot" aria-hidden="true" />
+              {availability}
+            </div>
             <p className="eyebrow">Electrical Engineering + Computer Science</p>
             <h1 id="hero-title-tsbxw3">Liam Krivacic</h1>
             <p className="hero-summary">{biography}</p>
@@ -324,12 +337,17 @@ export function ScrollJourney() {
               </a>
             </div>
           </div>
+          <div className="scroll-cue" aria-hidden="true">
+            <span>Scroll to enter</span>
+            <span className="scroll-cue-arrow">↓</span>
+          </div>
         </div>
       </section>
 
       <section className="projects-pin-section">
         <ProjectsPage />
       </section>
+      <SiteFooter showResume={showResume} />
     </main>
   );
 }

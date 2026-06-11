@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -6,6 +8,8 @@ import { getProjectBySlug } from "@/data/projects";
 import { CaseHero } from "@/components/case-study/case-hero";
 import { NextProject } from "@/components/case-study/next-project";
 import { mdxComponents } from "@/components/case-study/mdx-components";
+import { MiniNav } from "@/components/mini-nav";
+import { SiteFooter } from "@/components/site-footer";
 
 type CaseStudyPageProps = {
   params: Promise<{ slug: string }>;
@@ -43,9 +47,11 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
 
   const { frontmatter, content } = study;
   const isPdfInterim = Boolean(frontmatter.pdf) && content.trim().length < 200;
+  const hasResume = existsSync(join(process.cwd(), "public", "liam-krivacic-resume.pdf"));
 
   return (
     <main className="cs-page">
+      <MiniNav isStatic />
       <div className="cs-glow" aria-hidden="true" />
       <article className="cs-content">
         <CaseHero frontmatter={frontmatter} project={project} />
@@ -79,6 +85,7 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
 
         <NextProject currentSlug={slug} />
       </article>
+      <SiteFooter showResume={hasResume} />
     </main>
   );
 }
