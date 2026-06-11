@@ -59,6 +59,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <div className="grain-overlay" aria-hidden="true" />
         {children}
       </body>
     </html>

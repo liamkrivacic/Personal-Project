@@ -141,6 +141,14 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
 
     const onMessage = (event: MessageEvent) => {
       if (!event.data) return;
+      if (event.data.type === "black-hole-ready") {
+        frame?.classList.add("journey-bg-frame--ready");
+        // Re-post current dive so a fresh iframe on back-nav starts at the
+        // right position (the first dive message may have posted before the
+        // iframe's listener was attached).
+        update();
+        return;
+      }
       if (event.data.type === "black-hole-cursor") {
         if (event.origin !== window.location.origin) return;
         if (event.data.target === "cursor-overlay") return;

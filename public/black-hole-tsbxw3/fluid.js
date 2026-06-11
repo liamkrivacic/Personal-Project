@@ -404,6 +404,13 @@ canvas.addEventListener("pointercancel", endDrag);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let rafId = 0;
 let loopRunning = !reducedMotion;
+let readySent = false;
+
+function notifyReady() {
+  if (readySent) return;
+  readySent = true;
+  window.parent?.postMessage({ type: "black-hole-ready" }, window.location.origin);
+}
 
 function renderFrame() {
   if (diveProgress < 0.995) {
@@ -422,6 +429,7 @@ function renderFrame() {
 const startTime = performance.now();
 function frame() {
   renderFrame();
+  notifyReady();
   if (loopRunning) {
     rafId = requestAnimationFrame(frame);
   } else {
@@ -449,6 +457,7 @@ document.addEventListener("visibilitychange", () => {
 
 if (reducedMotion) {
   renderFrame();
+  notifyReady();
 } else if (!document.hidden) {
   startLoop();
 }
