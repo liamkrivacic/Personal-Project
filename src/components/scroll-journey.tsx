@@ -68,20 +68,6 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
 
     let renderRunning: boolean | null = null;
 
-    // The iframe starts at opacity 0 and is revealed by the "black-hole-ready"
-    // message (re-posted every frame for ~2s, so a listener-attach race can't
-    // lose it). Reveal once on the first message we catch. The timer is a final
-    // fail-safe for the reduced-motion path (single post) or total message loss
-    // so the background can never be stuck black.
-    let revealed = false;
-    const reveal = () => {
-      if (revealed) return;
-      revealed = true;
-      clearTimeout(revealFallback);
-      frame.classList.add("journey-bg-frame--ready");
-    };
-    const revealFallback = setTimeout(reveal, 1500);
-
     const postProgress = (p: number) => {
       const message = { type: "black-hole-dive", progress: p };
       frame.contentWindow?.postMessage(message, window.location.origin);
@@ -155,15 +141,6 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
 
     const onMessage = (event: MessageEvent) => {
       if (!event.data) return;
-      if (event.data.type === "black-hole-ready") {
-        if (revealed) return;
-        reveal();
-        // Re-post current dive so a fresh iframe on back-nav starts at the
-        // right position (the first dive message may have posted before the
-        // iframe's listener was attached).
-        update();
-        return;
-      }
       if (event.data.type === "black-hole-cursor") {
         if (event.origin !== window.location.origin) return;
         if (event.data.target === "cursor-overlay") return;
@@ -253,7 +230,6 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
       frame.removeEventListener("load", onLoad);
       cancelAnimationFrame(visualFrameRef.current);
       visualFrameRef.current = 0;
-      clearTimeout(revealFallback);
       if (idleCallbackHandle !== undefined) cancelIdleCallback(idleCallbackHandle);
       if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
     };

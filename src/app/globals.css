@@ -229,11 +229,6 @@ button {
   border: 0;
   background: #050302;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 600ms ease;
-}
-.journey-bg-frame--ready {
-  opacity: 1;
 }
 
 .journey-input-layer {
