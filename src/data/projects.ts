@@ -18,6 +18,7 @@ export type Project = {
   hard: ProjectSkill[];
   soft: string[];
   img: string;
+  imgAlt: string;
   imagePosition: string;
   imageFit?: "cover" | "contain";
 };
@@ -107,7 +108,8 @@ export const projects: Project[] = [
       "Designed WR340 RF measurement hardware in ANSYS HFSS, including a cross-guide directional coupler and waveguide-to-coax transition for VNA and spectrum-analyser access.",
     hard: [hardSkill("ANSYS HFSS")],
     soft: ["Research rigour", "Design iteration", "Technical reporting"],
-    img: "/projects/rf-coupler-coax.png",
+    img: "/projects/rf-coupler-coax.webp",
+    imgAlt: "HFSS simulation model of a WR340 cross-guide directional coupler and waveguide-to-coax adapter",
     imagePosition: "center center",
     imageFit: "contain",
   },
@@ -123,7 +125,8 @@ export const projects: Project[] = [
       "Used IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search, reducing reflected microwave power across simulated plasma load conditions.",
     hard: [hardSkill("IronPython"), hardSkill("ANSYS HFSS")],
     soft: ["Algorithmic thinking", "Debugging", "Systems modelling"],
-    img: "/projects/stub-tuner-hfss.png",
+    img: "/projects/stub-tuner-hfss.webp",
+    imgAlt: "ANSYS HFSS simulation of a three-stub tuner with IronPython scripted gradient optimisation overlay",
     imagePosition: "center center",
     imageFit: "contain",
   },
@@ -139,7 +142,8 @@ export const projects: Project[] = [
       "Explored a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
     hard: [hardSkill("LTspice"), hardSkill("Fusion 360")],
     soft: ["Risk awareness", "Documentation", "Practical engineering"],
-    img: "/projects/hv-magnetron-enclosure.png",
+    img: "/projects/hv-magnetron-enclosure.webp",
+    imgAlt: "Fusion 360 CAD model of a high-voltage magnetron power supply sheet-metal enclosure with ventilation cutouts",
     imagePosition: "center center",
     imageFit: "contain",
   },
@@ -155,7 +159,8 @@ export const projects: Project[] = [
       "Won the advanced stream by building an autonomous Arduino robot with ultrasonic sensing, IR line detection, C/C++ control logic, and a Fusion 360 chassis fabricated by laser cutting and 3D printing.",
     hard: [hardSkill("Arduino"), hardSkill("C/C++"), hardSkill("Fusion 360")],
     soft: ["Rapid prototyping", "Competition strategy", "Iterative testing"],
-    img: "/projects/sumobot-chassis.png",
+    img: "/projects/sumobot-chassis.webp",
+    imgAlt: "Laser-cut and 3D-printed autonomous SumoBot chassis with Arduino controller and ultrasonic sensor mounts",
     imagePosition: "center center",
   },
   {
@@ -170,7 +175,8 @@ export const projects: Project[] = [
       "Set up Synology NAS infrastructure for redundant cloud file storage, remote access, SSL-backed reverse proxying, and WordPress sites hosted under small-business constraints.",
     hard: [hardSkill("Synology DSM"), hardSkill("WordPress")],
     soft: ["Ownership", "Cost awareness", "Operational reliability"],
-    img: "/projects/nas-infrastructure.png",
+    img: "/projects/nas-infrastructure.webp",
+    imgAlt: "Synology NAS dashboard showing RAID volume status, shared folders, and reverse proxy configuration",
     imagePosition: "center center",
     imageFit: "contain",
   },
@@ -191,7 +197,8 @@ export const projects: Project[] = [
       hardSkill("Mailchimp"),
     ],
     soft: ["Client communication", "Maintainability", "Process improvement"],
-    img: "/projects/wordpress-marketing.png",
+    img: "/projects/wordpress-marketing.webp",
+    imgAlt: "WordPress website admin panel showing custom child theme, PHP template, and Mailchimp integration settings",
     imagePosition: "center top",
     imageFit: "contain",
   },
@@ -207,7 +214,8 @@ export const projects: Project[] = [
       "Led a 9-person RF team on AtomCraft's 2.45 GHz microwave heating system, coordinating simulation, safety, procurement, testing plans, and cross-disciplinary delivery.",
     hard: [hardSkill("ANSYS HFSS"), hardSkill("LTspice"), hardSkill("Fusion 360")],
     soft: ["Team leadership", "Stakeholder updates", "Work planning"],
-    img: "/projects/atomcraft-rf-leadership.png",
+    img: "/projects/atomcraft-rf-leadership.webp",
+    imgAlt: "AtomCraft 2.45 GHz RF heating system diagram showing team structure, simulation results, and safety documentation",
     imagePosition: "center center",
   },
   {
@@ -227,7 +235,8 @@ export const projects: Project[] = [
       hardSkill("WebGL"),
     ],
     soft: ["Product polish", "Visual systems", "Iterative refinement"],
-    img: "/projects/personal-website-black-hole.png",
+    img: "/projects/personal-website-black-hole.webp",
+    imgAlt: "Interactive black-hole WebGL shader rendered in a browser with scroll-driven accretion disk and cursor lighting",
     imagePosition: "center center",
   },
   {
@@ -242,7 +251,8 @@ export const projects: Project[] = [
       "A body of artwork recognised through an ARTEXPRESS nomination, gallery exhibition at Tamworth Regional Gallery, and media interview, showing visual communication and sustained creative craft.",
     hard: [],
     soft: ["Creative discipline", "Attention to detail", "Communication"],
-    img: "/projects/artwork-collection.png",
+    img: "/projects/artwork-collection.webp",
+    imgAlt: "Visual arts portfolio artwork recognised with an ARTEXPRESS nomination and exhibited at Tamworth Regional Gallery",
     imagePosition: "center center",
     imageFit: "contain",
   },

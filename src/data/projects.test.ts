@@ -70,7 +70,8 @@ describe("projects data", () => {
       expect(project.title.length).toBeGreaterThan(8);
       expect(project.signal.length).toBeGreaterThan(80);
       expect(project.soft.length).toBeGreaterThanOrEqual(3);
-      expect(project.img).toMatch(/^\/projects\/.+\.png$/);
+      expect(project.img).toMatch(/^\/projects\/.+\.webp$/);
+      expect(project.imgAlt.length).toBeGreaterThanOrEqual(20);
     }
   });
 

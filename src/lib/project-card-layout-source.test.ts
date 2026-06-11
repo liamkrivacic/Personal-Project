@@ -10,6 +10,14 @@ const componentSource = readFileSync(
 const cssSource = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
 
 describe("project card layout source", () => {
+  it("uses next/image for thumbnails with fill layout and descriptive alt text", () => {
+    expect(componentSource).toContain('from "next/image"');
+    expect(componentSource).toContain("fill");
+    expect(componentSource).toContain('sizes="(max-width: 640px) 100vw');
+    expect(componentSource).toContain("alt={p.imgAlt}");
+    expect(componentSource).not.toContain('aria-hidden="true"');
+  });
+
   it("renders each hard skill with its own inline logo instead of a separate logo row", () => {
     expect(componentSource).not.toContain("prj-skill-logo-strip");
     expect(componentSource).not.toContain("prj-skill-logo-tile");

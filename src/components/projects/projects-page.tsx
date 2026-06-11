@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { projects } from "@/data/projects";
 import type { ProjectFocus } from "@/data/projects";
 import { projectRowReveal } from "@/lib/project-row-reveal";
@@ -188,13 +189,12 @@ export function ProjectsPage() {
             <div className="prj-row">
               <span className="prj-row-num">{p.num}</span>
               <div className="prj-row-img-col">
-                <img
+                <Image
                   className="prj-row-img"
                   src={p.img}
-                  alt=""
-                  aria-hidden="true"
-                  loading="lazy"
-                  decoding="async"
+                  alt={p.imgAlt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 900px) 220px, 280px"
                   style={{
                     objectFit: p.imageFit ?? "cover",
                     objectPosition: p.imagePosition,
