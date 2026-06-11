@@ -9,6 +9,7 @@ export type ProjectSkill = {
 export type Project = {
   id: string;
   num: string;
+  slug: string;
   focus: ProjectFocus;
   focusLabel: string;
   cat: string;
@@ -99,6 +100,7 @@ export const projects: Project[] = [
   {
     id: "hfss-coupler-coax",
     num: "01",
+    slug: "rf-coupler-coax",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
     cat: "engineering",
@@ -116,6 +118,7 @@ export const projects: Project[] = [
   {
     id: "stub-tuner-optimisation",
     num: "02",
+    slug: "stub-tuner-hfss",
     focus: "software",
     focusLabel: "Software & Computer Science",
     cat: "software",
@@ -133,6 +136,7 @@ export const projects: Project[] = [
   {
     id: "hv-magnetron-supply",
     num: "03",
+    slug: "hv-magnetron-enclosure",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
     cat: "engineering",
@@ -150,6 +154,7 @@ export const projects: Project[] = [
   {
     id: "sumobot-winner",
     num: "04",
+    slug: "sumobot-chassis",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
     cat: "engineering",
@@ -166,6 +171,7 @@ export const projects: Project[] = [
   {
     id: "nas-infrastructure",
     num: "05",
+    slug: "nas-infrastructure",
     focus: "software",
     focusLabel: "Software & Computer Science",
     cat: "software",
@@ -183,6 +189,7 @@ export const projects: Project[] = [
   {
     id: "wordpress-marketing",
     num: "06",
+    slug: "wordpress-marketing",
     focus: "software",
     focusLabel: "Software & Computer Science",
     cat: "software",
@@ -205,6 +212,7 @@ export const projects: Project[] = [
   {
     id: "atomcraft-rf-leadership",
     num: "07",
+    slug: "atomcraft-rf-leadership",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
     cat: "engineering",
@@ -221,6 +229,7 @@ export const projects: Project[] = [
   {
     id: "personal-website-black-hole",
     num: "08",
+    slug: "personal-website-black-hole",
     focus: "software",
     focusLabel: "Software & Computer Science",
     cat: "software",
@@ -242,6 +251,7 @@ export const projects: Project[] = [
   {
     id: "visual-arts-portfolio",
     num: "09",
+    slug: "artwork-collection",
     focus: "personal",
     focusLabel: "Personal & Creative",
     cat: "personal",
@@ -257,3 +267,7 @@ export const projects: Project[] = [
     imageFit: "contain",
   },
 ];
+
+export function getProjectBySlug(slug: string): Project | undefined {
+  return projects.find((project) => project.slug === slug);
+}

@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { projects } from "@/data/projects";
 import type { ProjectFocus } from "@/data/projects";
 import { projectRowReveal } from "@/lib/project-row-reveal";
+import { SkillPills } from "@/components/skill-pills";
 
 type FocusFilter = ProjectFocus | "all";
+
+// Rows are linked to a case study only when a content file exists.
+// Hardcoded for Checkpoint 3 (one proving page); replaced in Checkpoint 4.
+const linkedSlugs = new Set<string>(["rf-coupler-coax"]);
 
 const focusFilters = [
   { val: "all", label: "All" },
@@ -117,6 +124,9 @@ export function ProjectsPage() {
     return () => {
       cancelAnimationFrame(frame);
       cancelAnimationFrame(revealFrameRef.current);
+      // Reset so a remount (client navigation / StrictMode) starts with a clean
+      // scheduler — otherwise a stale cancelled frame id wedges scheduleRowReveals.
+      revealFrameRef.current = 0;
       observer.disconnect();
       window.removeEventListener("scroll", scheduleRowReveals);
       window.removeEventListener("project-entry-timing-update", scheduleRowReveals);
@@ -180,12 +190,8 @@ export function ProjectsPage() {
 
       {/* Project list */}
       <div className="prj-list" ref={listRef}>
-        {projects.map((p) => (
-          <div
-            key={p.id}
-            className="prj-row-wrap"
-            data-focus={p.focus}
-          >
+        {projects.map((p) => {
+          const row = (
             <div className="prj-row">
               <span className="prj-row-num">{p.num}</span>
               <div className="prj-row-img-col">
@@ -210,47 +216,34 @@ export function ProjectsPage() {
                   <h2 className="prj-row-title">{p.title}</h2>
                   <p className="prj-row-signal">{p.signal}</p>
                   <div className="prj-skills-block">
-                    <div className="prj-skills-row">
-                      {p.hard.length > 0 ? (
-                        <div className="prj-skills-group">
-                          <span className="prj-skills-group-label">Hard skills</span>
-                          <div className="prj-skills-pills">
-                            {p.hard.map((skill) => (
-                              <span key={skill.label} className="prj-skill-pill hard">
-                                <span>{skill.label}</span>
-                                <img
-                                  className="prj-skill-logo"
-                                  src={skill.logo}
-                                  alt={skill.logoAlt}
-                                />
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      <div className="prj-skills-group">
-                        <span className="prj-skills-group-label">Soft skills</span>
-                        <div className="prj-skills-pills">
-                          {p.soft.map((s) => (
-                            <span key={s} className="prj-skill-pill soft">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <SkillPills hard={p.hard} soft={p.soft} />
                   </div>
                 </div>
                 <div className="prj-row-bottom">
                   <span />
                   <span className="prj-row-cta">
-                    View case study <span className="prj-row-cta-arrow">-&gt;</span>
+                    View case study{" "}
+                    <span className="prj-row-cta-arrow">
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </span>
                   </span>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+
+          return (
+            <div key={p.id} className="prj-row-wrap" data-focus={p.focus}>
+              {linkedSlugs.has(p.slug) ? (
+                <Link href={`/projects/${p.slug}`} className="prj-row-link">
+                  {row}
+                </Link>
+              ) : (
+                row
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

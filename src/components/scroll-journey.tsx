@@ -13,6 +13,13 @@ const biography =
 const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";
 const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-12";
 
+// Where to land when arriving at /#projects (e.g. the case-study back link).
+// The project reveal completes at PROJECT_LIST_START_VH + PROJECT_LIST_DURATION_VH
+// = 2.54 + 1.44 = 3.98vh in project-entry-timing.ts, and the pin releases at 4.0vh.
+// 3.9vh sits just inside the pin with the reveal complete and the heading at the top.
+// If those timing constants change, retune this to match.
+const PROJECTS_LANDING_VH = 3.9;
+
 function clamp01(value: number) {
   return Math.min(Math.max(value, 0), 1);
 }
@@ -137,10 +144,33 @@ export function ScrollJourney() {
 
     const onLoad = () => requestVisualTick();
 
-    targetScrollYRef.current = window.scrollY;
-    visualScrollYRef.current = window.scrollY;
+    // Arriving via the case-study back link (/#projects) should land on the
+    // revealed projects view, not the start of the dive. Seed the scroll refs
+    // at the landing depth BEFORE the first update() so the very first dive
+    // message posts the fully-dived progress (1) — otherwise the shader briefly
+    // receives progress 0 (zoomed out) and flashes the rest framing on scroll-out.
+    const landingOnProjects = window.location.hash === "#projects";
+    const initialScrollY = landingOnProjects
+      ? window.innerHeight * PROJECTS_LANDING_VH
+      : window.scrollY;
+    targetScrollYRef.current = initialScrollY;
+    visualScrollYRef.current = initialScrollY;
     lastVisualTimeRef.current = performance.now();
     update();
+
+    // The browser's hash scroll targets the top of the pin section (~2.0vh)
+    // where nothing has revealed yet, so jump past the reveal window once layout
+    // has settled and re-sync the refs.
+    if (landingOnProjects) {
+      requestAnimationFrame(() => {
+        const target = window.innerHeight * PROJECTS_LANDING_VH;
+        window.scrollTo({ top: target, left: 0, behavior: "instant" });
+        targetScrollYRef.current = target;
+        visualScrollYRef.current = target;
+        lastVisualTimeRef.current = performance.now();
+        update();
+      });
+    }
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);

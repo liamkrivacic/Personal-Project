@@ -1,0 +1,49 @@
+---
+slug: rf-coupler-coax
+title: HFSS Directional Coupler and Coax Adapter
+summary: Simulation-led design of WR340 RF measurement hardware in ANSYS HFSS — a cross-guide directional coupler and a waveguide-to-coax transition for power monitoring and VNA access on a 2.45 GHz transmission line.
+heroImage: /projects/rf-coupler-coax.webp
+date: 2025-09
+status: published
+---
+
+This project covers two practical pieces of microwave measurement hardware for AtomCraft's
+RF transmission line: a cross-guide directional coupler and a waveguide-to-coax transition.
+Both were designed and simulated in ANSYS HFSS around the system's 2.45 GHz operating
+frequency in WR340 waveguide. The goal throughout was to turn a system measurement need into
+a manufacturable component, not just an idealised simulation.
+
+<Callout title="Headline results (simulated)">
+In HFSS, the cross-guide coupler reaches roughly **40 dB coupling** with **28 dB directivity**
+over a 0.12 GHz band centred near 2.45 GHz, and a **Monte Carlo tolerance study** confirms the
+performance holds across realistic machining variation. These are simulation results, not
+measured hardware figures.
+</Callout>
+
+## Directional coupler
+
+The directional coupler exists to sample forward and reflected microwave power without
+disrupting the high-power waveguide path. I designed a Moreno-style cross-guide coupler in
+WR340, targeting clean power sampling across the operating band. In simulation the design
+reaches roughly 40 dB coupling with 28 dB directivity over a 0.12 GHz bandwidth centred near
+2.45 GHz.
+
+Because a coupler is only useful if it survives manufacturing, I ran a Monte Carlo tolerance
+study to check how the design behaves under realistic fabrication variation. This was the most
+informative part of the work: it showed how coupling and directivity drift away from the
+nominal result, which matters far more for a part that will actually be machined than a single
+ideal simulation does.
+
+## Waveguide-to-coax transition
+
+The transition connects the waveguide hardware to coaxial instruments such as a VNA or
+spectrum analyser. I designed a broad-wall probe transition with a tuned back short, again
+simulated around 2.45 GHz. The simulated design shows very low insertion loss and strong
+return loss, and the tolerance analysis indicated the match stays robust across the expected
+range of manufacturing variation.
+
+Together the two components form the measurement front end for the transmission line:
+the coupler taps power for monitoring, and the transition routes that sample to standard
+coaxial test equipment. The work demonstrates an end-to-end RF design loop — define the
+measurement need, model the geometry, optimise in HFSS, and stress the design against
+tolerances before committing to hardware.

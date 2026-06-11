@@ -7,6 +7,11 @@ const componentSource = readFileSync(
   "utf8",
 );
 
+const skillPillsSource = readFileSync(
+  join(process.cwd(), "src", "components", "skill-pills.tsx"),
+  "utf8",
+);
+
 const cssSource = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
 
 describe("project card layout source", () => {
@@ -15,15 +20,17 @@ describe("project card layout source", () => {
     expect(componentSource).toContain("fill");
     expect(componentSource).toContain('sizes="(max-width: 640px) 100vw');
     expect(componentSource).toContain("alt={p.imgAlt}");
-    expect(componentSource).not.toContain('aria-hidden="true"');
+    // Thumbnail must expose its alt text (not be decorative/hidden).
+    expect(componentSource).not.toContain('alt=""');
   });
 
-  it("renders each hard skill with its own inline logo instead of a separate logo row", () => {
-    expect(componentSource).not.toContain("prj-skill-logo-strip");
-    expect(componentSource).not.toContain("prj-skill-logo-tile");
-    expect(componentSource).toContain('className="prj-skill-logo"');
-    expect(componentSource).toContain("src={skill.logo}");
-    expect(componentSource).toContain("alt={skill.logoAlt}");
+  it("renders each hard skill with its own inline logo via the shared SkillPills component", () => {
+    expect(componentSource).toContain("SkillPills");
+    expect(skillPillsSource).not.toContain("prj-skill-logo-strip");
+    expect(skillPillsSource).not.toContain("prj-skill-logo-tile");
+    expect(skillPillsSource).toContain('className="prj-skill-logo"');
+    expect(skillPillsSource).toContain("src={skill.logo}");
+    expect(skillPillsSource).toContain("alt={skill.logoAlt}");
   });
 
   it("keeps desktop project media compact while filling its image area", () => {
@@ -37,9 +44,11 @@ describe("project card layout source", () => {
     expect(cssSource).toMatch(/\.prj-list\s*{[^}]*padding-bottom:\s*clamp\(72px,\s*10vh,\s*128px\);/s);
   });
 
-  it("retains the bottom case-study CTA and hover highlight", () => {
+  it("retains the bottom case-study CTA with a lucide ArrowRight icon and hover highlight", () => {
     expect(componentSource).toContain('className="prj-row-cta"');
     expect(componentSource).toContain("View case study");
+    expect(componentSource).toContain("ArrowRight");
+    expect(componentSource).not.toContain("-&gt;");
     expect(cssSource).toMatch(/\.prj-row:hover \.prj-row-cta\s*{[^}]*color:\s*var\(--accent\);[^}]*opacity:\s*1;/s);
   });
 
