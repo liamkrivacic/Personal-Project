@@ -1219,6 +1219,17 @@ window.addEventListener("message", (event) => {
     return;
   }
 
+  if (event.data.type === "black-hole-render-state") {
+    if (reducedMotion) return;
+    loopRunning = Boolean(event.data.running);
+    if (loopRunning && !document.hidden) {
+      startLoop();
+    } else {
+      stopLoop();
+    }
+    return;
+  }
+
   if (event.data.type === "black-hole-cursor") {
     handleCursorMove(Number(event.data.x), Number(event.data.y));
   }
@@ -1441,7 +1452,34 @@ canvas.addEventListener("pointerleave", () => {
 
 window.addEventListener("resize", resize);
 resize();
-requestAnimationFrame(frame);
+
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let rafId = 0;
+let loopRunning = !reducedMotion;
+
+function startLoop() {
+  if (rafId !== 0 || !loopRunning || document.hidden) return;
+  rafId = requestAnimationFrame(frame);
+}
+
+function stopLoop() {
+  cancelAnimationFrame(rafId);
+  rafId = 0;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopLoop();
+  } else if (loopRunning) {
+    startLoop();
+  }
+});
+
+if (reducedMotion) {
+  frame(performance.now());
+} else if (!document.hidden) {
+  startLoop();
+}
 
 function resize() {
   resizeQueued = false;
@@ -1544,13 +1582,13 @@ function frame(now) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    requestAnimationFrame(frame);
+    if (loopRunning) { rafId = requestAnimationFrame(frame); } else { rafId = 0; }
     return;
   }
 
   step(dt, now / 1000);
   draw(now / 1000);
-  requestAnimationFrame(frame);
+  if (loopRunning) { rafId = requestAnimationFrame(frame); } else { rafId = 0; }
 }
 
 function pushStreamPoint(x, y, motionX, motionY, intensity, now) {

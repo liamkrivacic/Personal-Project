@@ -1,7 +1,7 @@
 "use client";
 
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mail } from "lucide-react";
 import { ProjectsPage } from "@/components/projects/projects-page";
 import { projectEntryTiming } from "@/lib/project-entry-timing";
@@ -10,8 +10,8 @@ import { nextVisualScrollY } from "@/lib/visual-scroll-smoothing";
 const biography =
   "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
 
-const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";
-const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-12";
+const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-8";
+const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-13";
 
 // Where to land when arriving at /#projects (e.g. the case-study back link).
 // The project reveal completes at PROJECT_LIST_START_VH + PROJECT_LIST_DURATION_VH
@@ -38,6 +38,7 @@ function resolveDiveProgress(depth: number) {
 
 export function ScrollJourney() {
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const [showCursorCanvas, setShowCursorCanvas] = useState(true);
   const dragRef = useRef<{ pointerId: number | null; x: number; y: number }>({
     pointerId: null,
     x: 0,
@@ -53,6 +54,12 @@ export function ScrollJourney() {
     if (!frame) return;
 
     const root = document.documentElement.style;
+
+    const hasFinePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!hasFinePointer) setShowCursorCanvas(false);
+
+    let renderRunning: boolean | null = null;
 
     const postProgress = (p: number) => {
       const message = { type: "black-hole-dive", progress: p };
@@ -82,6 +89,14 @@ export function ScrollJourney() {
       window.dispatchEvent(new Event("project-entry-timing-update"));
 
       postProgress(resolveDiveProgress(dive));
+
+      const isRunning = bgFade < 0.999;
+      if (renderRunning !== isRunning) {
+        renderRunning = isRunning;
+        const renderStateMsg = { type: "black-hole-render-state", running: isRunning };
+        frame.contentWindow?.postMessage(renderStateMsg, window.location.origin);
+        window.postMessage(renderStateMsg, window.location.origin);
+      }
     };
 
     const tickVisualScroll = (now: number) => {
@@ -179,12 +194,24 @@ export function ScrollJourney() {
     frame.addEventListener("load", onLoad);
 
     const scriptId = "black-hole-cursor-streamlets-script";
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.type = "module";
-      script.src = cursorScriptSrc;
-      document.body.appendChild(script);
+    let idleCallbackHandle: number | undefined;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
+    if (hasFinePointer) {
+      const inject = () => {
+        if (!document.getElementById(scriptId)) {
+          const script = document.createElement("script");
+          script.id = scriptId;
+          script.type = "module";
+          script.src = cursorScriptSrc;
+          document.body.appendChild(script);
+        }
+      };
+      if ("requestIdleCallback" in window) {
+        idleCallbackHandle = requestIdleCallback(inject, { timeout: 2500 });
+      } else {
+        timeoutHandle = setTimeout(inject, 1500);
+      }
     }
 
     return () => {
@@ -195,6 +222,8 @@ export function ScrollJourney() {
       frame.removeEventListener("load", onLoad);
       cancelAnimationFrame(visualFrameRef.current);
       visualFrameRef.current = 0;
+      if (idleCallbackHandle !== undefined) cancelIdleCallback(idleCallbackHandle);
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
     };
   }, []);
 
@@ -262,7 +291,7 @@ export function ScrollJourney() {
           onPointerCancel={onInputPointerEnd}
           aria-hidden="true"
         />
-        <canvas id="fluid-canvas" className="journey-bg-cursor" aria-hidden="true" />
+        {showCursorCanvas && <canvas id="fluid-canvas" className="journey-bg-cursor" aria-hidden="true" />}
         <div className="journey-bg-veil" aria-hidden="true" />
         <div className="journey-bg-projects-wash" aria-hidden="true" />
       </div>

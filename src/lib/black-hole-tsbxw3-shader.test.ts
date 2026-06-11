@@ -56,11 +56,14 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(shaderSource).toContain(
       "angle.xy -= min(0.3 / dist, 3.14) * vec2(1.0, 0.5) * (1.0 - focusT);",
     );
-    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-7";');
+    expect(journeySource).toContain('const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-8";');
     expect(journeySource).toContain(
-      'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-12";',
+      'const cursorScriptSrc = "/black-hole-cursor-streamlets/fluid.js?v=old-cursor-13";',
     );
     expect(journeySource).toContain("script.src = cursorScriptSrc;");
+    expect(journeySource).toContain('"black-hole-render-state"');
+    expect(journeySource).toContain("hasFinePointer");
+    expect(journeySource).toContain("requestIdleCallback");
     expect(journeySource).toContain("window.postMessage(message, window.location.origin);");
     expect(journeySource).toContain("window.postMessage(");
     expect(journeySource).toContain('event.data.type === "black-hole-cursor"');
@@ -76,7 +79,7 @@ describe("tsBXW3 black-hole camera framing", () => {
     expect(cssSource).toContain(".journey-bg-cursor");
     expect(cssSource).toContain("mix-blend-mode: screen;");
     expect(cursorOverlayHtml).toContain('<canvas id="fluid-canvas"');
-    expect(cursorOverlayHtml).toContain('src="./fluid.js?v=old-cursor-12"');
+    expect(cursorOverlayHtml).toContain('src="./fluid.js?v=old-cursor-13"');
     expect(cursorOverlaySource).toContain("const FIELD_CENTER = { x: 0.5, y: 0.5 };");
     expect(cursorOverlaySource).toContain("const RUNS_IN_PARENT_OVERLAY = window.parent === window;");
     expect(cursorOverlaySource).toContain("const MAX_STREAMLETS = 3;");

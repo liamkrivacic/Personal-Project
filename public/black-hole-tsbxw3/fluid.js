@@ -294,6 +294,17 @@ window.addEventListener("message", (event) => {
   if (event.data.type === "black-hole-dive") {
     const next = Number(event.data.progress);
     if (Number.isFinite(next)) diveProgress = Math.max(0, Math.min(1, next));
+    if (reducedMotion) renderFrame();
+    return;
+  }
+  if (event.data.type === "black-hole-render-state") {
+    if (reducedMotion) return;
+    loopRunning = Boolean(event.data.running);
+    if (loopRunning && !document.hidden) {
+      startLoop();
+    } else {
+      stopLoop();
+    }
     return;
   }
   if (event.data.type === "black-hole-drag-delta") {
@@ -390,8 +401,11 @@ function endDrag(event) {
 canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
-const startTime = performance.now();
-function frame() {
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let rafId = 0;
+let loopRunning = !reducedMotion;
+
+function renderFrame() {
   if (diveProgress < 0.995) {
     gl.viewport(0, 0, width, height);
     gl.useProgram(program);
@@ -403,6 +417,38 @@ function frame() {
     gl.uniform1f(uDragPitchLoc, dragPitch);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
-  requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+const startTime = performance.now();
+function frame() {
+  renderFrame();
+  if (loopRunning) {
+    rafId = requestAnimationFrame(frame);
+  } else {
+    rafId = 0;
+  }
+}
+
+function startLoop() {
+  if (rafId !== 0 || !loopRunning || document.hidden) return;
+  rafId = requestAnimationFrame(frame);
+}
+
+function stopLoop() {
+  cancelAnimationFrame(rafId);
+  rafId = 0;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopLoop();
+  } else if (loopRunning) {
+    startLoop();
+  }
+});
+
+if (reducedMotion) {
+  renderFrame();
+} else if (!document.hidden) {
+  startLoop();
+}
