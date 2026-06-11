@@ -233,6 +233,7 @@ export function ScrollJourney() {
 
   return (
     <main className="journey">
+      <a className="skip-link" href="#projects">Skip to projects</a>
       <div className="journey-bg" aria-hidden="true">
         <iframe
           ref={frameRef}
@@ -255,7 +256,7 @@ export function ScrollJourney() {
         <div className="journey-bg-projects-wash" aria-hidden="true" />
       </div>
 
-      <div className="cursor-streamlet-controls" aria-hidden="true">
+      <div className="cursor-streamlet-controls" hidden aria-hidden="true">
         <input id="rimHeat" type="range" defaultValue="0.34" readOnly />
         <input id="swirl" type="range" defaultValue="2.92" readOnly />
         <input id="pull" type="range" defaultValue="0.98" readOnly />

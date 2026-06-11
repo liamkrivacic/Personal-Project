@@ -78,7 +78,10 @@ describe("project card layout source", () => {
     expect(componentSource).toContain('row.style.setProperty("--row-opacity", "0");');
     expect(componentSource).toContain('row.style.setProperty("--row-shift", "14px");');
     expect(componentSource).toContain("resetRowRevealState(wrap);");
-    expect(componentSource).toContain("void listRef.current.offsetHeight;");
+    // State-driven: React controls visibility, no DOM display manipulation
+    expect(componentSource).toContain("projects.filter");
+    expect(componentSource).not.toContain("style.display");
+    expect(componentSource).not.toContain("suppressHydrationWarning");
     expect(componentSource).not.toContain("setTimeout(() =>");
     expect(componentSource).not.toContain('wrap.style.opacity = "0";');
     expect(componentSource).not.toContain('wrap.style.opacity = "";');

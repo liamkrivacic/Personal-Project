@@ -41,7 +41,7 @@ export function ProjectsPage() {
   const updateRowReveals = useCallback(() => {
     if (!listRef.current) return;
     const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
-    const visibleRows = rows.filter((wrap) => wrap.style.display !== "none");
+    const visibleRows = rows;
     const rootStyle = getComputedStyle(document.documentElement);
     const entryProgressRaw = rootStyle.getPropertyValue("--reveal-list");
     const headingProgressRaw = rootStyle.getPropertyValue("--reveal-col");
@@ -68,30 +68,6 @@ export function ProjectsPage() {
       updateRowReveals();
     });
   }, [updateRowReveals]);
-
-  function handleFilter(val: FocusFilter) {
-    setActiveFocus(val);
-
-    if (!listRef.current) return;
-    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
-
-    rows.forEach((wrap) => {
-      const focusOk = val === "all" || wrap.dataset.focus === val;
-      if (focusOk) {
-        const wasHidden = wrap.style.display === "none";
-        wrap.style.display = "";
-        if (wasHidden) {
-          resetRowRevealState(wrap);
-        }
-      } else {
-        wrap.style.display = "none";
-        resetRowRevealState(wrap);
-      }
-    });
-
-    void listRef.current.offsetHeight;
-    scheduleRowReveals();
-  }
 
   useEffect(() => {
     const page = pageRef.current;
@@ -132,6 +108,22 @@ export function ProjectsPage() {
     };
   }, [scheduleRowReveals]);
 
+  const filterChangeRef = useRef(false);
+  useEffect(() => {
+    if (!filterChangeRef.current) {
+      filterChangeRef.current = true;
+      return;
+    }
+    if (!listRef.current) return;
+    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".prj-row-wrap"));
+    rows.forEach((wrap) => {
+      resetRowRevealState(wrap);
+    });
+    scheduleRowReveals();
+  }, [activeFocus, scheduleRowReveals]);
+
+  const visible = activeFocus === "all" ? projects : projects.filter((p) => p.focus === activeFocus);
+
   return (
     <div id="projects" className="prj-page" ref={pageRef}>
       {/* Page header */}
@@ -139,13 +131,13 @@ export function ProjectsPage() {
         <div className="prj-head">
           <div className="prj-head-left">
             <p className="prj-head-eye">Selected work</p>
-            <h1 className="prj-head-title">
+            <h2 className="prj-head-title">
               {"My Projects".split(" ").map((word) => (
                 <span key={word} className="prj-title-word">
                   {word}&nbsp;
                 </span>
               ))}
-            </h1>
+            </h2>
           </div>
           <div className="prj-contact-block">
             <p className="prj-contact-label">Get in touch</p>
@@ -173,9 +165,9 @@ export function ProjectsPage() {
               <button
                 key={val}
                 className={`prj-filter-pill${activeFocus === val ? " active" : ""}`}
-                onClick={() => handleFilter(val)}
+                onClick={() => setActiveFocus(val)}
                 type="button"
-                suppressHydrationWarning
+                aria-pressed={activeFocus === val}
               >
                 {label}
               </button>
@@ -186,7 +178,7 @@ export function ProjectsPage() {
 
       {/* Project list */}
       <div className="prj-list" ref={listRef}>
-        {projects.map((p) => {
+        {visible.map((p) => {
           const row = (
             <div className="prj-row">
               <span className="prj-row-num">{p.num}</span>
@@ -209,7 +201,7 @@ export function ProjectsPage() {
                     <span className={`prj-cat-badge ${p.cat}`}>{p.catLabel}</span>
                     <span className="prj-ctx-badge">{p.focusLabel}</span>
                   </div>
-                  <h2 className="prj-row-title">{p.title}</h2>
+                  <h3 className="prj-row-title">{p.title}</h3>
                   <p className="prj-row-signal">{p.signal}</p>
                   <div className="prj-skills-block">
                     <SkillPills hard={p.hard} soft={p.soft} />
