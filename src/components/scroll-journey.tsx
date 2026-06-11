@@ -233,7 +233,18 @@ export function ScrollJourney() {
 
   return (
     <main className="journey">
-      <a className="skip-link" href="#projects">Skip to projects</a>
+      <a
+        className="skip-link"
+        href="#projects"
+        onClick={(e) => {
+          e.preventDefault();
+          const target = window.innerHeight * PROJECTS_LANDING_VH;
+          window.scrollTo({ top: target, behavior: "instant" });
+          document.getElementById("projects")?.focus();
+        }}
+      >
+        Skip to projects
+      </a>
       <div className="journey-bg" aria-hidden="true">
         <iframe
           ref={frameRef}

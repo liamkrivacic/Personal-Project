@@ -125,7 +125,7 @@ export function ProjectsPage() {
   const visible = activeFocus === "all" ? projects : projects.filter((p) => p.focus === activeFocus);
 
   return (
-    <div id="projects" className="prj-page" ref={pageRef}>
+    <div id="projects" className="prj-page" ref={pageRef} tabIndex={-1}>
       {/* Page header */}
       <div className="prj-col">
         <div className="prj-head">
