@@ -10,9 +10,10 @@ export function MiniNav({ isStatic }: MiniNavProps) {
       className={`mini-nav${isStatic ? " mini-nav--static" : ""}`}
       aria-label="Site navigation"
     >
-      <Link className="mini-nav-brand" href="/">
+      {/* Use a full reload so fluid.js (ES module) re-executes on the fresh canvas */}
+      <a className="mini-nav-brand" href="/">
         Liam Krivacic
-      </Link>
+      </a>
       <div className="mini-nav-links">
         <Link className="mini-nav-link" href="/#projects">
           Projects
