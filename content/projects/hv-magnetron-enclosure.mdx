@@ -50,6 +50,15 @@ front of you:
   wide
 />
 
+<Figure
+  src="/projects/hv-magnetron-enclosure/psu-halfwave-waveform.png"
+  alt="LTspice transient waveform of the half-wave voltage doubler output node, swinging between approximately +0.4 kV and −4.4 kV at 60 Hz"
+  caption="Transient simulation of the half-wave doubler output node. In steady state the voltage swings between near zero on the positive half-cycle and approximately −4.4 kV on the negative half-cycle — the capacitor's stored charge stacks with the source peak to drive the output to roughly twice the 2 kV secondary voltage."
+  width={988}
+  height={253}
+  wide
+/>
+
 ### Full-wave voltage doubler
 
 The half-wave doubler works, but its ripple is heavier than I wanted and it draws current in
@@ -66,6 +75,15 @@ capacitance:
   caption="LTspice model of the post-transformer full-wave voltage doubler. D2 and D3 conduct on alternate half-cycles, charging C1 and C3 respectively, so the output stack delivers lower ripple than the half-wave design at the same filter capacitance."
   width={915}
   height={411}
+  wide
+/>
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/psu-fullwave-waveform.png"
+  alt="LTspice transient waveform of the full-wave voltage doubler DC output rail, stepping from 0 V toward approximately −3.8 kV over 100 ms as the capacitor bank charges"
+  caption="Transient simulation of the full-wave doubler DC output rail. The voltage builds in discrete steps as both capacitors charge on alternate half-cycles, reaching approximately −3.8 kV and approaching the theoretical −4 kV target. The faster charge compared with the half-wave case is visible in the steeper initial ramp."
+  width={988}
+  height={259}
   wide
 />
 
@@ -104,13 +122,31 @@ the last thing you want inside this box.
 | Interlock 1 | Input | 5000 V optocoupler | Cabinet door closed |
 | Interlock 2 | Input | 5000 V optocoupler | Capacitor discharge confirmed |
 | Interlock 3 | Input | 5000 V optocoupler | Over-voltage trip cleared |
+| Interlock 4 | Input | 5000 V optocoupler | Reflected power within safe limit (from RF monitoring system) |
 | Temperature | Input | Isolated ADC | Transformer thermal monitor |
 | Serial | I/O | USB (galvanic) | Operator command interface |
 
 Underneath, the ESP32 runs a small state machine with one stubborn rule: HV Enable is asserted
-only while all four interlock inputs are active at once, and the instant any one of them drops the
+only while all five interlock inputs are active at once, and the instant any one of them drops the
 enable trips immediately, no matter what the operator just typed. The command is a request,
 never an override.
+
+### Reflected power interlock
+
+The RF system has a directional coupler and a power detector circuit that monitors both forward
+and reflected power on the transmission line (covered in the RF coupler case study). One output
+of that system is a voltage proportional to reflected power, and that signal feeds into the
+ESP32 interlock chain as **Interlock 4**.
+
+If the plasma load becomes severely mismatched — because the stub tuner hasn't compensated yet,
+because the vessel is outside its expected operating range, or because of a fault anywhere on the
+line — reflected power spikes. A threshold comparator on the detector board drives Interlock 4
+low, the ESP32 sees the trip, and HV Enable clears immediately. The magnetron de-energises before
+sustained reflected power can heat its output waveguide, damage its internal vanes, or drive RF
+leakage out of a mismatched section of the line.
+
+This closes the loop between the monitoring system and the power supply: the directional coupler
+isn't just a diagnostic tool, it is an active part of the safety chain.
 
 ## Enclosure design in Fusion 360
 
@@ -125,6 +161,31 @@ so the centre of mass is low and the unit is stable, capacitor bank kept away fr
 access-panel side so you're not reaching past stored energy to do routine work, and cabling
 routed clear of hot surfaces and sharp edges. I drew up a parts list alongside it so the thing
 could actually be procured and built, not just admired in CAD.
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/enclosure-cad-labeled.png"
+  alt="Fusion 360 CAD assembly of the magnetron supply enclosure with all major components labeled: magnetron, transformer, capacitor, relay, circuit breaker, 80mm fan, metal shelf, XT60 low-voltage connector, and IEC C5 mains inlet"
+  caption="Component layout in the Fusion 360 assembly. Transformer and capacitor sit at the base for a low centre of mass; relay and circuit breaker group on the metal shelf; the 80mm fan sits above the main heat sources. IEC C5 mains inlet and XT60 low-voltage connector are at the rear panel."
+  width={494}
+  height={365}
+/>
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/enclosure-cad-interior.png"
+  alt="Fusion 360 cross-section of the enclosure interior showing transformer with washer mounts, internal component arrangement, and the access panel location on the right side"
+  caption="Interior view with the front panel removed. The transformer is raised on washers so a tripod can bolt to the underside without fouling the transformer mount. The access panel on the right sits away from the capacitor bank — you're not reaching past stored energy to service the control circuitry."
+  width={513}
+  height={320}
+/>
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/enclosure-fabricated.png"
+  alt="Four-panel photograph of the fabricated stainless steel magnetron supply enclosure: exterior side with ventilation, interior showing transformer and high-voltage wiring, and rear panel with IEC mains inlet"
+  caption="The fabricated enclosure. Clockwise from top-left: side exterior with ventilation cutout, interior showing the transformer and high-voltage wiring, rear panel connector cutouts, and interior from the access side. The physical unit follows the Fusion 360 layout closely."
+  width={1198}
+  height={670}
+  wide
+/>
 
 ## Safety framework
 
@@ -144,6 +205,9 @@ for the supply covers:
 - **Procedural controls**: short-pulse operation protocols to limit the energy in the
   transmission line during experiments; safe re-entry procedures that require two-person
   confirmation before restoring power after an interlock trip.
+- **Reflected power protection**: if reflected power on the transmission line exceeds a safe
+  threshold, the RF monitoring system drives Interlock 4 and trips HV Enable before sustained
+  reflected power can damage the magnetron or cause RF leakage from a mismatched line section.
 - **Physical barriers**: the enclosure isolates all high-voltage conductors from the
   operator surface; no bare conductors are within reach of a standard access panel opening.
 
