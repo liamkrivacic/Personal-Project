@@ -992,10 +992,7 @@ details[open] .cs-codeblock-summary::before { transform: rotate(90deg); }
 .cs-figure {
   margin: 32px 0;
 }
-.cs-figure.wide {
-  width: min(1100px, 92vw);
-  margin-left: calc((760px - min(1100px, 92vw)) / 2);
-}
+/* wide prop reserved for future use; figures cap at text column width */
 .cs-figure-img {
   width: 100%;
   height: auto;
@@ -1146,7 +1143,6 @@ details[open] .cs-codeblock-summary::before { transform: rotate(90deg); }
   .cs-content { padding: 48px 18px 72px; }
   .cs-figure-grid.cols-2,
   .cs-figure-grid.cols-3 { grid-template-columns: 1fr; }
-  .cs-figure.wide { width: 100%; margin-left: 0; }
   .cs-next { grid-template-columns: 1fr; }
   .cs-next-card.next { text-align: left; align-items: flex-start; }
 }
