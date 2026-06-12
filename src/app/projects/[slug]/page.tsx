@@ -3,6 +3,9 @@ import { join } from "node:path";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { getAllCaseStudies, getCaseStudy } from "@/lib/case-studies";
 import { getProjectBySlug } from "@/data/projects";
 import { CaseHero } from "@/components/case-study/case-hero";
@@ -79,7 +82,16 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
           </div>
         ) : (
           <div className="cs-mdx">
-            <MDXRemote source={content} components={mdxComponents} />
+            <MDXRemote
+              source={content}
+              components={mdxComponents}
+              options={{
+                mdxOptions: {
+                  remarkPlugins: [remarkGfm, remarkMath],
+                  rehypePlugins: [rehypeKatex],
+                },
+              }}
+            />
           </div>
         )}
 

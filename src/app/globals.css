@@ -600,10 +600,21 @@ button {
   transition: transform 0.2s;
 }
 
+.prj-row-cta--wip {
+  font-style: italic;
+  opacity: 0.3;
+}
+.prj-row--wip { opacity: 0.65; }
+
 /* Row → case-study link */
 .prj-row-link {
   display: block;
   color: inherit;
+}
+.prj-row-link--wip {
+  display: block;
+  color: inherit;
+  cursor: default;
 }
 .prj-row-link:hover .prj-row {
   background: rgba(255, 243, 213, 0.025);
@@ -886,6 +897,29 @@ button {
   color: var(--text);
 }
 
+/* ── Math (KaTeX) ── */
+.cs-mdx .katex {
+  color: var(--text);
+  font-size: 1.05em;
+}
+/* Inline math should ride along with body copy colour/size */
+.cs-p .katex,
+.cs-li .katex {
+  color: inherit;
+  font-size: 1em;
+}
+/* Display equations: centre, give breathing room, scroll instead of
+   overflowing the viewport on narrow screens */
+.cs-mdx .katex-display {
+  margin: 24px 0;
+  padding: 4px 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.cs-mdx .katex-display > .katex {
+  white-space: nowrap;
+}
+
 /* ── Callout ── */
 .cs-callout {
   margin: 28px 0;
@@ -903,6 +937,56 @@ button {
   color: var(--accent);
 }
 .cs-callout-body > :last-child { margin-bottom: 0; }
+
+/* ── CodeBlock ── */
+.cs-codeblock {
+  margin: 28px 0;
+  border: 1px solid rgba(255, 243, 213, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cs-codeblock-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-family: var(--mono-font);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.cs-codeblock-summary::-webkit-details-marker { display: none; }
+.cs-codeblock-summary::before {
+  content: "▶";
+  font-size: 0.6em;
+  transition: transform 0.15s ease;
+}
+details[open] .cs-codeblock-summary::before { transform: rotate(90deg); }
+.cs-codeblock-summary:hover { color: var(--text); }
+.cs-codeblock-body {
+  border-top: 1px solid rgba(255, 243, 213, 0.08);
+}
+.cs-codeblock-body pre {
+  margin: 0;
+  padding: 20px 24px;
+  font-family: var(--mono-font);
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+  background: rgba(255, 243, 213, 0.02);
+}
+.cs-codeblock-body pre code {
+  font-family: var(--mono-font);
+  font-size: inherit;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
 
 /* ── Figure ── */
 .cs-figure {
@@ -960,6 +1044,42 @@ button {
 .cs-spec-table td {
   color: var(--muted);
   line-height: 1.5;
+}
+
+/* ── Markdown tables (GFM) ── */
+.cs-table-wrap {
+  margin: 28px 0;
+  overflow-x: auto;
+}
+.cs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--body-font);
+  font-size: 0.92rem;
+}
+.cs-th,
+.cs-td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.5;
+}
+.cs-th {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.cs-td {
+  color: var(--muted);
+}
+.cs-table tbody tr:last-child .cs-td,
+.cs-table tbody tr:last-child .cs-th {
+  border-bottom: none;
 }
 
 /* ── PDF interim layout ── */

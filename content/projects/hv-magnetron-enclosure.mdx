@@ -1,71 +1,149 @@
 ---
 slug: hv-magnetron-enclosure
-title: High-Voltage Magnetron Supply and Enclosure
-summary: Design and simulation work for a 4 kV magnetron power supply and sheet-metal enclosure — LTspice circuit modelling, Fusion 360 packaging, ventilation design, and high-voltage safety controls for the AtomCraft RF system.
+title: Designing a 4 kV Magnetron Supply That Won't Kill Anyone
+summary: "Circuit, packaging and safety design for AtomCraft's 4 kV magnetron power supply: LTspice modelling of a voltage-multiplying rectifier, an ESP32 interlock controller with 5 kV optical isolation, a Fusion 360 sheet-metal enclosure, and a safety framework where the safe procedure is the path of least resistance."
 heroImage: /projects/hv-magnetron-enclosure.webp
 date: 2025-09
 status: published
 ---
 
-A magnetron requires a high-voltage DC supply, typically a few kilovolts, to sustain the
-crossed-field electron emission that generates microwave power. For the AtomCraft RF heating
-system that supply operates around 4 kV — enough that a single unsafe interaction can be
-lethal. This project covered the circuit simulation, physical packaging, and safety framework
-for that supply.
+A magnetron needs a few kilovolts of DC to sustain the crossed-field electron emission that
+makes microwave power in the first place. For AtomCraft's RF heating system that supply sits
+around 4 kV, and at 4 kV the engineering brief quietly changes. It's no longer just "make the
+voltage"; it's "make the voltage in a box that a tired student can open at 9 pm without dying."
+That framing shaped every decision on this page, which covers the circuit design and simulation,
+the physical packaging, and the safety framework that ties them together.
 
 <Callout title="Design scope">
-This page covers **simulation and design work**: LTspice circuit exploration, Fusion 360
-enclosure design, and safety procedure planning. It does not claim a complete validated
-build unless further evidence is added.
+To be upfront, this is **simulation and design work**: LTspice circuit exploration, the Fusion
+360 enclosure, and the safety procedure planning. It's the full design of the supply, not a
+commissioned, validated build.
 </Callout>
 
-## Circuit simulation in LTspice
+## Circuit design
 
-The supply uses a full-wave rectifier topology: mains input, a step-up transformer, a
-diode bridge, and a large filter capacitor bank to smooth the DC rail. LTspice simulation
-explored the rectifier behaviour under different load conditions, including the capacitor
-charge and discharge characteristics that are directly relevant to safety.
+The goal was roughly 4 kV DC starting from a standard mains input. I chose a voltage-multiplying
+rectifier over a single-stage transformer rectifier because it reaches the target voltage with a
+smaller, lighter transformer, and on a student project that gets carried around a lab, the
+weight and cost of the transformer is a real consideration, not an afterthought.
 
-The key circuit-level concern is the capacitor energy store. A 4 kV capacitor bank holds
-enough energy to cause lethal injury well after the mains supply is isolated. The simulation
-work informed the discharge verification procedure: before any access is permitted, the
-capacitors must be discharged through a bleed resistor and confirmed with a calibrated high-
-voltage probe.
+### The voltage doubler
+
+I started with a half-wave voltage doubler. On one half-cycle the first capacitor charges to the
+mains peak; on the opposite half-cycle the second capacitor charges to twice that peak. From a
+240 V RMS supply the peak is about 340 V, so the bare doubler aims for around 680 V, and a step-up
+transformer ahead of it scales that into the kilovolt range.
+
+Before I committed to any component values, I modelled the charge and discharge behaviour in
+LTspice, since it's much cheaper to be wrong in a simulator than with a charged capacitor bank in
+front of you:
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/psu-halfwave-ltspice.png"
+  alt="LTspice schematic of the half-wave voltage doubler circuit showing capacitor C2, diode D1, load resistor R4, and the AC source driving the charge-pump cycle"
+  caption="LTspice model of the half-wave voltage doubler. C2 charges on the negative half-cycle through D1; on the positive half-cycle the source voltage and C2 add in series, driving the output to approximately twice the peak input. R4 represents the magnetron load."
+  width={702}
+  height={354}
+  wide
+/>
+
+### Full-wave rectifier
+
+The half-wave doubler works, but its ripple is heavier than I wanted and it draws current in
+lumps. So I extended the design to a full-wave topology: two diodes conduct on alternate
+half-cycles, each charging its own capacitor, and the output rail is the series stack of the two.
+The simulation showed exactly what I was after: lower ripple and a faster charge than the
+half-wave case at the same filter capacitance:
+
+<Figure
+  src="/projects/hv-magnetron-enclosure/psu-fullwave-ltspice.png"
+  alt="LTspice schematic of the full-wave rectifier showing capacitors C1 and C3, diodes D2 and D3, and load resistor R3 forming a voltage-multiplying full-wave bridge"
+  caption="LTspice model of the full-wave rectifier. D2 and D3 conduct on alternate half-cycles, charging C1 and C3 respectively. The output stack (C1 + C3 in series) delivers lower ripple than the half-wave design at the same filter capacitance."
+  width={915}
+  height={411}
+  wide
+/>
+
+The thing that kept nagging at me through all of this wasn't the voltage itself, it was the
+energy parked in the capacitor bank. At 4 kV those capacitors hold enough stored energy to kill
+someone long after the mains has been switched off and the supply "looks" dead. That single fact
+is the reason the safety framework later treats capacitor discharge as a verified, enforced step
+rather than a polite reminder.
+
+## RF control circuit
+
+Running a 1 kW magnetron out of a university lab means the operator can't be allowed to talk to
+the high-voltage supply directly: there has to be something in between that refuses to do
+anything dangerous. I led the research that set the architecture for that interlock chain, built
+around an **ESP32-WROOM-32E** as the central commander: it takes operator commands over USB
+serial, checks the interlock state, and only asserts the high-voltage enable when every condition
+is satisfied. The human asks; the ESP32 decides. A teammate then designed the control-system PCB
+from that research.
+
+The rule the design couldn't break is that there's no conductive path between the low-voltage
+control side and the 4 kV rail, anywhere. Every signal that crosses between the two worlds goes
+through **optical isolation rated to 5000 V**: each interlock input and the enable output passes
+through an optocoupler, so a fault on the high-voltage side physically cannot climb back into the
+ESP32 or the operator's laptop on the other end of the USB cable.
+
+For the actual switching the architecture uses **solid-state relays** instead of mechanical
+contactors. No moving parts, no contact bounce, and crucially, no spark. A mechanical contactor
+slamming shut on a capacitively-loaded high-voltage rail is an arc waiting to happen, and that's
+the last thing you want inside this box.
+
+### I/O summary
+
+| Signal | Direction | Isolation | Function |
+|--------|-----------|-----------|----------|
+| HV Enable | Output | 5000 V optocoupler | Arms the solid-state relay to energise the supply |
+| Interlock 1 | Input | 5000 V optocoupler | Cabinet door closed |
+| Interlock 2 | Input | 5000 V optocoupler | Capacitor discharge confirmed |
+| Interlock 3 | Input | 5000 V optocoupler | Over-voltage trip cleared |
+| Temperature | Input | Isolated ADC | Transformer thermal monitor |
+| Serial | I/O | USB (galvanic) | Operator command interface |
+
+Underneath, the ESP32 runs a small state machine with one stubborn rule: HV Enable is asserted
+only while all four interlock inputs are active at once, and the instant any one of them drops the
+enable trips immediately, no matter what the operator just typed. The command is a request,
+never an override.
 
 ## Enclosure design in Fusion 360
 
-The enclosure translates the circuit into a manufacturable, maintainable unit. The design in
-Fusion 360 covered a sheet-metal layout in stainless steel, including the flat/net pattern
-for fabrication, ventilation cutouts for the transformer and capacitor heat load, a power
-entry cutout, and removable access panels for internal inspection and maintenance.
+A circuit only becomes a real instrument once it lives in something you can build, cool and open
+up again. I designed the enclosure in Fusion 360 as a stainless-steel sheet-metal part, complete
+with the flat/net pattern for fabrication, ventilation cutouts sized for the transformer and
+capacitor heat load, a power-entry cutout, and removable access panels for inspection and
+maintenance.
 
-Component placement considered the internal layout: transformer at the base for stability,
-capacitor bank isolated from the access panel side, and cabling routed clear of hot surfaces
-and sharp edges. A parts list accompanied the drawing to support procurement.
+Where things sit inside was a deliberate choice, not a packing exercise: transformer at the base
+so the centre of mass is low and the unit is stable, capacitor bank kept away from the
+access-panel side so you're not reaching past stored energy to do routine work, and cabling
+routed clear of hot surfaces and sharp edges. I drew up a parts list alongside it so the thing
+could actually be procured and built, not just admired in CAD.
 
 ## Safety framework
 
-High-voltage enclosure design is not only a mechanical problem. The full safety framework
+By the time I got here, "safety" wasn't a section I bolted on at the end, it was the thing that
+had been quietly steering the circuit and the enclosure all along. Written out, the full framework
 for the supply covers:
 
 - **Mains isolation**: a lockable isolator on the incoming supply, so the cabinet cannot be
   energised while the access panel is open.
 - **Capacitor discharge**: a bleed resistor across the capacitor bank and a mandatory
-  discharge-and-verify step before any internal access.
+  discharge-and-verify step before any internal access. This step is enforced by Interlock 2
+  in the control circuit: the HV Enable cannot be re-asserted until the discharge is
+  confirmed.
+- **Over-voltage protection**: a crowbar circuit monitors the DC rail and trips the supply
+  if the voltage exceeds the safe operating limit. The trip clears Interlock 3 until
+  manually reset.
 - **Procedural controls**: short-pulse operation protocols to limit the energy in the
   transmission line during experiments; safe re-entry procedures that require two-person
   confirmation before restoring power after an interlock trip.
-- **Physical barriers**: the enclosure isolates all high-voltage conductors from the operator
-  surface; no bare conductors within reach of a standard access panel opening.
+- **Physical barriers**: the enclosure isolates all high-voltage conductors from the
+  operator surface; no bare conductors are within reach of a standard access panel opening.
 
-The enclosure was designed so that following the procedure is the path of least resistance:
-every step that an operator must take to open the cabinet naturally passes through a safe
-state first.
-
-## What this demonstrates
-
-The project combines three normally-separate disciplines — circuit simulation, mechanical
-packaging, and safety systems engineering — into a single deliverable. For a university
-project the combination is unusual; most safety design work at this level happens in industry.
-The strongest signal is not the individual outputs but the approach: circuit behaviour,
-physical form, and operational safety were designed together rather than sequentially.
+The idea I kept coming back to is that you can't rely on people being careful when they're tired, 
+you have to make the safe path the *easy* path. So the enclosure is laid out so that following
+the procedure is genuinely the lowest-effort way to do anything: every step an operator takes to
+get the cabinet open naturally routes them through a safe state first. Doing it the dangerous way
+is actually more work.

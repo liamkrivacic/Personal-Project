@@ -180,7 +180,7 @@ export function ProjectsPage() {
       <div className="prj-list" ref={listRef}>
         {visible.map((p) => {
           const row = (
-            <div className="prj-row">
+            <div className={`prj-row${p.underConstruction ? " prj-row--wip" : ""}`}>
               <span className="prj-row-num">{p.num}</span>
               <div className="prj-row-img-col">
                 <Image
@@ -209,12 +209,18 @@ export function ProjectsPage() {
                 </div>
                 <div className="prj-row-bottom">
                   <span />
-                  <span className="prj-row-cta">
-                    View case study{" "}
-                    <span className="prj-row-cta-arrow">
-                      <ArrowRight size={14} aria-hidden="true" />
+                  {p.underConstruction ? (
+                    <span className="prj-row-cta prj-row-cta--wip">
+                      Under construction
                     </span>
-                  </span>
+                  ) : (
+                    <span className="prj-row-cta">
+                      View case study{" "}
+                      <span className="prj-row-cta-arrow">
+                        <ArrowRight size={14} aria-hidden="true" />
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -222,9 +228,13 @@ export function ProjectsPage() {
 
           return (
             <div key={p.id} className="prj-row-wrap" data-focus={p.focus}>
-              <Link href={`/projects/${p.slug}`} className="prj-row-link">
-                {row}
-              </Link>
+              {p.underConstruction ? (
+                <div className="prj-row-link prj-row-link--wip">{row}</div>
+              ) : (
+                <Link href={`/projects/${p.slug}`} className="prj-row-link">
+                  {row}
+                </Link>
+              )}
             </div>
           );
         })}

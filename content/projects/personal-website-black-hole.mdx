@@ -1,28 +1,29 @@
 ---
 slug: personal-website-black-hole
 title: Personal Website and Black-Hole Interface
-summary: This portfolio — a Next.js, React, and TypeScript app with a scroll-driven journey, interactive WebGL black-hole shader, cursor-responsive lighting, MDX case-study system, and automated testing with Vitest and Playwright.
+summary: This portfolio, a Next.js, React, and TypeScript app with a scroll-driven journey, interactive WebGL black-hole shader, cursor-responsive lighting, MDX case-study system, and automated testing with Vitest and Playwright.
 heroImage: /projects/personal-website-black-hole.webp
 date: 2026-04
 status: published
 ---
 
-A portfolio site has two jobs: present the work clearly, and demonstrate how you build
-software. The challenge is that the first goal pushes toward simplicity and the second toward
-something that shows taste and technical range. This site tries to resolve that tension
-rather than choose.
+This portfolio had to do two things that pull in opposite directions. It has to present the work
+clearly, which argues for simplicity, and it has to *be* a piece of work itself, proof of how I
+build software, which argues for ambition and taste. The easy move is to pick one. I wanted to see
+if I could hold both at once, and this site is the result of refusing to choose.
 
-The result is a single-page scroll experience that transitions from an interactive visual
-interface into a structured project catalogue — with case-study pages, a validated data
-layer, and a test suite that covers both unit behaviour and end-to-end navigation.
+What came out is a single-page scroll experience that starts as an interactive visual interface
+and resolves into a structured project catalogue, backed by real case-study pages, a typed and
+validated data layer, and a test suite that covers everything from unit behaviour to full
+end-to-end navigation. The page you're reading right now is one of those case studies.
 
 ## Architecture
 
-The app is built on **Next.js 16 with the App Router**, using React 19, TypeScript in strict
-mode, and Tailwind CSS 3. All project content is driven from a typed data file
-([src/data/projects.ts](src/data/projects.ts)) and MDX case-study files in
-`content/projects/`. Static params are generated at build time so every case-study page is
-pre-rendered.
+I built the app on **Next.js 16 with the App Router**, React 19, TypeScript in strict mode, and
+Tailwind CSS 3. Every piece of project content comes from one typed data file
+([src/data/projects.ts](src/data/projects.ts)) and the MDX case-study files in
+`content/projects/`, so the content is data, not markup buried in components. Static params are
+generated at build time, which means every case-study page ships as pre-rendered HTML.
 
 Fonts are self-hosted through `next/font/google` (Archivo for display, Inter for body,
 JetBrains Mono for code), and images are served in AVIF/WebP through `next/image` with Sharp
@@ -30,30 +31,35 @@ conversion during the asset pipeline.
 
 ## The scroll journey
 
-The main interaction is in [src/components/scroll-journey.tsx](src/components/scroll-journey.tsx).
-A `useEffect` loop drives a set of CSS custom properties (`--dive`, `--veil`, `--bg-fade`,
-`--reveal-col`, `--reveal-list`) from a smoothed virtual scroll position. These properties
-feed all the CSS transitions on the page — the black-hole zoom, the veil fade, the heading
-reveal, and the project card stagger.
+The heart of it lives in [src/components/scroll-journey.tsx](src/components/scroll-journey.tsx).
+A `useEffect` loop takes a smoothed virtual scroll position and drives a handful of CSS custom
+properties (`--dive`, `--veil`, `--bg-fade`, `--reveal-col`, `--reveal-list`). Everything that
+moves on the page (the black-hole zoom, the veil fade, the heading reveal, the staggered
+project cards) is just CSS reacting to those few numbers. I like this approach because the
+animation logic stays in one place and the browser does the heavy lifting.
 
-The black-hole runs in a sandboxed `<iframe>` that receives scroll progress via
-`postMessage`. The cursor lighting effect runs in a separate canvas overlay through a module
-script injected once per page load.
+The black hole itself runs in a sandboxed `<iframe>` that I feed scroll progress over
+`postMessage`, and the cursor-lighting effect rides in a separate canvas overlay injected once
+per page load. Keeping them isolated means one can break or get swapped out without taking the
+rest of the page down with it.
 
 ## WebGL shader
 
-The black-hole visual is a custom WebGL fragment shader that combines gravitational lensing
-distortion, an accretion disk, and per-frame cursor heat from the pointer position. It runs
-in `public/black-hole-tsbxw3/` as a self-contained page so it can be swapped or updated
-without touching the main app bundle.
+The black hole is a custom WebGL fragment shader I wrote that combines gravitational lensing
+distortion, an accretion disk, and per-frame "heat" that follows the cursor. It lives in
+`public/black-hole-tsbxw3/` as a fully self-contained page, so I can iterate on the shader or
+replace it entirely without rebuilding the main app bundle, the visual centrepiece is
+deliberately the most decoupled thing in the project.
 
-The cursor streamlets layer (`public/black-hole-cursor-streamlets/`) is a separate fluid
-simulation that follows pointer movement and was designed to be compositionally independent
-from the black-hole shader.
+On top of that sits a separate cursor-streamlets layer
+(`public/black-hole-cursor-streamlets/`), a small fluid simulation that chases the pointer. I
+built it to be compositionally independent from the shader, so the two effects can coexist
+without either knowing the other exists.
 
 ## Testing
 
-The test suite covers three layers:
+I treated this like production code, which to me means it has tests. The suite covers three
+layers:
 
 - **Vitest unit tests** verify the data layer (every project has a slug and valid `imgAlt`;
   image files exist), the case-study frontmatter (required fields, valid dates, slug-to-
@@ -68,7 +74,9 @@ The test suite covers three layers:
 
 ## What this demonstrates
 
-Building a portfolio that is also a software project creates an honest feedback loop: if the
-code is well-structured, the site is easy to extend; if it is fragile, the test suite catches
-it. The MDX case-study system, the typed data layer, and the scroll-animation architecture
-are the kind of decisions that show up in production work — not in assignment rubrics.
+The best part of making my portfolio a real software project is the honesty of the feedback loop:
+if my architecture is good, adding a new case study is trivial; if it's fragile, the test suite
+tells me before a recruiter ever sees it. The MDX case-study system, the typed data layer and the
+scroll-animation architecture are the decisions that matter in actual production work, not the
+ones a university rubric asks for. This site is me showing, rather than claiming, that I can
+make those decisions.

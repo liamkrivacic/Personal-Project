@@ -22,6 +22,7 @@ export type Project = {
   imgAlt: string;
   imagePosition: string;
   imageFit?: "cover" | "contain";
+  underConstruction?: boolean;
 };
 
 const skillLogos = {
@@ -185,6 +186,7 @@ export const projects: Project[] = [
     imgAlt: "Synology NAS dashboard showing RAID volume status, shared folders, and reverse proxy configuration",
     imagePosition: "center center",
     imageFit: "contain",
+    underConstruction: true,
   },
   {
     id: "wordpress-marketing",
@@ -208,6 +210,7 @@ export const projects: Project[] = [
     imgAlt: "WordPress website admin panel showing custom child theme, PHP template, and Mailchimp integration settings",
     imagePosition: "center top",
     imageFit: "contain",
+    underConstruction: true,
   },
   {
     id: "atomcraft-rf-leadership",
@@ -225,6 +228,7 @@ export const projects: Project[] = [
     img: "/projects/atomcraft-rf-leadership.webp",
     imgAlt: "AtomCraft 2.45 GHz RF heating system diagram showing team structure, simulation results, and safety documentation",
     imagePosition: "center center",
+    underConstruction: true,
   },
   {
     id: "personal-website-black-hole",
@@ -264,7 +268,7 @@ export const projects: Project[] = [
     img: "/projects/artwork-collection.webp",
     imgAlt: "Visual arts portfolio artwork recognised with an ARTEXPRESS nomination and exhibited at Tamworth Regional Gallery",
     imagePosition: "center center",
-    imageFit: "contain",
+    imageFit: "cover",
   },
 ];
 

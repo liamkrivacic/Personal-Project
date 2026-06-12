@@ -1,71 +1,286 @@
 ---
 slug: stub-tuner-hfss
-title: Automated Stub-Tuner Optimisation
-summary: IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search — reducing reflected microwave power across simulated plasma load conditions for AtomCraft's 2.45 GHz transmission line.
+title: "Teaching HFSS to Tune Itself: Automated Three-Stub Matching"
+summary: I wrote IronPython that drives ANSYS HFSS as a gradient-descent loop, automatically tuning a three-stub matcher to cancel reflected microwave power across simulated plasma loads on AtomCraft's 2.45 GHz line, in one case dropping the reflection coefficient from 0.88 to 0.25 in 20 unattended steps.
 heroImage: /projects/stub-tuner-hfss.webp
 date: 2025-09
 status: published
 ---
 
-The impedance of a plasma load shifts as operating conditions change. A fixed-tuned
-waveguide circuit cannot track this: reflected power climbs, efficiency drops, and the
-magnetron can be damaged. A three-stub tuner adjusts the transmission line impedance in
-real time, but searching the three-dimensional stub-depth space by hand is slow and
-impractical under live conditions.
+A plasma load won't hold still. Its impedance drifts as the operating conditions change, and a
+fixed-tuned waveguide circuit has no way to follow it: reflected power climbs, efficiency
+falls, and the magnetron starts taking a beating. A three-stub tuner fixes that by adjusting the
+line impedance on the fly, but it comes with its own problem: there are three stub depths to set,
+and finding the right combination by hand means searching a three-dimensional space one slow
+simulation at a time. Under live conditions that's a non-starter.
 
-This project used IronPython scripting inside ANSYS HFSS to automate that search — turning
-the tuner into a gradient-descent loop that the simulation could run unattended.
+So I stopped tuning it by hand and made HFSS do it. This project wraps an IronPython script
+around ANSYS HFSS that turns the simulator into a gradient-descent loop (perturb the stubs,
+watch the reflected power, step downhill, repeat) running completely unattended against a
+simulated plasma load.
 
 <Callout title="Key result (simulated)">
-In one test case the script reduced the load reflection coefficient from roughly **0.88 down
-to 0.25** across **20 automated tuning steps**. These are HFSS simulation results, not
-measurements on a live system.
+In one test case the script pulled the load reflection coefficient from roughly **0.88 down to
+0.25** across **20 automated tuning steps**, with no human in the loop. These are HFSS simulation
+results, not measurements on a live system.
 </Callout>
+
+## Choosing an approach
+
+Before writing any code I had to decide *what* the loop would actually measure, and I went back
+and forth between two options.
+
+**Method 1: phase-based direct computation.** An AD8302 gain/phase detector reads both the
+magnitude *and* phase of the reflected signal relative to the incident wave. With the full
+complex reflection coefficient in hand at every step, you can in principle just *solve* for the
+stub positions from the impedance-transformation equations: no searching, no iteration.
+
+**Method 2: gradient search on reflected power only.** A log power detector reads one scalar:
+reflected power. You nudge the stubs, watch which way the power moves, and step in the direction
+that makes it smaller. No phase measurement anywhere.
+
+<FigureGrid cols={2}>
+  <Figure
+    src="/projects/stub-tuner-hfss/method1-block-diagram.png"
+    alt="Block diagram for Method 1: AD8302 phase and gain detector reading both magnitude and phase of the reflected wave from the magnetron-coupler-plasma chain"
+    caption="Method 1: the AD8302 measures both magnitude and phase. Full complex reflection data allows direct stub-position computation, but requires careful calibration of the reference plane at the plasma face."
+    width={889}
+    height={469}
+  />
+  <Figure
+    src="/projects/stub-tuner-hfss/method2-block-diagram.png"
+    alt="Block diagram for Method 2: log power detector measuring reflected power from the directional coupler, with feedback loop driving the three-stub tuner toward minimum reflection"
+    caption="Method 2: a log detector reads reflected power only. An iterative gradient loop steers the stubs toward the minimum without any phase measurement, making it more robust to cable-length errors."
+    width={901}
+    height={377}
+  />
+</FigureGrid>
+
+I went with the gradient search. Method 1 is elegant on paper, but it leans on accurate phase
+data, and accurate phase means a known reference plane right at the plasma face plus careful
+AD8302 calibration, exactly the kind of thing that's fragile when you eventually move from
+simulation to a real, slightly-wrong installation. The gradient approach only ever needs scalar
+power, so it's simpler to instrument and far more forgiving of cable-length and reference errors.
+The price is more simulation steps per tuning cycle, and for an automated loop I was happy to
+pay it in compute rather than in calibration fragility.
 
 ## Why a three-stub tuner
 
-The three-stub tuner is the standard choice for high-power WR340 waveguide because it handles
-kilowatt-level power levels that would destroy a thin-film or ferrite-based matching network.
-Each stub is a short-circuit plunger in the broad wall of the waveguide; adjusting its depth
-changes the susceptance at that point on the line. With three stubs spaced a quarter-wavelength
-apart, the tuner can reach any load impedance within its range.
+The three-stub tuner is the standard choice for high-power WR340 because it shrugs off the
+kilowatt power levels that would vaporise a thin-film or ferrite matching network. Each stub is
+just a short-circuit plunger pushed into the broad wall of the waveguide; how far it goes in sets
+the susceptance at that point on the line. Space three of them a quarter-wavelength apart and the
+tuner can reach any load impedance inside its range.
 
-For the AtomCraft RF transmission line the alternative — a four-probe reflectometer with full
-phase measurement — requires more instrumentation than was available at the design stage. The
-three-stub gradient approach keeps the system simple: perturb the stub positions, observe the
-reflected power change in simulation, and step toward the minimum.
+It also fit my constraints. A four-probe reflectometer with full phase measurement would have
+needed more instrumentation than AtomCraft had at the design stage, whereas the three-stub
+gradient approach asks for almost nothing: perturb the stubs, read the reflected power, step
+toward the minimum. The hardware stays cheap and the intelligence lives in the loop.
 
-## The algorithm
+## The gradient descent algorithm
 
-The IronPython script drives HFSS directly through its COM scripting interface, adjusting stub
-depths and reading back reflected-power results without any manual intervention. The loop
-structure is:
+The IronPython script reaches into HFSS through its COM scripting interface, setting stub depths
+and reading reflected-power results back out with nobody touching the mouse. Stripped to its
+bones, the loop is:
 
 1. Simulate the current stub configuration and record reflected power.
 2. Perturb each stub depth by a small step and re-simulate.
 3. Estimate the gradient (change in reflected power per unit stub movement).
-4. Move all three stubs toward the direction of lower reflected power.
-5. Repeat until the reflection coefficient falls below a target threshold or the step count
-   is reached.
+4. Move all three stubs in the direction of lower reflected power.
+5. Repeat until the reflection coefficient falls below a target threshold or the step
+   count is reached.
 
-The tuning constant controls how aggressively each step moves. A useful result from the
-simulation runs is that overshoot is real: with a high tuning constant the algorithm
-overshoots the minimum and oscillates rather than converging cleanly. This is a genuine
-engineering lesson — automation does not replace judgement about algorithm parameters,
-especially when the simulation cost per step is high.
+The tuning constant sets how aggressively each step moves, and the most useful thing the
+simulation runs taught me is that overshoot is real. Crank the tuning constant up and the
+algorithm flies past the minimum and starts oscillating around it instead of settling. It's the
+same failure mode anyone who's set a learning rate too high will recognise, except here it's stub
+plungers hunting back and forth instead of a loss curve. That's a real constraint, not a
+footnote: before this loop ever runs on live hardware, the tuning constant has to be calibrated
+to the sensitivity of each load profile, or it'll chase its own tail.
 
-## What the results show
+## The reflected power landscape
 
-In the test case where the starting reflection coefficient was approximately 0.88, the script
-converged to roughly 0.25 after 20 tuning steps. In a second example with a higher tuning
-constant, the optimiser overshot, confirming that the constant needs to be calibrated to the
-sensitivity of the load.
+Before turning the optimiser loose on the full three-dimensional search, I wanted to understand
+the terrain it would be walking over. The clearest picture of it isn't mine: it's from
+Chtcherbakov and Swart's 1997 automatic three-stub tuner for plasma deposition, which drives the
+stubs by steepest descent on reflected power alone, the same method my script uses. Their measured
+contour map, with real minimization tracks drawn over it, is almost exactly the landscape my own
+gradient has to cross:
 
-The practical implication for a future hardware system is that the algorithm parameters
-(step size, tuning constant, convergence threshold) need to be characterised for each load
-profile before the loop is run live. The simulation work established that the gradient
-approach is valid; the calibration work would follow from hardware testing.
+<Figure
+  src="/projects/stub-tuner-hfss/gradient-contour-plot.png"
+  alt="Contour plot of reflected power versus two stub positions, with a dotted low-reflection minimum region and four labelled gradient-search trajectories converging toward it"
+  caption="Measured reflected-power contours for a three-stub tuner, overlaid with four gradient-search trajectories (1–4) converging on the low-reflection basin (dotted). Because the surface has a single minimum, steepest descent reaches it from any starting point. After Chtcherbakov & Swart, J. Microw. Power Electromagn. Energy 32(1), 28–33 (1997)."
+  width={954}
+  height={411}
+  wide
+/>
 
-The project demonstrated that IronPython scripting can turn HFSS into an active search loop,
-not just a single-shot solver — which is the foundation for any future automated matching
-workflow in the AtomCraft RF line.
+That single basin is what makes a gradient approach viable. Because the reflected-power surface
+has one minimum rather than many, steepest descent funnels into the true match instead of stalling
+in a local pocket, which is exactly the behaviour those four tracks show. If the landscape had been
+lumpy with several minima, the whole strategy would have needed rethinking, so confirming the shape
+was a genuine go/no-go check before I committed to building my own loop in HFSS.
+
+## Convergence on the Smith chart
+
+My favourite way to watch the algorithm work is on a Smith chart, where the load reflection
+coefficient traces a path through the normalised impedance plane as the loop iterates. Starting
+from a badly mismatched load way out at the edge, every tuning step nudges the impedance closer
+to the centre, the point where $|\Gamma| = 0$ and the match is perfect:
+
+<Figure
+  src="/projects/stub-tuner-hfss/smith-chart-300-180i.png"
+  alt="Smith chart showing the load impedance trajectory spiralling from the outer edge toward the chart centre across 20 gradient descent tuning steps"
+  caption="Smith chart convergence for a 300+180j Ω load. Each dot is one tuning step. The trajectory moves from the chart edge (high reflection) toward the centre across 20 iterations, confirming the gradient is navigating correctly."
+  width={554}
+  height={505}
+/>
+
+A clean inward spiral like this one means the step size and tuning constant were well-matched to
+the load. Run the same load with a higher tuning constant and you get the opposite picture: the trajectory
+orbits the centre and oscillates instead of landing on it, which is the overshoot failure made
+visible. Seeing both behaviours side by side is what convinced me the calibration
+step isn't optional.
+
+The bigger takeaway for me was that IronPython can turn HFSS from a single-shot solver into an
+active search loop that improves its own design. That's the foundation any future automated
+matching workflow in the AtomCraft RF system would be built on.
+
+---
+
+## Source code
+
+<CodeBlock title="gradient-descent-v1.py - IronPython script for ANSYS HFSS">
+
+```python
+### Required setup ###
+import ScriptEnv
+ScriptEnv.Initialize("Ansoft.ElectronicsDesktop")
+oDesktop.RestoreWindow()
+import os
+
+## Get S11 (dB) at the frequency closest to target_freq_hz from an HFSS design.
+## mode=1 returns the S11 value; mode=0 returns the closest frequency.
+def get_s11_or_frequency(oDesign, sweep_name, target_freq_hz, mode):
+    oModule = oDesign.GetModule("ReportSetup")
+    oResults = oModule.GetSolutionDataPerVariation(
+        "Terminal Solution Data",
+        sweep_name,
+        ["Domain:=", "Sweep"],
+        ["Freq:=", ["All"]],
+        ["dB(St(1,1))"]
+    )
+    NominalData = oResults[0]
+    SweepValues = NominalData.GetSweepValues("Freq", True)
+    DataValues = NominalData.GetRealDataValues("dB(St(1,1))")
+    closest_index = min(range(len(SweepValues)), key=lambda i: abs(SweepValues[i] - target_freq_hz))
+    if mode == 1:
+        return DataValues[closest_index]
+    else:
+        return SweepValues[closest_index]
+
+## Set a local variable in the HFSS design (appends "mm" to numeric values).
+def change_local_variable(oDesign, var_name, var_value):
+    var_value_str = str(var_value) + "mm" if isinstance(var_value, (int, float)) else str(var_value)
+    oDesign.ChangeProperty([
+        "NAME:AllTabs",
+        [
+            "NAME:LocalVariableTab",
+            ["NAME:PropServers", "LocalVariables"],
+            ["NAME:ChangedProps", ["NAME:" + var_name, "Value:=", var_value_str]]
+        ]
+    ])
+
+def create_report(oDesign):
+    freq = get_s11_or_frequency(oDesign, "Setup1 : Sweep", TARGET_FREQ_HZ, 0)
+    oModule = oDesign.GetModule("ReportSetup")
+    oModule.CreateReport(
+        "Tuning Chart", "Modal Solution Data", "Smith Chart", "Setup1 : Sweep", [],
+        ["Freq:=", [freq],
+         "a:=", ["Nominal"], "b:=", ["Nominal"], "l:=", ["Nominal"],
+         "w:=", ["Nominal"], "f:=", ["Nominal"], "s:=", ["Nominal"],
+         "d:=", ["Nominal"], "d1:=", ["All"], "d2:=", ["All"], "d3:=", ["All"]],
+        ["Polar Component:=", ["S(1,1)"]]
+    )
+
+def update_report(oDesign):
+    freq = get_s11_or_frequency(oDesign, "Setup1 : Sweep", TARGET_FREQ_HZ, 0)
+    oModule = oDesign.GetModule("ReportSetup")
+    oModule.UpdateTraces(
+        "Tuning Chart", ["S(1,1)"], "Setup1 : Sweep", [],
+        ["Freq:=", [freq],
+         "a:=", ["Nominal"], "b:=", ["Nominal"], "l:=", ["Nominal"],
+         "w:=", ["Nominal"], "f:=", ["Nominal"], "s:=", ["Nominal"],
+         "d:=", ["Nominal"], "d1:=", ["All"], "d2:=", ["All"], "d3:=", ["All"]],
+        ["Polar Component:=", ["S(1,1)"]]
+    )
+
+### Project setup ###
+oProject = oDesktop.GetActiveProject()
+oDesign = oProject.GetActiveDesign()
+oModule = oDesign.GetModule("Solutions")
+
+TARGET_FREQ_HZ = 2.45e9
+SWEEP_NAME = "Setup2 : Sweep"
+ITERATIONS = 20
+SMALL_POSITION_CHANGE = 0.5   # mm: perturbation step for gradient estimation
+STEP_SIZE_CONST = 3           # tuning aggressiveness; reduce if oscillation occurs
+
+### Initialise all stubs at 0 mm insertion ###
+d1_length = d2_length = d3_length = 0.0
+change_local_variable(oDesign, "d1", d1_length)
+change_local_variable(oDesign, "d2", d2_length)
+change_local_variable(oDesign, "d3", d3_length)
+
+### Gradient descent loop ###
+for x in range(ITERATIONS):
+    results_mag = []
+
+    # Baseline S11 at current stub positions
+    oDesign.Analyze("Setup1 : Sweep")
+    results_mag.append(get_s11_or_frequency(oDesign, "Setup1 : Sweep", TARGET_FREQ_HZ, 1))
+
+    if x == 0:
+        create_report(oDesign)
+    else:
+        update_report(oDesign)
+
+    # Perturb each stub in turn and record S11
+    for var, length in [("d1", d1_length), ("d2", d2_length), ("d3", d3_length)]:
+        new_length = max(0, min(43.2, length + SMALL_POSITION_CHANGE))
+        change_local_variable(oDesign, var, new_length)
+        oDesign.Analyze(SWEEP_NAME)
+        results_mag.append(get_s11_or_frequency(oDesign, SWEEP_NAME, TARGET_FREQ_HZ, 1))
+
+    # Estimate gradient (dS11/d_stub) for each stub
+    results_grad = [
+        (results_mag[1] - results_mag[0]) / SMALL_POSITION_CHANGE,
+        (results_mag[2] - results_mag[1]) / SMALL_POSITION_CHANGE,
+        (results_mag[3] - results_mag[2]) / SMALL_POSITION_CHANGE,
+    ]
+
+    # Normalised gradient step
+    grad_magnitude = sum(g ** 2 for g in results_grad) ** 0.5
+    step_size = STEP_SIZE_CONST / grad_magnitude
+
+    # Move stubs in direction of decreasing S11
+    d1_length = max(0, min(43.2, d1_length - SMALL_POSITION_CHANGE - step_size * results_grad[0]))
+    d2_length = max(0, min(43.2, d2_length - SMALL_POSITION_CHANGE - step_size * results_grad[1]))
+    d3_length = max(0, min(43.2, d3_length - SMALL_POSITION_CHANGE - step_size * results_grad[2]))
+
+    change_local_variable(oDesign, "d1", d1_length)
+    change_local_variable(oDesign, "d2", d2_length)
+    change_local_variable(oDesign, "d3", d3_length)
+```
+
+</CodeBlock>
+
+---
+
+## References
+
+- A. A. Chtcherbakov and P. L. Swart, "Automatic Microwave Tuner for Plasma Deposition
+  Applications Using a Gradient Search Method," *Journal of Microwave Power and Electromagnetic
+  Energy* **32**(1), 28–33 (1997).
+  [doi:10.1080/08327823.1997.11688320](https://doi.org/10.1080/08327823.1997.11688320)

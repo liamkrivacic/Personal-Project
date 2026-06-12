@@ -1,57 +1,61 @@
 ---
 slug: nas-infrastructure
 title: NAS and Self-Hosted Web Infrastructure
-summary: Synology NAS setup for RAID-backed file storage, remote access, SSL-secured reverse proxying, and WordPress site hosting — built under small-business constraints where reliability and maintainability matter more than raw performance.
+summary: Synology NAS setup for RAID-backed file storage, remote access, SSL-secured reverse proxying, and WordPress site hosting, built under small-business constraints where reliability and maintainability matter more than raw performance.
 heroImage: /projects/nas-infrastructure.webp
 date: 2024-06
-status: published
+status: draft
 ---
 
-Small businesses usually cannot afford managed cloud hosting for every service, and they
-cannot afford specialist infrastructure engineers either. The constraint is that whatever gets
-built has to stay up with minimal intervention and be understandable by whoever is next in
-the room.
+Small businesses usually can't justify managed cloud hosting for every service, and they
+definitely can't keep a specialist infrastructure engineer on hand. That sets the real
+constraint for a job like this: whatever I build has to stay up with almost no babysitting, and
+it has to be understandable by whoever walks in after me. "Clever" is a liability here;
+"boringly reliable" is the goal.
 
-This project built the NAS and hosting infrastructure for a small business client: redundant
-file storage, remote access for staff, and WordPress site hosting — all running on a Synology
-NAS rather than a rented server farm.
+So for this client I built the whole NAS and hosting stack (redundant file storage, remote
+access for staff, and WordPress hosting) on a single Synology NAS rather than a rented server
+farm, and designed it around exactly that maintainability constraint.
 
 ## Storage and redundancy
 
-The Synology NAS was configured with a RAID volume to protect against single-disk failure.
-File shares were set up for different access tiers — some shared across the organisation,
-others restricted to specific staff roles — with Synology DSM handling permissions and
-access control.
+I set the NAS up with a RAID volume so a single dead disk doesn't take the business's files with
+it, and configured file shares for different access tiers, some open across the organisation,
+others locked to specific staff roles, with Synology DSM handling the permissions.
 
-Remote access was enabled through Synology's QuickConnect service and a VPN configuration,
-giving authorised staff consistent access to shared files from outside the office without
-exposing the NAS management interface to the open internet.
+For remote access I used Synology's QuickConnect alongside a VPN configuration, so authorised
+staff get consistent access to shared files from outside the office without ever exposing the NAS
+management interface to the open internet. That last part mattered to me: convenience for staff,
+but not at the cost of putting the admin panel on the public web.
 
 ## Hosting and reverse proxy
 
-The NAS also serves as the web hosting stack. WordPress sites run behind Synology's built-in
-reverse proxy, which handles HTTPS termination with Let's Encrypt certificates. The reverse
-proxy routes inbound traffic to the correct virtual host based on the domain name, so
-multiple sites can share a single public IP address.
+The same NAS doubles as the web-hosting stack. I run the WordPress sites behind Synology's
+built-in reverse proxy, which terminates HTTPS with Let's Encrypt certificates and routes inbound
+traffic to the right virtual host by domain name, so several sites happily share one public IP.
 
-DNS was configured at the registrar level to point each domain at the NAS's public IP, with
-Let's Encrypt providing automatic certificate renewal so SSL does not require manual
-maintenance.
+I pointed each domain at the NAS's public IP with DNS at the registrar, and leaned on Let's
+Encrypt's automatic renewal so that SSL just keeps working without anyone having to remember to
+touch it. On a site that's meant to run for years with minimal intervention, "renews itself" is
+worth more than any performance tweak.
 
 ## Design decisions
 
-The core decision was to centralise services on the NAS rather than split them across a NAS
-and a separate hosted VPS. This has a cost advantage but it ties file storage and web hosting
-to the same machine — a disk failure during RAID rebuild temporarily affects both. For the
-client's workload and risk tolerance that trade-off was acceptable.
+The decision I thought hardest about was centralising everything on the NAS rather than splitting
+file storage and web hosting across the NAS and a separate hosted VPS. Centralising is cheaper and
+simpler, but it does couple the two: a disk failure during a RAID rebuild would dent both at
+once. I walked the client through that trade-off, and for their workload and risk tolerance it was
+clearly the right call. The point is I made it deliberately, not by default.
 
-The second decision was WordPress for all public sites. WordPress is not the most performant
-option, but it is the one that a non-technical employee can update without a developer. That
-maintainability constraint drove the technology choice more than any technical consideration.
+The other big one was WordPress for every public site. It's not the fastest option and I knew
+that going in, but it's the one a non-technical staff member can update without phoning a
+developer. The maintainability of the *people* using it drove that choice far more than any
+benchmark.
 
 ## What this demonstrates
 
-The project covers the end-to-end setup: DNS, TLS, reverse proxy, file-share permissions,
-remote access, and application hosting. None of these pieces is especially complex in
-isolation; the value is in configuring them together so they interact correctly and stay
-maintainable by someone who was not involved in the original setup.
+End to end, this covers DNS, TLS, the reverse proxy, file-share permissions, remote access and
+application hosting. None of those pieces is hard on its own. The actual skill, and the part I'm
+quietly proud of, is wiring them together so they interact correctly *and* stay maintainable by
+someone who had nothing to do with the original build. That's the difference between a setup that
+works on handover day and one that's still working a year later.
