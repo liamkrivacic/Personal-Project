@@ -232,6 +232,8 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
       visualFrameRef.current = 0;
       if (idleCallbackHandle !== undefined) cancelIdleCallback(idleCallbackHandle);
       if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+      // Remove the cursor script so it re-initialises against the fresh canvas on remount
+      document.getElementById(scriptId)?.remove();
     };
   }, []);
 

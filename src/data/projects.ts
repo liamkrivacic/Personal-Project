@@ -59,6 +59,10 @@ const skillLogos = {
     logo: "/skill-logos/synology.svg",
     logoAlt: "Synology logo for Synology DSM",
   },
+  "Cloud Storage": {
+    logo: "/skill-logos/cloud-storage.svg",
+    logoAlt: "Cloud storage icon",
+  },
   WordPress: {
     logo: "/skill-logos/wordpress.svg",
     logoAlt: "WordPress logo",
@@ -181,7 +185,7 @@ export const projects: Project[] = [
     title: "NAS and Self-Hosted Web Infrastructure",
     signal:
       "Set up Synology NAS infrastructure for redundant cloud file storage, remote access, SSL-backed reverse proxying, and WordPress sites hosted under small-business constraints.",
-    hard: [hardSkill("Synology DSM"), hardSkill("WordPress")],
+    hard: [hardSkill("Cloud Storage"), hardSkill("WordPress")],
     soft: ["Ownership", "Cost awareness", "Operational reliability"],
     img: "/projects/nas-infrastructure.webp",
     imgAlt: "Synology NAS dashboard showing RAID volume status, shared folders, and reverse proxy configuration",
