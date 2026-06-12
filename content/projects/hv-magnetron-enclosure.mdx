@@ -23,16 +23,19 @@ commissioned, validated build.
 ## Circuit design
 
 The goal was roughly 4 kV DC starting from a standard mains input. I chose a voltage-multiplying
-rectifier over a single-stage transformer rectifier because it reaches the target voltage with a
-smaller, lighter transformer, and on a student project that gets carried around a lab, the
-weight and cost of the transformer is a real consideration, not an afterthought.
+rectifier after the high-voltage transformer because it lets a roughly 2 kV transformer secondary
+reach the target DC voltage, instead of needing the transformer alone to supply the full 4 kV.
+On a student project that gets carried around a lab, the weight and cost of the transformer is a
+real consideration, not an afterthought.
 
 ### The voltage doubler
 
-I started with a half-wave voltage doubler. On one half-cycle the first capacitor charges to the
-mains peak; on the opposite half-cycle the second capacitor charges to twice that peak. From a
-240 V RMS supply the peak is about 340 V, so the bare doubler aims for around 680 V, and a step-up
-transformer ahead of it scales that into the kilovolt range.
+I started by modelling the post-transformer side of the supply as a 2 kV peak AC source in
+LTspice. In other words, the schematic begins after the step-up transformer; the mains input and
+transformer are upstream of this simulation. The first circuit was a half-wave voltage doubler:
+on one half-cycle the capacitor charges from the transformer secondary, and on the opposite
+half-cycle the stored capacitor voltage stacks with the source, pushing the output toward roughly
+twice the 2 kV peak before load, diode drop, and ripple are accounted for.
 
 Before I committed to any component values, I modelled the charge and discharge behaviour in
 LTspice, since it's much cheaper to be wrong in a simulator than with a charged capacitor bank in
@@ -40,25 +43,27 @@ front of you:
 
 <Figure
   src="/projects/hv-magnetron-enclosure/psu-halfwave-ltspice.png"
-  alt="LTspice schematic of the half-wave voltage doubler circuit showing capacitor C2, diode D1, load resistor R4, and the AC source driving the charge-pump cycle"
-  caption="LTspice model of the half-wave voltage doubler. C2 charges on the negative half-cycle through D1; on the positive half-cycle the source voltage and C2 add in series, driving the output to approximately twice the peak input. R4 represents the magnetron load."
+  alt="LTspice schematic of the post-transformer half-wave voltage doubler showing a 2 kV peak AC source, capacitor C2, diode D1, and load resistor R4"
+  caption="LTspice model of the post-transformer half-wave voltage doubler. The 2 kV peak AC source represents the high-voltage transformer secondary; C2 charges on one half-cycle and then stacks with the source on the other, so the output approaches twice the secondary peak under light load."
   width={702}
   height={354}
   wide
 />
 
-### Full-wave rectifier
+### Full-wave voltage doubler
 
 The half-wave doubler works, but its ripple is heavier than I wanted and it draws current in
-lumps. So I extended the design to a full-wave topology: two diodes conduct on alternate
-half-cycles, each charging its own capacitor, and the output rail is the series stack of the two.
-The simulation showed exactly what I was after: lower ripple and a faster charge than the
-half-wave case at the same filter capacitance:
+lumps. So the second circuit I modelled was a full-wave voltage doubler. It still starts from the
+same 2 kV peak transformer-secondary model, but now two diodes conduct on alternate half-cycles,
+each charging its own capacitor. The output is taken from the stacked capacitor voltage, which
+gives a more continuous charge path than the half-wave circuit. The simulation showed exactly
+what I was after: lower ripple and a faster charge than the half-wave case at the same filter
+capacitance:
 
 <Figure
   src="/projects/hv-magnetron-enclosure/psu-fullwave-ltspice.png"
-  alt="LTspice schematic of the full-wave rectifier showing capacitors C1 and C3, diodes D2 and D3, and load resistor R3 forming a voltage-multiplying full-wave bridge"
-  caption="LTspice model of the full-wave rectifier. D2 and D3 conduct on alternate half-cycles, charging C1 and C3 respectively. The output stack (C1 + C3 in series) delivers lower ripple than the half-wave design at the same filter capacitance."
+  alt="LTspice schematic of the post-transformer full-wave voltage doubler showing capacitors C1 and C3, diodes D2 and D3, and a 2 kV peak AC source"
+  caption="LTspice model of the post-transformer full-wave voltage doubler. D2 and D3 conduct on alternate half-cycles, charging C1 and C3 respectively, so the output stack delivers lower ripple than the half-wave design at the same filter capacitance."
   width={915}
   height={411}
   wide

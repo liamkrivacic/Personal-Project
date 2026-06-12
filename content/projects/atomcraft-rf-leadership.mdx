@@ -4,75 +4,54 @@ title: Leading the RF Team on a Student Fusion Project
 summary: As RF Engineer and Team Lead on AtomCraft's 2.45 GHz microwave heating system, I owned the technical design of the magnetron-to-plasma chain and led a 9-person cross-disciplinary team across HFSS simulation, power monitoring, impedance matching, and high-power RF safety compliance.
 heroImage: /projects/atomcraft-rf-leadership.webp
 date: 2025-09
-status: draft
+status: published
 ---
 
-AtomCraft is a student engineering project chasing something genuinely hard: injecting
-kilowatt-level microwave power into a plasma test vessel. The RF system, the whole chain of
-components between the magnetron and the vessel, is the highest-risk, highest-complexity part of
-that, and it's the part I was responsible for. As RF Engineer and RF Team Lead I owned the
-technical design of that chain and led the team that built it, which meant I was on the hook both
-for the physics being right and for nine other people being able to make progress.
+AtomCraft is a student engineering project building a kilowatt-level microwave heating system for
+a plasma test vessel. The RF chain — everything between the magnetron and the vessel — is the
+highest-risk part of the build, and it's what I was responsible for. As RF Engineer and RF Team
+Lead I owned the technical design and led the nine-person team that executed it.
 
 <Callout title="Team scope">
 Led a **9-person cross-disciplinary RF team** across simulation, power monitoring, impedance
-matching, safety compliance, and experiment planning. This page is about the design and
-coordination work; the system is still moving toward final commissioning.
+matching, safety compliance, and experiment planning. The system is moving toward final
+commissioning.
 </Callout>
 
-## The RF transmission line
+## The transmission line
 
-The system runs at 2.45 GHz in WR340 waveguide, the same ISM-band frequency used in
-industrial microwave heating. The transmission line connects the magnetron to the plasma
-vessel through a chain of functional components:
+The system runs at 2.45 GHz in WR340 waveguide. The line connects the magnetron to the plasma
+vessel through:
 
 **Magnetron → waveguide adaptor → isolator / dummy load → directional coupler → three-stub
 tuner → RF port window → vessel**
 
-Every component in that chain earns its place. The isolator shields the magnetron from reflected
-power when the plasma load is mismatched. The directional coupler samples forward and reflected
-power so we can actually see what the line is doing. The three-stub tuner re-matches the line as
-the plasma load drifts. And the RF port window seals the vacuum vessel while still letting the
-microwave power through. Part of leading the team was being able to hold all of these in my head
-at once and see how a change in one rippled into the next.
+Each component earns its place: the isolator shields the magnetron from reflected power, the
+coupler samples forward and reflected power, the stub tuner re-matches the line as the plasma
+load drifts, and the RF window seals the vacuum vessel while passing the microwave power through.
 
-## My role across the chain
+## What I did
 
-For me, owning the design meant understanding every component well enough to review someone
-else's work on it and catch the mistake while it was still a line on a drawing, not a ruined
-piece of aluminium. In practice that looked like:
+- Led HFSS simulation work for the directional coupler, waveguide-to-coax transition, and
+  three-stub tuner (see the individual project pages).
+- Reviewed subsystem designs from team members and coordinated integration across electrical,
+  mechanical, and vacuum engineering subgroups.
+- Wrote safety compliance documentation: exposure limits, interlock requirements, personnel
+  protection procedures, and experiment protocols.
+- Ran weekly team updates, split work into packages, and managed recruitment and onboarding as the
+  team grew.
 
-- Leading the HFSS simulation work for the directional coupler, waveguide-to-coax transition,
-  and three-stub tuner (see the individual project pages for detail on each).
-- Reviewing subsystem designs from other team members and coordinating integration between
-  electrical, mechanical, and vacuum engineering subgroups.
-- Writing and reviewing safety compliance documentation for high-power microwave operation:
-  exposure limits, interlock requirements, personnel protection procedures, and experiment
-  protocols.
-- Running weekly team updates, splitting work into packages, and managing recruitment and
-  onboarding as the team grew.
+## Safety
 
-## Safety and compliance
+High-power 2.45 GHz work carries a real RF exposure risk. Writing the compliance docs forced me
+to treat safety as a design input, not an afterthought: the requirements decided where components
+could go, which panels had to be interlocked, and what the experiment startup sequence had to be.
 
-High-power microwave work at 2.45 GHz comes with a real RF exposure risk, and managing it was on
-me. I wrote compliance documentation covering the exposure standards that applied, the physical
-barriers and interlocks needed at each power level, the procedures for operating safely and for
-re-entering the space after a fault, and who on the team was responsible for what.
+## What I took away
 
-I came to see this as some of the most genuinely useful work I did, not box-ticking. The safety
-requirements were a design input: they decided where components could physically go, which
-access panels had to be interlocked, and what order the experiment startup sequence had to run in.
-Writing the rules forced clarity on the design.
-
-## What the role demonstrated
-
-What I took away is that leading a technical project is a different skill from being a strong
-individual contributor, and I had to learn it the real way. The hard part isn't any one
-calculation; it's keeping the design coherent across subsystems *and* across people: making sure
-a decision in the electrical group doesn't quietly break something in the vacuum group, breaking
-work into pieces at the right size, and giving people enough context to run without me hovering
-over them.
-
-AtomCraft is where I learned that under actual constraints rather than in a tidy assignment: a
-multi-year, multi-person project with real hardware, real safety obligations, and a real target
-to hit. It's the experience I'd most want to be judged on.
+Leading a technical team is a different skill from being a strong individual contributor.
+The hard part is keeping the design coherent across subsystems and across people: catching a
+decision in the electrical group before it breaks something in the vacuum group, sizing work
+packages right, and giving people enough context to run without me over their shoulder. AtomCraft
+is where I learned that under real constraints — multi-year, multi-person, real hardware, real
+safety obligations.

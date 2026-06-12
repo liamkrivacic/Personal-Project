@@ -59,6 +59,16 @@ describe("case studies", () => {
     }
   });
 
+  it("describes the magnetron doubler simulations as post-transformer high-voltage models", () => {
+    const study = getCaseStudy("hv-magnetron-enclosure");
+
+    expect(study?.content).toContain("post-transformer");
+    expect(study?.content).toContain("2 kV peak AC");
+    expect(study?.content).toContain("full-wave voltage doubler");
+    expect(study?.content).not.toContain("240 V RMS supply");
+    expect(study?.content).not.toContain("around 680 V");
+  });
+
   it("points every heroImage at a file that exists in public", () => {
     for (const study of getAllCaseStudies()) {
       const heroPath = join(process.cwd(), "public", study.heroImage.replace(/^\//, ""));

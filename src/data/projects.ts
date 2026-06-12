@@ -23,6 +23,7 @@ export type Project = {
   imagePosition: string;
   imageFit?: "cover" | "contain";
   underConstruction?: boolean;
+  hidden?: boolean;
 };
 
 const skillLogos = {
@@ -210,7 +211,7 @@ export const projects: Project[] = [
     imgAlt: "WordPress website admin panel showing custom child theme, PHP template, and Mailchimp integration settings",
     imagePosition: "center top",
     imageFit: "contain",
-    underConstruction: true,
+    hidden: true,
   },
   {
     id: "atomcraft-rf-leadership",
@@ -228,7 +229,6 @@ export const projects: Project[] = [
     img: "/projects/atomcraft-rf-leadership.webp",
     imgAlt: "AtomCraft 2.45 GHz RF heating system diagram showing team structure, simulation results, and safety documentation",
     imagePosition: "center center",
-    underConstruction: true,
   },
   {
     id: "personal-website-black-hole",
@@ -272,7 +272,7 @@ export const projects: Project[] = [
   },
 ];
 
-export const publicProjects: Project[] = projects.filter((project) => !project.underConstruction);
+export const publicProjects: Project[] = projects.filter((project) => !project.hidden);
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((project) => project.slug === slug);
