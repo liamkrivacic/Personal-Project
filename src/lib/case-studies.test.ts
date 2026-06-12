@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { getAllCaseStudies, getCaseStudy } from "./case-studies";
-import { getProjectBySlug, projects } from "@/data/projects";
+import { getProjectBySlug, projects, publicProjects } from "@/data/projects";
 
 const CONTENT_DIR = join(process.cwd(), "content", "projects");
 
@@ -43,6 +43,19 @@ describe("case studies", () => {
     for (const slug of hiddenProjectSlugs) {
       expect(publicSlugs).not.toContain(slug);
       expect(getCaseStudy(slug), `${slug} should not resolve publicly`).toBeNull();
+    }
+  });
+
+  it("keeps public overview slugs and titles aligned with case-study pages", () => {
+    const publicStudies = getAllCaseStudies();
+    const studiesBySlug = new Map(publicStudies.map((study) => [study.slug, study]));
+
+    expect(publicProjects.map((project) => project.slug)).toEqual(
+      publicStudies.map((study) => study.slug),
+    );
+
+    for (const project of publicProjects) {
+      expect(project.title).toBe(studiesBySlug.get(project.slug)?.title);
     }
   });
 

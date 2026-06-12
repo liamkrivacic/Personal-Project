@@ -106,7 +106,7 @@ export const projects: Project[] = [
     focusLabel: "Electrical Engineering",
     cat: "engineering",
     catLabel: "RF Design",
-    title: "HFSS Directional Coupler and Coax Adapter",
+    title: "Measuring 1 kW of Microwave Power Without Lab-Grade Instruments",
     signal:
       "Designed WR340 RF measurement hardware in ANSYS HFSS, including a cross-guide directional coupler and waveguide-to-coax transition for VNA and spectrum-analyser access.",
     hard: [hardSkill("ANSYS HFSS")],
@@ -124,7 +124,7 @@ export const projects: Project[] = [
     focusLabel: "Software & Computer Science",
     cat: "software",
     catLabel: "RF Software",
-    title: "Automated Stub-Tuner Optimisation",
+    title: "Teaching HFSS to Tune Itself: Automated Three-Stub Matching",
     signal:
       "Used IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search, reducing reflected microwave power across simulated plasma load conditions.",
     hard: [hardSkill("IronPython"), hardSkill("ANSYS HFSS")],
@@ -142,7 +142,7 @@ export const projects: Project[] = [
     focusLabel: "Electrical Engineering",
     cat: "engineering",
     catLabel: "Power Hardware",
-    title: "High-Voltage Magnetron Supply and Enclosure",
+    title: "Designing a 4 kV Magnetron Supply That Won't Kill Anyone",
     signal:
       "Explored a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
     hard: [hardSkill("LTspice"), hardSkill("Fusion 360")],
@@ -220,7 +220,7 @@ export const projects: Project[] = [
     focusLabel: "Electrical Engineering",
     cat: "engineering",
     catLabel: "RF Leadership",
-    title: "AtomCraft RF Heating System Leadership",
+    title: "Leading the RF Team on a Student Fusion Project",
     signal:
       "Led a 9-person RF team on AtomCraft's 2.45 GHz microwave heating system, coordinating simulation, safety, procurement, testing plans, and cross-disciplinary delivery.",
     hard: [hardSkill("ANSYS HFSS"), hardSkill("LTspice"), hardSkill("Fusion 360")],
