@@ -72,11 +72,29 @@ layers:
 - **Layout source tests** read raw component source files and assert structural invariants
   that should never regress regardless of refactoring.
 
+## Working with AI
+
+I built this site with Claude as a collaborator, and it's worth being direct about what that
+looked like, because I think how you use AI says something about how you think about engineering.
+
+The pattern I settled on: a more capable model acts as a project advisor at decision points
+(reviewing architecture, flagging tradeoffs, catching assumptions before they become bugs), while
+cheaper subagents handle bounded, well-defined tasks like searching the codebase, checking for
+regressions, or drafting content. This mirrors how senior engineers work in teams: expensive
+judgment on design decisions, cheaper execution on well-specified work. Getting that split right
+required me to understand the work well enough to spec it accurately, which meant I was always
+the one who had to hold the system-level view.
+
+The result is that I learned this stack faster than I would have otherwise, but the decisions are
+mine. When the shader broke on back-navigation, or the MDX pipeline silently dropped tables, or
+the Vercel alias didn't update automatically: diagnosing those required understanding the
+architecture, not just prompting. The AI made me faster; it didn't make the thinking unnecessary.
+
 ## What this demonstrates
 
 The best part of making my portfolio a real software project is the honesty of the feedback loop:
 if my architecture is good, adding a new case study is trivial; if it's fragile, the test suite
-tells me before a recruiter ever sees it. The MDX case-study system, the typed data layer and the
+tells me before a recruiter ever sees it. The MDX case-study system, the typed data layer, and the
 scroll-animation architecture are the decisions that matter in actual production work, not the
 ones a university rubric asks for. This site is me showing, rather than claiming, that I can
 make those decisions.
