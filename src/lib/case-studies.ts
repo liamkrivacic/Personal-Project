@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
-import { getProjectBySlug } from "@/data/projects";
+import { getProjectBySlug, getPublicProjectBySlug } from "@/data/projects";
 
 export type CaseStudyStatus = "published" | "draft";
 
@@ -31,6 +31,10 @@ export type CaseStudy = {
 };
 
 const CONTENT_DIR = join(process.cwd(), "content", "projects");
+
+type CaseStudyVisibilityOptions = {
+  includeHidden?: boolean;
+};
 
 function validateFrontmatter(data: Record<string, unknown>, file: string): CaseStudyFrontmatter {
   const required = ["slug", "title", "summary", "heroImage", "date", "status"] as const;
@@ -96,7 +100,11 @@ function readCaseStudyFile(slug: string): CaseStudy {
   return { frontmatter, content };
 }
 
-export function getAllCaseStudies(): CaseStudyMeta[] {
+function isPublicCaseStudy(study: Pick<CaseStudyFrontmatter, "slug" | "status">) {
+  return study.status === "published" && Boolean(getPublicProjectBySlug(study.slug));
+}
+
+export function getAllCaseStudies(options: CaseStudyVisibilityOptions = {}): CaseStudyMeta[] {
   if (!existsSync(CONTENT_DIR)) return [];
   const files = readdirSync(CONTENT_DIR).filter((file) => file.endsWith(".mdx"));
 
@@ -107,11 +115,20 @@ export function getAllCaseStudies(): CaseStudyMeta[] {
     return { ...frontmatter, num: project?.num ?? "99" } satisfies CaseStudyMeta;
   });
 
-  return studies.sort((a, b) => a.num.localeCompare(b.num));
+  const visibleStudies = options.includeHidden
+    ? studies
+    : studies.filter((study) => isPublicCaseStudy(study));
+
+  return visibleStudies.sort((a, b) => a.num.localeCompare(b.num));
 }
 
-export function getCaseStudy(slug: string): CaseStudy | null {
+export function getCaseStudy(
+  slug: string,
+  options: CaseStudyVisibilityOptions = {},
+): CaseStudy | null {
   const filePath = join(CONTENT_DIR, `${slug}.mdx`);
   if (!existsSync(filePath)) return null;
-  return readCaseStudyFile(slug);
+  const study = readCaseStudyFile(slug);
+  if (!options.includeHidden && !isPublicCaseStudy(study.frontmatter)) return null;
+  return study;
 }

@@ -18,6 +18,8 @@ type CaseStudyPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getAllCaseStudies().map((study) => ({ slug: study.slug }));
 }

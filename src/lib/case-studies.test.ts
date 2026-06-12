@@ -10,6 +10,12 @@ const mdxFiles = existsSync(CONTENT_DIR)
   ? readdirSync(CONTENT_DIR).filter((file) => file.endsWith(".mdx"))
   : [];
 
+const hiddenProjectSlugs = [
+  "nas-infrastructure",
+  "wordpress-marketing",
+  "atomcraft-rf-leadership",
+];
+
 describe("case studies", () => {
   it("has at least the proving case study seeded", () => {
     expect(mdxFiles).toContain("rf-coupler-coax.mdx");
@@ -18,7 +24,7 @@ describe("case studies", () => {
   it("validates frontmatter for every MDX file and links it to a real project", () => {
     for (const file of mdxFiles) {
       const slug = file.replace(/\.mdx$/, "");
-      const study = getCaseStudy(slug);
+      const study = getCaseStudy(slug, { includeHidden: true });
       expect(study, `${file} should parse`).not.toBeNull();
       const frontmatter = study!.frontmatter;
       expect(getProjectBySlug(frontmatter.slug), `${file} slug exists in projects.ts`).toBeDefined();
@@ -29,6 +35,15 @@ describe("case studies", () => {
   it("keeps case-study slugs unique", () => {
     const slugs = getAllCaseStudies().map((study) => study.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it("keeps draft and under-construction case studies out of public routing", () => {
+    const publicSlugs = getAllCaseStudies().map((study) => study.slug);
+
+    for (const slug of hiddenProjectSlugs) {
+      expect(publicSlugs).not.toContain(slug);
+      expect(getCaseStudy(slug), `${slug} should not resolve publicly`).toBeNull();
+    }
   });
 
   it("points every heroImage at a file that exists in public", () => {

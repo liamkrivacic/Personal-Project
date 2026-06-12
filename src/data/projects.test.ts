@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { projects } from "./projects";
+import * as projectData from "./projects";
+
+const { projects } = projectData;
 
 const approvedHardSkills = new Set([
   "ANSYS HFSS",
@@ -52,6 +54,20 @@ describe("projects data", () => {
       "personal-website-black-hole",
       "visual-arts-portfolio",
     ]);
+  });
+
+  it("exposes only finished projects to the public project list", () => {
+    const publicProjects = (projectData as { publicProjects?: typeof projects }).publicProjects;
+
+    expect(publicProjects?.map((project) => project.id)).toEqual([
+      "hfss-coupler-coax",
+      "stub-tuner-optimisation",
+      "hv-magnetron-supply",
+      "sumobot-winner",
+      "personal-website-black-hole",
+      "visual-arts-portfolio",
+    ]);
+    expect(publicProjects?.some((project) => project.underConstruction)).toBe(false);
   });
 
   it("uses the approved single focus taxonomy", () => {

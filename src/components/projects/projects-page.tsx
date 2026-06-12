@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { projects } from "@/data/projects";
+import { publicProjects as projects } from "@/data/projects";
 import type { ProjectFocus } from "@/data/projects";
 import { projectRowReveal } from "@/lib/project-row-reveal";
 import { SkillPills } from "@/components/skill-pills";

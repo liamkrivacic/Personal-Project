@@ -272,6 +272,12 @@ export const projects: Project[] = [
   },
 ];
 
+export const publicProjects: Project[] = projects.filter((project) => !project.underConstruction);
+
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((project) => project.slug === slug);
+}
+
+export function getPublicProjectBySlug(slug: string): Project | undefined {
+  return publicProjects.find((project) => project.slug === slug);
 }
