@@ -281,49 +281,49 @@ coax-ported version is being built now:
 
 ### VNA characterisation
 
-A simulation is a prediction, not a result, and I wanted to be able to defend the −40 dB number
-rather than just quote it. So the last stage of the design is a plan to measure the built coupler
-against it. The catch: a directional coupler is a four-port device, and a standard VNA only sees
-two ports at a time. The way around it is to terminate the unused ports in matched 50 Ω loads
-and stitch together several two-port measurements until all four port combinations are covered.
+A simulation is a prediction, not a measurement, so the final stage of the design is a plan to
+verify the built coupler against the −40 dB target. A directional coupler is a four-port device
+while a standard VNA measures only two ports at a time, so the unused ports are terminated in
+matched 50 Ω loads and several two-port measurements are combined to cover all four port
+combinations.
 
 #### De-embedding the test fixtures
 
-The harder problem is that I'm not really measuring the coupler on its own: every reading also
-includes the two waveguide-to-coax adapters needed to connect the WR340 ports to the VNA, each
-adding its own loss, phase shift and reflection. I peel those away in two steps:
+Each measurement also includes the two waveguide-to-coax adapters that connect the WR340 ports to
+the VNA, and each adapter adds its own loss, phase shift and reflection. Removing their effect
+takes two steps:
 
-1. **SOLT calibration** (Short, Open, Load, Thru) shifts the VNA reference planes right up to the
-   coax cable ends, removing the cables and connectors.
+1. **SOLT calibration** (Short, Open, Load, Thru) shifts the VNA reference planes to the coax
+   cable ends, removing the cables and connectors.
 2. **De-embedding** removes the two adapters themselves.
 
-The catch is that I can't measure a single adapter directly, because one side of it is waveguide,
-not coax. So I first connect the two adapters back-to-back, coax-to-coax through their WR340
-flanges, and measure that pair. Working in cascade (ABCD) matrices, which multiply when networks
-are chained, the back-to-back measurement is
+A single adapter cannot be measured on its own, since one side of it is waveguide rather than
+coax. Instead, the two adapters are connected back-to-back, coax-to-coax through their WR340
+flanges, and that pair is measured. In cascade (ABCD) matrices, which multiply when networks are
+chained, the back-to-back measurement is
 
 $$
 M_{AB} = M_T \cdot M_T
 $$
 
-where $M_T$ is one adapter. Because the two are identical, a single adapter falls out as the
+where $M_T$ is one adapter. Since the two are identical, a single adapter is recovered as the
 matrix square root:
 
 $$
 M_T = \sqrt{M_{AB}}
 $$
 
-With $M_T$ in hand, I strip the adapters off each coupler measurement by inverting them out. The
-mainline measurement sees an adapter on both ports, $M_{\text{meas}} = M_T \, M_{\text{DUT}} \, M_T$,
+With $M_T$ known, the adapters are removed from each coupler measurement by matrix inversion. The
+mainline measurement has an adapter on both ports, $M_{\text{meas}} = M_T \, M_{\text{DUT}} \, M_T$,
 so the coupler alone is
 
 $$
 M_{\text{DUT}} = M_T^{-1} \, M_{\text{meas}} \, M_T^{-1}
 $$
 
-A coupling or isolation measurement has an adapter on only the driven port, so it drops one of the
-two factors. Converting $M_{\text{DUT}}$ back to S-parameters gives the coupler referenced right at
-its own ports.
+A coupling or isolation measurement has an adapter on only the driven port and drops one of the
+two factors. Converting $M_{\text{DUT}}$ back to S-parameters gives the coupler referenced at its
+own ports.
 
 #### Target parameters
 
