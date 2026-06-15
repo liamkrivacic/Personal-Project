@@ -17,8 +17,8 @@ numbers end up driving the whole machine:
 - **Forward power** is how much energy actually reaches the load. It also lets us compare the
   several waveguide builds we're manufacturing and find the one with the lowest insertion loss.
 - **Reflected power** is how badly the line is mismatched to the plasma. Driving it down with the
-  three-stub tuner is how we impedance-match the load, hold the [standing-wave
-  ratio](/projects/stub-tuner-hfss) low, and keep reflected power out of the magnetron.
+  three-stub tuner is how we impedance-match the load, hold the standing-wave ratio low, and keep
+  reflected power out of the magnetron.
 
 Get those two numbers and the rest of the RF system has something to act on. That's why I treated
 this as a *system* problem from the start rather than a single component in isolation.
@@ -289,25 +289,41 @@ and stitch together several two-port measurements until all four port combinatio
 
 #### De-embedding the test fixtures
 
-The harder problem is that I'm not really measuring the coupler: I'm measuring the coupler plus
-every cable and connector between it and the VNA, each adding its own phase shift and reflection.
-I peel those away in two steps:
+The harder problem is that I'm not really measuring the coupler on its own: every reading also
+includes the two waveguide-to-coax adapters needed to connect the WR340 ports to the VNA, each
+adding its own loss, phase shift and reflection. I peel those away in two steps:
 
 1. **SOLT calibration** (Short, Open, Load, Thru) shifts the VNA reference planes right up to the
-   connector faces, removing the cable and adaptor effects entirely.
-2. **T-parameter de-embedding** removes the test fixtures themselves.
+   coax cable ends, removing the cables and connectors.
+2. **De-embedding** removes the two adapters themselves.
 
-The combined two-port measurement $M_{AB}$ contains the coupler sandwiched between two
-test-fixture response matrices $T_A$ and $T_B$. I work in T-parameters rather than
-S-parameters because they cascade by simple matrix multiplication:
+The catch is that I can't measure a single adapter directly, because one side of it is waveguide,
+not coax. So I first connect the two adapters back-to-back, coax-to-coax through their WR340
+flanges, and measure that pair. Working in cascade (ABCD) matrices, which multiply when networks
+are chained, the back-to-back measurement is
 
 $$
-T_{\text{total}} = T_A \cdot T_{\text{DUT}} \cdot T_B
+M_{AB} = M_T \cdot M_T
 $$
 
-For a symmetric fixture ($T_A = T_B$), the coupler's own response falls out as a matrix
-square root, $M_T = \sqrt{M_{AB}}$, so I can recover the part I actually care about without
-ever measuring the fixtures in isolation.
+where $M_T$ is one adapter. Because the two are identical, a single adapter falls out as the
+matrix square root:
+
+$$
+M_T = \sqrt{M_{AB}}
+$$
+
+With $M_T$ in hand, I strip the adapters off each coupler measurement by inverting them out. The
+mainline measurement sees an adapter on both ports, $M_{\text{meas}} = M_T \, M_{\text{DUT}} \, M_T$,
+so the coupler alone is
+
+$$
+M_{\text{DUT}} = M_T^{-1} \, M_{\text{meas}} \, M_T^{-1}
+$$
+
+A coupling or isolation measurement has an adapter on only the driven port, so it drops one of the
+two factors. Converting $M_{\text{DUT}}$ back to S-parameters gives the coupler referenced right at
+its own ports.
 
 #### Target parameters
 
