@@ -7,25 +7,22 @@ date: 2025-09
 status: published
 ---
 
-I didn't set out to design a directional coupler. I set out to answer a much more annoying
-question: how do you measure a kilowatt of microwave power flowing toward a plasma, and how
-much of it is bouncing back, when you don't have a calibrated slotted line or a lab-grade
-network analyser sitting on the bench? The coupler and the waveguide-to-coax transition on this
-page are what I ended up building, but they're the *answer*, not the starting point. The
-starting point was a pile of papers and a measurement I couldn't yet make.
+I didn't set out to build a directional coupler. The task was to measure a kilowatt of microwave
+power flowing toward a plasma, and the fraction reflected back, with none of the lab-grade
+instruments the textbooks quietly assume: no calibrated slotted line, no precision network
+analyser. The coupler and waveguide-to-coax transition on this page are what that turned into.
 
 AtomCraft's line carries roughly **1 kW at 2.45 GHz** in **WR340 waveguide** from a magnetron
 toward a plasma, and two numbers end up driving the whole machine:
 
-- **Forward power** tells us how much energy is actually reaching the load, and lets us compare
-  the several waveguide builds we are manufacturing to find which has the lowest insertion loss.
-- **Reflected power** tells us how badly the line is mismatched to the plasma. Minimising it with
-  the three-stub tuner is how we impedance-match the load, keep the [standing-wave
-  ratio](/projects/stub-tuner-hfss) low, and protect the magnetron from power reflected back into it.
+- **Forward power** is how much energy actually reaches the load. It also lets us compare the
+  several waveguide builds we're manufacturing and find the one with the lowest insertion loss.
+- **Reflected power** is how badly the line is mismatched to the plasma. Driving it down with the
+  three-stub tuner is how we impedance-match the load, hold the [standing-wave
+  ratio](/projects/stub-tuner-hfss) low, and keep reflected power out of the magnetron.
 
-Get those two numbers and the rest of the RF system has something to act on. That was the whole
-job, and it's why I treated this as a *system* problem from the start rather than a
-component-of-the-week.
+Get those two numbers and the rest of the RF system has something to act on. That's why I treated
+this as a *system* problem from the start rather than a single component in isolation.
 
 <Callout title="Scope of this page">
 This walks through the project in the order I actually did it: **preliminary research** to pick
@@ -83,27 +80,26 @@ The final system architecture is shown below:
 
 ### The design journey
 
-The architecture did not arrive fully formed. It took four revisions, and the most useful one
-came out of getting stuck.
+The architecture didn't arrive fully formed. It took a few iterations, and the most useful one
+came from getting stuck.
 
-- **Setup 1** was the obvious one: a coupler, a coax transition and a tuner in series. It
-  immediately hit a wall I hadn't seen coming: one line can't simultaneously match the plasma
-  *and* the measurement probe. Every time the three-stub tuner moved to track the plasma, it
-  de-tuned my measurement probe and changed the effective coupling factor. The thing I was
-  measuring with kept moving every time I tried to use it.
+- **Setup 1** was the obvious build: a coupler, a coax transition and a tuner in series. It hit a
+  wall I hadn't seen coming. One line can't match the plasma and the measurement probe at once, so
+  every time the three-stub tuner moved to track the plasma, it de-tuned the probe and shifted the
+  coupling factor. The thing I was measuring *with* kept moving every time I tried to use it.
 - **Setups 2–3** were me working the problem from the other side. Instead of chasing a perfect
-  match I'll never hold, I redefined the **coupling factor** as the ratio of waveguide power to
-  the power actually delivered to the detector, folding every mismatch into a single constant I
-  could just measure once. Put **two identical coupler-to-coax stages in series**, read both, and
-  that constant solves out directly. The dedicated measurement tuner I'd been agonising over
-  disappeared entirely.
-- **Setup 4** carried that idea into HFSS, where I could simulate coupling and directivity across
-  the magnetron's emission bandwidth before committing anything to metal.
+  match I'd never hold, I redefined the **coupling factor** as the ratio of waveguide power to the
+  power actually delivered to the detector, folding every mismatch into one constant. On paper,
+  putting **two identical coupler-to-coax stages in series** lets you read both and solve that
+  constant out directly, with no dedicated measurement tuner at all.
+- **Setup 4** carried the thinking into HFSS, and that's where the design actually settled. I
+  didn't build the two-stage version: a single, well-toleranced coupler was simpler, and HFSS let
+  me pin the coupling factor down in simulation, then check it on the bench by VNA. The two-coupler
+  idea still earned its place, because working it through is what told me the *real* constraint was
+  that measurement tuner, and that a tight single coupler made it disappear.
 
-That progression (define the measurement, survey what's actually buildable, get stuck on the
-integration, then design my way around it) is what turned a pile of papers into a concrete
-component spec. The detour through Setup 1 wasn't wasted; it's what told me what the real
-constraint was.
+That progression, define the measurement, survey what's actually buildable, get stuck on the
+integration, then design around it, is what turned a pile of papers into a concrete component spec.
 
 ---
 
@@ -128,11 +124,12 @@ coupler** machined straight into the guide wall. I evaluated three geometries:
 />
 
 Paul Wade's (W1GHZ) work on CNC-machined cross-guide couplers gave me a starting geometry I
-could trust, his three-hole round-aperture design hits 35+ dB directivity in WR-42 and WR-19
-using nothing but a CNC mill, which is precisely the fabrication path AtomCraft has access to.
-The **Moreno cross-guide coupler** puts two X-shaped (or three round) apertures in the common
-wall between two perpendicularly-crossed waveguides, spaced λg/4 apart so the coupled signals
-add in the forward direction and cancel in the reverse:
+could trust: his three-hole round-aperture design reaches 35+ dB directivity in WR-42 and WR-19
+on nothing but a CNC mill, the same fabrication path AtomCraft has. That settled the class. A
+**Moreno cross-guide coupler** places coupling apertures in the common wall between two
+perpendicularly-crossed waveguides, spaced λg/4 apart so the coupled signals add in the forward
+direction and cancel in the reverse. Which aperture shape to cut, round holes or X-slots, was the
+call I left to simulation:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-schematic.png"
@@ -166,17 +163,15 @@ not intuition, was the right tool here:
   wide
 />
 
-The optimiser converged on a geometry with coupling flat at −40 dB and directivity above
-25 dB across the full band. But the result that actually changed my mind was a quieter one:
-some of the best-performing parameter combinations sat on a knife-edge optimum, beautiful in
-simulation, impossible to hold through machining. A coupler that's only perfect at exactly the
-nominal dimensions is useless if the shop floor can't hit those dimensions. That realisation is
-what pushed me toward the Monte Carlo tolerance study, and toward a fundamentally more forgiving
-geometry.
+Starting from Wade's round apertures, the optimiser converged on a geometry with coupling flat
+at −40 dB and directivity above 25 dB across the band. The catch showed up off the nominal point:
+the best round-aperture combinations sat on a knife-edge optimum, sharp in simulation and
+impossible to hold through machining. A coupler that's only in spec at exactly its nominal
+dimensions is no use if the shop floor can't hit them, which pushed me toward both a Monte Carlo
+tolerance study and a more forgiving aperture.
 
-So I moved to the **Moreno X-aperture geometry**, which trades a little peak performance for a
-flatter, far more robust response across the manufacturing tolerance band. The Moreno design in
-HFSS:
+That aperture was the **X-slot**. It trades a little peak performance for a flatter, far more
+robust response across the machining tolerance band, and it became the final geometry:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-hfss-model.png"
@@ -438,13 +433,11 @@ that's linear in dBm across a 50 dB dynamic range, to ±1 dB, on about 150 mW.
 The reason the log-linear part matters is downstream simplicity. Because $V_{\text{out}}$ is
 proportional to $P_{\text{in}}$ in dBm, the Raspberry Pi can read the ADC and convert straight
 to power with one linear equation, no lookup table, no calibration curve baked into firmware.
-The cleverness in the analog part buys simplicity in the embedded part.
 
 Ahead of the AD8317 sits a **15 dB inline attenuator** to drop the coupled power (around
 −10 dBm at 1 kW main-line power with −40 dB coupling) into the IC's sweet spot. The **ADL5330**
 variable attenuator was on the table as an active alternative, but for this job the fixed passive
-part won on simplicity and predictable loss at 2.45 GHz. There was nothing the variable gain
-was going to earn here.
+part won on simplicity and predictable loss at 2.45 GHz.
 
 ### Circuit design
 
