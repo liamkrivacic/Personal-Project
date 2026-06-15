@@ -7,13 +7,12 @@ date: 2025-09
 status: published
 ---
 
-I didn't set out to build a directional coupler. The task was to measure a kilowatt of microwave
-power flowing toward a plasma, and the fraction reflected back, with none of the lab-grade
-instruments the textbooks quietly assume: no calibrated slotted line, no precision network
-analyser. The coupler and waveguide-to-coax transition on this page are what that turned into.
-
-AtomCraft's line carries roughly **1 kW at 2.45 GHz** in **WR340 waveguide** from a magnetron
-toward a plasma, and two numbers end up driving the whole machine:
+AtomCraft is a student engineering project building a kilowatt-level microwave heating system for
+a plasma test vessel. Its RF line carries roughly **1 kW at 2.45 GHz** down **WR340 waveguide**
+from a magnetron toward the plasma, and to run that line safely and tune it, we have to know how
+much power is moving in each direction along it. The catch is measuring that without the
+calibrated slotted lines or precision network analysers a proper RF lab takes for granted. Two
+numbers end up driving the whole machine:
 
 - **Forward power** is how much energy actually reaches the load. It also lets us compare the
   several waveguide builds we're manufacturing and find the one with the lowest insertion loss.
@@ -118,18 +117,20 @@ coupler** machined straight into the guide wall. I evaluated three geometries:
 <Figure
   src="/projects/rf-coupler-coax/coupler-types.png"
   alt="CAD drawings of three waveguide directional coupler types: cross-guide, broadwall, and loop"
-  caption="Three coupler geometries evaluated for WR340 at 2.45 GHz: cross-guide (Moreno), broadwall, and loop coupler."
+  caption="Three coupler geometries evaluated for WR340 at 2.45 GHz: cross-guide, broadwall, and loop coupler."
   width={714}
   height={420}
 />
 
-Paul Wade's (W1GHZ) work on CNC-machined cross-guide couplers gave me a starting geometry I
-could trust: his three-hole round-aperture design reaches 35+ dB directivity in WR-42 and WR-19
-on nothing but a CNC mill, the same fabrication path AtomCraft has. That settled the class. A
-**Moreno cross-guide coupler** places coupling apertures in the common wall between two
-perpendicularly-crossed waveguides, spaced λg/4 apart so the coupled signals add in the forward
-direction and cancel in the reverse. Which aperture shape to cut, round holes or X-slots, was the
-call I left to simulation:
+Of the three, the **cross-guide** geometry had the most to go on. A cross-guide coupler places its
+coupling apertures in the common wall between two perpendicularly-crossed waveguides, spaced λg/4
+apart so the coupled signals add in the forward direction and cancel in the reverse. Paul Wade's
+(W1GHZ) work on CNC-machined cross-guide couplers builds and measures two versions of it: a
+three-hole round-aperture coupler, and an X-slot version known as a **Moreno coupler**. Both are
+machinable on nothing more than a CNC mill, the same fabrication path AtomCraft has, with the
+round-aperture design reaching 35+ dB directivity in WR-42 and WR-19. That left me two proven
+aperture shapes to weigh, round holes or the crossed slots of a Moreno, and I handed the choice to
+simulation:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-schematic.png"
