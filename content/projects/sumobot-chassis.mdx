@@ -8,13 +8,13 @@ status: published
 ---
 
 UNSW SumoBots is exactly what it sounds like: autonomous robots shoving each other around a
-white-bordered ring, last one inside the line wins. Simple to describe, surprisingly hard to do
-well: your robot has to find the opponent, commit to a push, and *not* drive itself out of the
-ring in the process, all with no human input once the match starts. The advanced stream runs more
-capable hardware and gives you enough room to actually have a strategy.
+white-bordered ring, last one inside the line wins. It's harder than it sounds, because your robot
+has to find the opponent, commit to a push, and *not* drive itself out of the ring in the process,
+all with no human input once the match starts. The advanced stream runs more capable hardware and
+gives you enough room to actually have a strategy.
 
-I won the advanced stream in August 2024, and most of why I won had nothing to do with the
-single match and everything to do with the sixteen chassis revisions behind it.
+I won the advanced stream in August 2024, mostly off the back of the sixteen chassis revisions
+that came before it.
 
 <Callout title="Competition result">
 **Advanced stream winner**, UNSW SumoBots, August 2024. The robot ran fully autonomously,
@@ -60,16 +60,15 @@ Key manufacturing decisions:
 
 I gave it three ultrasonic distance sensors covering the forward, front-right and front-left
 arcs. That spread is enough for the robot to spot an opponent and lean its turn toward the
-strongest return, so instead of charging blindly forward, it homes in on a target it can only
-half-see. That homing behaviour is what won most of the matches.
+strongest return, so instead of charging blindly forward it homes in on a target it can only
+half-see. That homing behaviour won most of the matches.
 
 Under the chassis, IR line sensors watch for the white boundary. The moment one trips, the robot
-drops whatever it was doing, runs an escape manoeuvre, and only then goes back to hunting:
-self-preservation overrides aggression, always.
+drops whatever it was doing, runs an escape manoeuvre, and only then goes back to hunting.
 
-I wired the sensors on separate trigger/echo pin pairs (A, B, C) specifically so I could read all
-three in a single loop pass instead of blocking on one ultrasonic ping at a time. In a pushing
-match, a sluggish sensor loop is a lost match.
+I wired the sensors on separate trigger/echo pin pairs (A, B, C) so I could read all three in a
+single loop pass instead of blocking on one ultrasonic ping at a time. A slow sensor loop costs
+you the match.
 
 <Figure
   src="/projects/sumobot-chassis/sumo-internals.png"
@@ -81,9 +80,9 @@ match, a sluggish sensor loop is a lost match.
 
 ## Control logic
 
-The firmware juggles two jobs that are constantly in tension: staying inside the ring
-(safety-critical) and catching the opponent (performance-critical). I hard-coded the priority
-order into the main loop so the robot never has to "decide" which matters more under pressure:
+The firmware juggles two jobs that are constantly in tension: staying inside the ring and catching
+the opponent. I hard-coded the priority order into the main loop so the robot never has to work
+out which matters more mid-match:
 
 1. Read the IR sensor. If the boundary line is detected, reverse then turn away from the
    edge before doing anything else.
@@ -94,8 +93,8 @@ order into the main loop so the robot never has to "decide" which matters more u
 
 That `DISTANCE_TRIGGER` constant, 70 cm in the final firmware, was pure trial and error during
 practice runs. Set it too low and the robot ignores an opponent sitting in its peripheral sensor;
-too high and it starts twitching at the arena walls from the neutral zone. 70 cm was the number
-where it reacted to opponents and not to architecture.
+too high and it starts twitching at the arena walls from the neutral zone. 70 cm was where it
+reacted to opponents and not to the room.
 
 I drive each side's motors independently over PWM, which lets the robot turn gradually by mixing
 forward and stop instead of having to slam into reverse to change heading. The 5-second startup
@@ -104,14 +103,13 @@ freezing the serial monitor I was using to debug.
 
 ## What the build demonstrated
 
-More than anything, SumoBots taught me that this is a systems-integration problem wearing a
-robot costume. The mechanical, electronic and firmware decisions all reach into each other:
-chassis geometry dictates where the sensors can sit, sensor positions dictate the firmware logic,
-and how aggressive that firmware is decides whether the chassis survives a hard hit.
+The main thing SumoBots taught me is how much the mechanical, electronic and firmware decisions
+reach into each other. Chassis geometry dictates where the sensors can sit, sensor positions
+dictate the firmware logic, and how aggressive that firmware is decides whether the chassis
+survives a hard hit.
 
-I didn't win by perfecting any one of those layers in isolation. I won by iterating on all three
-together, revision after revision, until they stopped fighting each other, which is the same way
-the harder engineering I've done since actually gets finished.
+So the work wasn't perfecting any one of those layers. It was iterating on all three together,
+revision after revision, until they stopped fighting each other.
 
 ---
 

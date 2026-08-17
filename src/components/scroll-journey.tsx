@@ -10,7 +10,7 @@ import { projectEntryTiming } from "@/lib/project-entry-timing";
 import { nextVisualScrollY } from "@/lib/visual-scroll-smoothing";
 
 const biography =
-  "UNSW Electrical Engineering and Computer Science student building RF hardware, robotics, infrastructure, and software systems that hold together when the constraints get physical.";
+  "UNSW Electrical Engineering and Computer Science student. I work on RF hardware for a student fusion project, and build robotics, infrastructure and software alongside it.";
 const availability = "Open to internships — 2026/27";
 
 const iframeSrc = "/black-hole-tsbxw3/index.html?v=tsbxw3-8";
@@ -330,7 +330,7 @@ export function ScrollJourney({ showResume }: ScrollJourneyProps) {
             <div className="hero-facts" aria-label="Profile summary">
               <span>UNSW</span>
               <span>RF + robotics</span>
-              <span>Systems-minded builder</span>
+              <span>Hardware + software</span>
             </div>
             <div className="hero-actions" aria-label="Primary actions">
               <a href="mailto:liam.krivacic@gmail.com" className="hero-link primary-link">

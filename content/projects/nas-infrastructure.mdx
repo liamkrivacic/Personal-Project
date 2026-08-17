@@ -8,14 +8,13 @@ status: draft
 ---
 
 Small businesses usually can't justify managed cloud hosting for every service, and they
-definitely can't keep a specialist infrastructure engineer on hand. That sets the real
-constraint for a job like this: whatever I build has to stay up with almost no babysitting, and
-it has to be understandable by whoever walks in after me. "Clever" is a liability here;
-"boringly reliable" is the goal.
+definitely can't keep a specialist infrastructure engineer on hand. That sets the constraint for
+a job like this: whatever I build has to stay up with almost no babysitting, and it has to be
+understandable by whoever walks in after me. Anything clever is a liability.
 
 So for this client I built the whole NAS and hosting stack (redundant file storage, remote
 access for staff, and WordPress hosting) on a single Synology NAS rather than a rented server
-farm, and designed it around exactly that maintainability constraint.
+farm, and designed it around that maintainability constraint.
 
 ## Storage and redundancy
 
@@ -25,8 +24,7 @@ others locked to specific staff roles, with Synology DSM handling the permission
 
 For remote access I used Synology's QuickConnect alongside a VPN configuration, so authorised
 staff get consistent access to shared files from outside the office without ever exposing the NAS
-management interface to the open internet. That last part mattered to me: convenience for staff,
-but not at the cost of putting the admin panel on the public web.
+management interface to the open internet.
 
 ## Hosting and reverse proxy
 
@@ -35,27 +33,25 @@ built-in reverse proxy, which terminates HTTPS with Let's Encrypt certificates a
 traffic to the right virtual host by domain name, so several sites happily share one public IP.
 
 I pointed each domain at the NAS's public IP with DNS at the registrar, and leaned on Let's
-Encrypt's automatic renewal so that SSL just keeps working without anyone having to remember to
-touch it. On a site that's meant to run for years with minimal intervention, "renews itself" is
-worth more than any performance tweak.
+Encrypt's automatic renewal so SSL keeps working without anyone having to remember to touch it.
+On a site meant to run for years with minimal intervention, that's worth more than any performance
+tweak.
 
 ## Design decisions
 
 The decision I thought hardest about was centralising everything on the NAS rather than splitting
 file storage and web hosting across the NAS and a separate hosted VPS. Centralising is cheaper and
 simpler, but it does couple the two: a disk failure during a RAID rebuild would dent both at
-once. I walked the client through that trade-off, and for their workload and risk tolerance it was
-clearly the right call. The point is I made it deliberately, not by default.
+once. I walked the client through that trade-off, and for their workload and risk tolerance
+centralising was the right call.
 
 The other big one was WordPress for every public site. It's not the fastest option and I knew
 that going in, but it's the one a non-technical staff member can update without phoning a
-developer. The maintainability of the *people* using it drove that choice far more than any
-benchmark.
+developer, which mattered more here than any benchmark.
 
 ## What this demonstrates
 
 End to end, this covers DNS, TLS, the reverse proxy, file-share permissions, remote access and
-application hosting. None of those pieces is hard on its own. The actual skill, and the part I'm
-quietly proud of, is wiring them together so they interact correctly *and* stay maintainable by
-someone who had nothing to do with the original build. That's the difference between a setup that
-works on handover day and one that's still working a year later.
+application hosting. None of those pieces is hard on its own. The work was in wiring them together
+so they interact correctly and stay maintainable by someone who had nothing to do with the
+original build, which is what decides whether a setup is still running a year later.

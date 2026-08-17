@@ -8,14 +8,13 @@ status: published
 ---
 
 This portfolio had to do two things that pull in opposite directions. It has to present the work
-clearly, which argues for simplicity, and it has to *be* a piece of work itself, proof of how I
-build software, which argues for ambition and taste. The easy move is to pick one. I wanted to see
-if I could hold both at once, and this site is the result of refusing to choose.
+clearly, which argues for simplicity, and it has to *be* a piece of work itself, which argues for
+something more ambitious. I wanted to see if I could get both.
 
 What came out is a single-page scroll experience that starts as an interactive visual interface
-and resolves into a structured project catalogue, backed by real case-study pages, a typed and
-validated data layer, and a test suite that covers everything from unit behaviour to full
-end-to-end navigation. The page you're reading right now is one of those case studies.
+and resolves into a project catalogue, backed by case-study pages, a typed and validated data
+layer, and a test suite covering everything from unit behaviour to end-to-end navigation. The page
+you're reading is one of those case studies.
 
 ## Architecture
 
@@ -41,15 +40,14 @@ animation logic stays in one place and the browser does the heavy lifting.
 The black hole itself runs in a sandboxed `<iframe>` that I feed scroll progress over
 `postMessage`, and the cursor-lighting effect rides in a separate canvas overlay injected once
 per page load. Keeping them isolated means one can break or get swapped out without taking the
-rest of the page down with it.
+rest of the page with it.
 
 ## WebGL shader
 
 The black hole is a custom WebGL fragment shader I wrote that combines gravitational lensing
 distortion, an accretion disk, and per-frame "heat" that follows the cursor. It lives in
 `public/black-hole-tsbxw3/` as a fully self-contained page, so I can iterate on the shader or
-replace it entirely without rebuilding the main app bundle, the visual centrepiece is
-deliberately the most decoupled thing in the project.
+replace it entirely without rebuilding the main app bundle.
 
 On top of that sits a separate cursor-streamlets layer
 (`public/black-hole-cursor-streamlets/`), a small fluid simulation that chases the pointer. I
@@ -58,8 +56,7 @@ without either knowing the other exists.
 
 ## Testing
 
-I treated this like production code, which to me means it has tests. The suite covers three
-layers:
+I treated this like production code, which means it has tests. The suite covers three layers:
 
 - **Vitest unit tests** verify the data layer (every project has a slug and valid `imgAlt`;
   image files exist), the case-study frontmatter (required fields, valid dates, slug-to-
@@ -74,27 +71,23 @@ layers:
 
 ## Working with AI
 
-I built this site with Claude as a collaborator, and it's worth being direct about what that
-looked like, because I think how you use AI says something about how you think about engineering.
+I built this site with Claude, and I'd rather be upfront about how that worked than leave people
+guessing.
 
-The pattern I settled on: a more capable model acts as a project advisor at decision points
-(reviewing architecture, flagging tradeoffs, catching assumptions before they become bugs), while
-cheaper subagents handle bounded, well-defined tasks like searching the codebase, checking for
-regressions, or drafting content. This mirrors how senior engineers work in teams: expensive
-judgment on design decisions, cheaper execution on well-specified work. Getting that split right
-required me to understand the work well enough to spec it accurately, which meant I was always
-the one who had to hold the system-level view.
+The setup I ended up with was a stronger model acting as an advisor at decision points (reviewing
+architecture, flagging tradeoffs, catching assumptions before they became bugs), and cheaper
+subagents doing bounded work like searching the codebase, checking for regressions, or drafting
+content. Splitting it that way only works if you understand the job well enough to specify it, so
+I was always the one holding the system-level view.
 
-The result is that I learned this stack faster than I would have otherwise, but the decisions are
-mine. When the shader broke on back-navigation, or the MDX pipeline silently dropped tables, or
-the Vercel alias didn't update automatically: diagnosing those required understanding the
-architecture, not just prompting. The AI made me faster; it didn't make the thinking unnecessary.
+I learned this stack a lot faster than I would have otherwise. When the shader broke on
+back-navigation, or the MDX pipeline silently dropped tables, or the Vercel alias didn't update,
+fixing those took understanding the architecture rather than better prompting.
 
 ## What this demonstrates
 
-The best part of making my portfolio a real software project is the honesty of the feedback loop:
-if my architecture is good, adding a new case study is trivial; if it's fragile, the test suite
-tells me before a recruiter ever sees it. The MDX case-study system, the typed data layer, and the
-scroll-animation architecture are the decisions that matter in actual production work, not the
-ones a university rubric asks for. This site is me showing, rather than claiming, that I can
-make those decisions.
+The best part of making my portfolio a real software project is the feedback loop. If the
+architecture is good, adding a new case study is trivial; if it's fragile, the test suite tells me
+before a recruiter ever sees it. The MDX case-study system, the typed data layer and the
+scroll-animation architecture are the kind of decisions that come up in production work rather
+than in a university assignment, and this site is where I've had to actually make them.

@@ -1,7 +1,7 @@
 ---
 slug: stub-tuner-hfss
-title: "Teaching HFSS to Tune Itself: Automated Three-Stub Matching"
-summary: I wrote IronPython that drives ANSYS HFSS as a gradient-descent loop, automatically tuning a three-stub matcher to cancel reflected microwave power across simulated plasma loads on AtomCraft's 2.45 GHz line, in one case dropping the reflection coefficient from 0.88 to 0.25 in 20 unattended steps.
+title: Automating Three-Stub Tuning in HFSS
+summary: An IronPython script that drives ANSYS HFSS as a gradient-descent loop, tuning a three-stub matcher to cancel reflected microwave power across simulated plasma loads on AtomCraft's 2.45 GHz line. In one case it dropped the reflection coefficient from 0.88 to 0.25 in 20 unattended steps.
 heroImage: /projects/stub-tuner-hfss.webp
 date: 2025-09
 status: published
@@ -14,10 +14,9 @@ line impedance on the fly, but it comes with its own problem: there are three st
 and finding the right combination by hand means searching a three-dimensional space one slow
 simulation at a time. Under live conditions that's a non-starter.
 
-So I stopped tuning it by hand and made HFSS do it. This project wraps an IronPython script
-around ANSYS HFSS that turns the simulator into a gradient-descent loop (perturb the stubs,
-watch the reflected power, step downhill, repeat) running completely unattended against a
-simulated plasma load.
+So I stopped tuning it by hand. This project wraps an IronPython script around ANSYS HFSS that
+turns the simulator into a gradient-descent loop (perturb the stubs, watch the reflected power,
+step downhill, repeat) running unattended against a simulated plasma load.
 
 <Callout title="Key result (simulated)">
 In one test case the script pulled the load reflection coefficient from roughly **0.88 down to
@@ -58,11 +57,10 @@ that makes it smaller. No phase measurement anywhere.
 
 I went with the gradient search. Method 1 is elegant on paper, but it leans on accurate phase
 data, and accurate phase means a known reference plane right at the plasma face plus careful
-AD8302 calibration, exactly the kind of thing that's fragile when you eventually move from
-simulation to a real, slightly-wrong installation. The gradient approach only ever needs scalar
-power, so it's simpler to instrument and far more forgiving of cable-length and reference errors.
-The price is more simulation steps per tuning cycle, and for an automated loop I was happy to
-pay it in compute rather than in calibration fragility.
+AD8302 calibration. Both of those get fragile once you move from simulation to a real, slightly
+wrong installation. The gradient approach only ever needs scalar power, so it's simpler to
+instrument and much more forgiving of cable-length and reference errors. The price is more
+simulation steps per tuning cycle, which for an automated loop I was happy to pay.
 
 ## Why a three-stub tuner
 
@@ -75,7 +73,7 @@ tuner can reach any load impedance inside its range.
 It also fit my constraints. A four-probe reflectometer with full phase measurement would have
 needed more instrumentation than AtomCraft had at the design stage, whereas the three-stub
 gradient approach asks for almost nothing: perturb the stubs, read the reflected power, step
-toward the minimum. The hardware stays cheap and the intelligence lives in the loop.
+toward the minimum.
 
 ## The gradient descent algorithm
 
@@ -90,13 +88,12 @@ bones, the loop is:
 5. Repeat until the reflection coefficient falls below a target threshold or the step
    count is reached.
 
-The tuning constant sets how aggressively each step moves, and the most useful thing the
-simulation runs taught me is that overshoot is real. Crank the tuning constant up and the
-algorithm flies past the minimum and starts oscillating around it instead of settling. It's the
-same failure mode anyone who's set a learning rate too high will recognise, except here it's stub
-plungers hunting back and forth instead of a loss curve. That's a real constraint, not a
-footnote: before this loop ever runs on live hardware, the tuning constant has to be calibrated
-to the sensitivity of each load profile, or it'll chase its own tail.
+The tuning constant sets how aggressively each step moves, and the main thing the simulation runs
+taught me is that overshoot is real. Crank the tuning constant up and the algorithm flies past the
+minimum and starts oscillating around it instead of settling, which is the same failure mode as
+setting a learning rate too high, except here it's stub plungers hunting back and forth. So before
+this loop ever runs on live hardware, the tuning constant has to be calibrated to the sensitivity
+of each load profile.
 
 ## The reflected power landscape
 
@@ -118,9 +115,9 @@ gradient has to cross:
 
 That single basin is what makes a gradient approach viable. Because the reflected-power surface
 has one minimum rather than many, steepest descent funnels into the true match instead of stalling
-in a local pocket, which is exactly the behaviour those four tracks show. If the landscape had been
-lumpy with several minima, the whole strategy would have needed rethinking, so confirming the shape
-was a genuine go/no-go check before I committed to building my own loop in HFSS.
+in a local pocket, which is what those four tracks show. If the landscape had been lumpy with
+several minima the whole strategy would have needed rethinking, so confirming the shape was a
+go/no-go check before I committed to building my own loop in HFSS.
 
 ## Convergence on the Smith chart
 
@@ -138,14 +135,12 @@ to the centre, the point where $|\Gamma| = 0$ and the match is perfect:
 />
 
 A clean inward spiral like this one means the step size and tuning constant were well-matched to
-the load. Run the same load with a higher tuning constant and you get the opposite picture: the trajectory
-orbits the centre and oscillates instead of landing on it, which is the overshoot failure made
-visible. Seeing both behaviours side by side is what convinced me the calibration
-step isn't optional.
+the load. Run the same load with a higher tuning constant and the trajectory orbits the centre and
+oscillates instead of landing on it, which is the overshoot failure made visible.
 
 The bigger takeaway for me was that IronPython can turn HFSS from a single-shot solver into an
-active search loop that improves its own design. That's the foundation any future automated
-matching workflow in the AtomCraft RF system would be built on.
+active search loop, which is what any future automated matching workflow in the AtomCraft RF
+system would be built on.
 
 ---
 

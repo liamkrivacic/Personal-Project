@@ -1,7 +1,7 @@
 ---
 slug: hv-magnetron-enclosure
-title: Designing a 4 kV Magnetron Supply That Won't Kill Anyone
-summary: "Circuit, packaging and safety design for AtomCraft's 4 kV magnetron power supply: LTspice modelling of a voltage-multiplying rectifier, an ESP32 interlock controller with 5 kV optical isolation, a Fusion 360 sheet-metal enclosure, and a safety framework where the safe procedure is the path of least resistance."
+title: 4 kV Magnetron Power Supply and Enclosure
+summary: "Circuit, packaging and safety design for AtomCraft's 4 kV magnetron power supply. It covers LTspice modelling of a voltage-multiplying rectifier, an ESP32 interlock controller with 5 kV optical isolation, a Fusion 360 sheet-metal enclosure, and the safety framework around all of it."
 heroImage: /projects/hv-magnetron-enclosure.webp
 date: 2025-09
 status: published
@@ -9,10 +9,9 @@ status: published
 
 A magnetron needs a few kilovolts of DC to sustain the crossed-field electron emission that
 makes microwave power in the first place. For AtomCraft's RF heating system that supply sits
-around 4 kV, and at 4 kV the engineering brief quietly changes. It's no longer just "make the
-voltage"; it's "make the voltage in a box that a tired student can open at 9 pm without dying."
-That framing shaped every decision on this page, which covers the circuit design and simulation,
-the physical packaging, and the safety framework that ties them together.
+around 4 kV, which is enough that the brief stops being "make the voltage" and starts being "make
+the voltage in a box a tired student can open at 9 pm without dying". This page covers the circuit
+design and simulation, the physical packaging, and the safety framework around them.
 
 <Callout title="Design scope">
 To be upfront, this is **simulation and design work**: LTspice circuit exploration, the Fusion
@@ -25,8 +24,8 @@ commissioned, validated build.
 The goal was roughly 4 kV DC starting from a standard mains input. I chose a voltage-multiplying
 rectifier after the high-voltage transformer because it lets a roughly 2 kV transformer secondary
 reach the target DC voltage, instead of needing the transformer alone to supply the full 4 kV.
-On a student project that gets carried around a lab, the weight and cost of the transformer is a
-real consideration, not an afterthought.
+On a student project that gets carried around a lab, the weight and cost of the transformer
+matters.
 
 ### The voltage doubler
 
@@ -87,21 +86,19 @@ capacitance:
   wide
 />
 
-The thing that kept nagging at me through all of this wasn't the voltage itself, it was the
-energy parked in the capacitor bank. At 4 kV those capacitors hold enough stored energy to kill
-someone long after the mains has been switched off and the supply "looks" dead. That single fact
-is the reason the safety framework later treats capacitor discharge as a verified, enforced step
-rather than a polite reminder.
+The thing that kept nagging at me through all of this was the energy parked in the capacitor bank.
+At 4 kV those capacitors hold enough stored energy to kill someone long after the mains has been
+switched off and the supply "looks" dead, which is why the safety framework later treats capacitor
+discharge as a verified, enforced step.
 
 ## RF control circuit
 
 Running a 1 kW magnetron out of a university lab means the operator can't be allowed to talk to
 the high-voltage supply directly: there has to be something in between that refuses to do
 anything dangerous. I led the research that set the architecture for that interlock chain, built
-around an **ESP32-WROOM-32E** as the central commander: it takes operator commands over USB
+around an **ESP32-WROOM-32E** as the central commander. It takes operator commands over USB
 serial, checks the interlock state, and only asserts the high-voltage enable when every condition
-is satisfied. The human asks; the ESP32 decides. A teammate then designed the control-system PCB
-from that research.
+is satisfied. A teammate then designed the control-system PCB from that research.
 
 The rule the design couldn't break is that there's no conductive path between the low-voltage
 control side and the 4 kV rail, anywhere. Every signal that crosses between the two worlds goes
@@ -110,9 +107,8 @@ through an optocoupler, so a fault on the high-voltage side physically cannot cl
 ESP32 or the operator's laptop on the other end of the USB cable.
 
 For the actual switching the architecture uses **solid-state relays** instead of mechanical
-contactors. No moving parts, no contact bounce, and crucially, no spark. A mechanical contactor
-slamming shut on a capacitively-loaded high-voltage rail is an arc waiting to happen, and that's
-the last thing you want inside this box.
+contactors. No moving parts, no contact bounce, and no spark: a mechanical contactor slamming shut
+on a capacitively-loaded high-voltage rail is an arc waiting to happen.
 
 ### I/O summary
 
@@ -126,10 +122,9 @@ the last thing you want inside this box.
 | Temperature | Input | Isolated ADC | Transformer thermal monitor |
 | Serial | I/O | USB (galvanic) | Operator command interface |
 
-Underneath, the ESP32 runs a small state machine with one stubborn rule: HV Enable is asserted
-only while all five interlock inputs are active at once, and the instant any one of them drops the
-enable trips immediately, no matter what the operator just typed. The command is a request,
-never an override.
+Underneath, the ESP32 runs a small state machine with one rule: HV Enable is asserted only while
+all five interlock inputs are active at once, and the instant any one of them drops the enable
+trips immediately, no matter what the operator just typed.
 
 ### Reflected power interlock
 
@@ -145,22 +140,19 @@ low, the ESP32 sees the trip, and HV Enable clears immediately. The magnetron de
 sustained reflected power can heat its output waveguide, damage its internal vanes, or drive RF
 leakage out of a mismatched section of the line.
 
-This closes the loop between the monitoring system and the power supply: the directional coupler
-isn't just a diagnostic tool, it is an active part of the safety chain.
+This closes the loop between the monitoring system and the power supply, so the directional
+coupler ends up being part of the safety chain as well as a diagnostic.
 
 ## Enclosure design in Fusion 360
 
-A circuit only becomes a real instrument once it lives in something you can build, cool and open
-up again. I designed the enclosure in Fusion 360 as a stainless-steel sheet-metal part, complete
-with the flat/net pattern for fabrication, ventilation cutouts sized for the transformer and
-capacitor heat load, a power-entry cutout, and removable access panels for inspection and
-maintenance.
+I designed the enclosure in Fusion 360 as a stainless-steel sheet-metal part, complete with the
+flat/net pattern for fabrication, ventilation cutouts sized for the transformer and capacitor heat
+load, a power-entry cutout, and removable access panels for inspection and maintenance.
 
-Where things sit inside was a deliberate choice, not a packing exercise: transformer at the base
-so the centre of mass is low and the unit is stable, capacitor bank kept away from the
-access-panel side so you're not reaching past stored energy to do routine work, and cabling
-routed clear of hot surfaces and sharp edges. I drew up a parts list alongside it so the thing
-could actually be procured and built, not just admired in CAD.
+Where things sit inside was driven by the safety case: transformer at the base so the centre of
+mass is low and the unit is stable, capacitor bank kept away from the access-panel side so you're
+not reaching past stored energy to do routine work, and cabling routed clear of hot surfaces and
+sharp edges. I drew up a parts list alongside it so it could actually be procured and built.
 
 <Figure
   src="/projects/hv-magnetron-enclosure/enclosure-cad-labeled.png"
@@ -189,9 +181,8 @@ could actually be procured and built, not just admired in CAD.
 
 ## Safety framework
 
-By the time I got here, "safety" wasn't a section I bolted on at the end, it was the thing that
-had been quietly steering the circuit and the enclosure all along. Written out, the full framework
-for the supply covers:
+Most of the decisions above were already safety decisions, so writing the framework out was mostly
+a matter of stating them explicitly. In full, it covers:
 
 - **Mains isolation**: a lockable isolator on the incoming supply, so the cabinet cannot be
   energised while the access panel is open.
@@ -211,8 +202,7 @@ for the supply covers:
 - **Physical barriers**: the enclosure isolates all high-voltage conductors from the
   operator surface; no bare conductors are within reach of a standard access panel opening.
 
-The idea I kept coming back to is that you can't rely on people being careful when they're tired, 
-you have to make the safe path the *easy* path. So the enclosure is laid out so that following
-the procedure is genuinely the lowest-effort way to do anything: every step an operator takes to
-get the cabinet open naturally routes them through a safe state first. Doing it the dangerous way
-is actually more work.
+The idea I kept coming back to is that you can't rely on people being careful when they're tired,
+so the safe path has to also be the easy one. The enclosure is laid out so that every step an
+operator takes to get the cabinet open routes them through a safe state first, and skipping the
+procedure ends up being more work than following it.

@@ -10,7 +10,7 @@ status: published
 AtomCraft is a student engineering project building a kilowatt-level microwave heating system for
 a plasma test vessel. The RF chain — everything between the magnetron and the vessel — is the
 highest-risk part of the build, and it's what I was responsible for. As RF Engineer and RF Team
-Lead I owned the technical design and led the nine-person team that executed it.
+Lead I owned the technical design and ran the nine-person team that built it.
 
 <Callout title="Team scope">
 Led a **9-person cross-disciplinary RF team** across simulation, power monitoring, impedance
@@ -26,9 +26,9 @@ vessel through:
 **Magnetron → waveguide adaptor → isolator / dummy load → directional coupler → three-stub
 tuner → RF port window → Vlasov antenna → vessel**
 
-Each component earns its place: the isolator shields the magnetron from reflected power, the
-coupler samples forward and reflected power, the stub tuner re-matches the line as the plasma
-load drifts, and the RF window seals the vacuum vessel while passing the microwave power through.
+The isolator shields the magnetron from reflected power, the coupler samples forward and reflected
+power, the stub tuner re-matches the line as the plasma load drifts, and the RF window seals the
+vacuum vessel while passing the microwave power through.
 
 ## What I did
 
@@ -43,15 +43,16 @@ load drifts, and the RF window seals the vacuum vessel while passing the microwa
 
 ## Safety
 
-High-power 2.45 GHz work carries a real RF exposure risk. Writing the compliance docs forced me
-to treat safety as a design input, not an afterthought: the requirements decided where components
-could go, which panels had to be interlocked, and what the experiment startup sequence had to be.
+High-power 2.45 GHz work carries a real RF exposure risk. Writing the compliance docs ended up
+driving a lot of the design: the requirements decided where components could go, which panels had
+to be interlocked, and what the experiment startup sequence had to be. There's also an approval
+process before any of our experiments can run, so I've had plenty of practice writing RMFs and
+SWPs.
 
 ## What I took away
 
-Leading a technical team is a different skill from being a strong individual contributor.
-The hard part is keeping the design coherent across subsystems and across people: catching a
-decision in the electrical group before it breaks something in the vacuum group, sizing work
-packages right, and giving people enough context to run without me over their shoulder. AtomCraft
-is where I learned that under real constraints — multi-year, multi-person, real hardware, real
-safety obligations.
+Leading a technical team is a different skill from being a strong individual contributor. The hard
+part is keeping the design coherent across subsystems and across people: catching a decision in
+the electrical group before it breaks something in the vacuum group, sizing work packages right,
+and giving people enough context to run without me over their shoulder. AtomCraft is where I
+learned that, on a multi-year build with real hardware and real safety obligations.

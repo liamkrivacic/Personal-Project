@@ -111,7 +111,7 @@ export const projects: Project[] = [
     focusLabel: "Electrical Engineering",
     cat: "engineering",
     catLabel: "RF Design",
-    title: "Measuring 1 kW of Microwave Power Without Lab-Grade Instruments",
+    title: "RF Power Diagnostic for a 1 kW Microwave Line",
     signal:
       "Designed WR340 RF measurement hardware in ANSYS HFSS, including a cross-guide directional coupler and waveguide-to-coax transition for VNA and spectrum-analyser access.",
     hard: [hardSkill("ANSYS HFSS")],
@@ -129,7 +129,7 @@ export const projects: Project[] = [
     focusLabel: "Software & Computer Science",
     cat: "software",
     catLabel: "RF Software",
-    title: "Teaching HFSS to Tune Itself: Automated Three-Stub Matching",
+    title: "Automating Three-Stub Tuning in HFSS",
     signal:
       "Used IronPython scripting inside ANSYS HFSS to automate a three-stub tuner gradient search, reducing reflected microwave power across simulated plasma load conditions.",
     hard: [hardSkill("IronPython"), hardSkill("ANSYS HFSS")],
@@ -147,9 +147,9 @@ export const projects: Project[] = [
     focusLabel: "Electrical Engineering",
     cat: "engineering",
     catLabel: "Power Hardware",
-    title: "Designing a 4 kV Magnetron Supply That Won't Kill Anyone",
+    title: "4 kV Magnetron Power Supply and Enclosure",
     signal:
-      "Explored a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
+      "Designed a 4 kV magnetron power supply and sheet-metal enclosure, combining LTspice simulation, Fusion 360 packaging, ventilation, access, and high-voltage safety controls.",
     hard: [hardSkill("LTspice"), hardSkill("Fusion 360")],
     soft: ["Risk awareness", "Documentation", "Practical engineering"],
     img: "/projects/hv-magnetron-enclosure.webp",
