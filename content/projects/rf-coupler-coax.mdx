@@ -66,7 +66,7 @@ The final system architecture:
 <Figure
   src="/projects/rf-coupler-coax/system-block-diagram.png"
   alt="System block diagram showing PSU, 40dB directional coupler, three-stub tuner, plasma, waveguide-to-coax transition, attenuator, logarithmic detector IC, ADC, and Raspberry Pi"
-  caption="Final system block diagram: the 40 dB directional coupler taps the forward arm of the line; the coupled port feeds a waveguide-to-coax transition, a 15 dB attenuator, and the logarithmic detector IC whose output is digitised by the Raspberry Pi."
+  caption="Final system block diagram: the 40 dB directional coupler taps the forward arm of the line; the coupled port feeds a waveguide-to-coax transition, a 25 dB attenuator, and the logarithmic detector IC whose output is digitised by the Raspberry Pi."
   width={901}
   height={377}
   wide
@@ -264,7 +264,7 @@ dimensions the simulation assumed.
 />
 
 The coupler has now been manufactured, with the X-apertures cut and both N-type connectors
-mounted. It hasn't been measured on the VNA yet.
+mounted. The waveguide flanges still need to go on, and then it can be measured on the VNA.
 
 <FigureGrid cols={2}>
   <Figure
@@ -461,8 +461,8 @@ insulator, a back-plate short and standard WR340 flanges:
 />
 
 Both transitions have been manufactured. Having two identical ones is what makes the
-back-to-back de-embedding measurement above possible. Like the coupler, they haven't been
-measured on the VNA yet.
+back-to-back de-embedding measurement above possible. Like the coupler, they still need their
+flanges before they can be measured on the VNA.
 
 <FigureGrid cols={2}>
   <Figure
@@ -495,8 +495,9 @@ The log-linear output keeps the software simple. Because $V_{\text{out}}$ is lin
 $P_{\text{in}}$ (dBm), the Raspberry Pi can convert an ADC reading to power with one straight-line
 equation instead of a lookup table.
 
-A **15 dB inline attenuator** sits before the AD8317 to bring the coupled power (around −10 dBm
-at 1 kW main-line power with −40 dB coupling) into the IC's best range. We also considered the
+A **25 dB inline attenuator** sits before the AD8317. At 1 kW (+60 dBm) main-line power, the
+−40 dB coupler outputs about +20 dBm, and the attenuator brings that down to about −5 dBm, inside
+the AD8317's input range. We also considered the
 **ADL5330** variable attenuator, but the fixed passive attenuator was simpler and has predictable
 loss at 2.45 GHz.
 

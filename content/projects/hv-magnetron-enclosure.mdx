@@ -94,6 +94,9 @@ unsafe. I led the research that set the architecture for that interlock chain, b
 interlock state, and only turns on the high-voltage enable when every condition is met. A
 teammate then designed the control-system PCB based on that research.
 
+I'm currently designing a high-voltage op-amp board that measures the supply's output voltage and
+provides isolation between the high-voltage side and mains.
+
 The main rule is that there's no conductive path anywhere between the low-voltage control side
 and the 4 kV rail. Every signal that crosses between them goes through **optical isolation rated
 to 5000 V**. Each interlock input and the enable output goes through an optocoupler, so a fault
@@ -129,8 +132,8 @@ ESP32 interlock chain as **Interlock 4**.
 
 If the plasma load becomes badly mismatched (because the stub tuner hasn't caught up, the vessel
 is outside its expected operating range, or there's a fault on the line), reflected power
-spikes. A threshold comparator on the detector board pulls Interlock 4 low, the ESP32 sees the
-trip, and HV Enable turns off. The magnetron shuts down before sustained reflected power can heat
+spikes. Once it passes a set threshold, Interlock 4 drops, the ESP32 sees the trip, and HV
+Enable turns off. The magnetron shuts down before sustained reflected power can heat
 its output waveguide, damage its internal vanes or cause RF leakage from a mismatched section of
 the line.
 
