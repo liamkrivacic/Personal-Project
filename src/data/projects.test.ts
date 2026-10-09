@@ -12,6 +12,7 @@ const approvedHardSkills = new Set([
   "Arduino",
   "C/C++",
   "Synology DSM",
+  "Cloud Storage",
   "WordPress",
   "PHP",
   "Mailchimp",
@@ -47,12 +48,12 @@ describe("projects data", () => {
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
       "hv-magnetron-supply",
-      "sumobot-winner",
-      "nas-infrastructure",
-      "wordpress-marketing",
       "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",
+      "sumobot-winner",
+      "nas-infrastructure",
+      "wordpress-marketing",
     ]);
   });
 
@@ -63,9 +64,10 @@ describe("projects data", () => {
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
       "hv-magnetron-supply",
-      "sumobot-winner",
+      "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",
+      "sumobot-winner",
     ]);
     expect(publicProjects?.some((project) => project.underConstruction)).toBe(false);
   });

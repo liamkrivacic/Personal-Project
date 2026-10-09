@@ -1,50 +1,47 @@
 ---
 slug: rf-coupler-coax
 title: RF Power Diagnostic for a 1 kW Microwave Line
-summary: "AtomCraft RF's forward/reflected power diagnostic, from the literature survey that picked the architecture through to HFSS-simulated WR340 hardware. It covers a Moreno cross-guide directional coupler, a waveguide-to-coax transition, and a logarithmic-detector PCB, reaching −40 dB coupling and 37 dB directivity in simulation."
+summary: "AtomCraft RF's forward/reflected power diagnostic, from the literature survey that picked the architecture through to WR340 hardware. It covers a Moreno cross-guide directional coupler and waveguide-to-coax transition designed in HFSS (−40 dB coupling, 37 dB directivity in simulation) and now manufactured, plus a redesigned AD8317 detector PCB that has been built and bench-tested."
 heroImage: /projects/rf-coupler-coax.webp
 date: 2025-09
 status: published
 ---
 
 AtomCraft is a student engineering project building a kilowatt-level microwave heating system for
-a plasma test vessel. Its RF line carries roughly **1 kW at 2.45 GHz** down **WR340 waveguide**
-from a magnetron toward the plasma, and to run that line safely and tune it, we have to know how
-much power is moving in each direction along it. The catch is measuring that without the
-calibrated slotted lines or precision network analysers a proper RF lab takes for granted. Two
-numbers end up driving the whole machine:
+a plasma test vessel. The RF line carries roughly **1 kW at 2.45 GHz** down **WR340 waveguide**
+from a magnetron to the plasma. To run that line safely and tune it, we need to know how much
+power is moving in each direction, and we need to measure it without the calibrated slotted lines
+and precision network analysers a proper RF lab would have. There are two numbers we care about:
 
 - **Forward power** is how much energy actually reaches the load. It also lets us compare the
-  several waveguide builds we're manufacturing and find the one with the lowest insertion loss.
-- **Reflected power** is how badly the line is mismatched to the plasma. Driving it down with the
-  three-stub tuner is how we impedance-match the load, hold the standing-wave ratio low, and keep
-  reflected power out of the magnetron.
+  waveguide sections we're manufacturing and pick the one with the lowest insertion loss.
+- **Reflected power** shows how badly the line is mismatched to the plasma. The three-stub tuner
+  uses it to match the load, keep the standing-wave ratio low and keep reflected power out of the
+  magnetron.
 
-Get those two numbers and the rest of the RF system has something to act on.
-
-<Callout title="Scope of this page">
-This walks through the project in the order I actually did it: **preliminary research** to pick
-an architecture, then the **detailed HFSS design** of the directional coupler and the
-waveguide-to-coax transition, and finally the **power measurement PCB** that reads it all out.
-Every performance figure here is a simulation result unless I say otherwise.
+<Callout title="Scope and status">
+This page follows the order I did the project in: **preliminary research** to pick an
+architecture, the **HFSS design** of the directional coupler and waveguide-to-coax transition,
+and the **power measurement PCB** that reads it all out. The coupler and both transitions have
+been manufactured but haven't been measured on a VNA yet, so their performance figures are
+simulation results. The second version of the detector PCB has been built and bench-tested.
 </Callout>
 
-## Preliminary research: finding a buildable architecture
+## Preliminary research
 
-I spent the first stretch of this project just reading: PhD theses from tokamak
-electron-cyclotron resonance heating (ECRH) programs, ion-thruster work, microwave-plasma
-deposition rigs, anything that measured RF power in a plasma system. It was a slightly
-demoralising survey, because almost every method I found quietly assumed instrumentation a
-student team simply doesn't have: calibrated waveguide slotted lines, precision network
-analysers, commercial in-line power meters. The physics was thorough everywhere. What none of
-them covered was how to integrate the measurement into a working diagnostic on a student budget.
+I started by reading PhD theses and papers from tokamak electron-cyclotron resonance heating
+(ECRH) programs, ion-thruster work and microwave-plasma deposition rigs, basically anything that
+measured RF power in a plasma system. Almost every method assumed equipment a student team
+doesn't have: calibrated waveguide slotted lines, precision network analysers or commercial
+in-line power meters. The physics was covered well, but none of them explained how to build the
+measurement into a working diagnostic on a student budget.
 
-The paper that turned it around was a 2024 one by Ferrand, Desangles and Elias: [**Non-intrusive
+The most useful paper was a 2024 one by Ferrand, Desangles and Elias: [**Non-intrusive
 measurements of plasma impedance in an electron-cyclotron resonance thruster**](https://doi.org/10.1063/5.0191658).
-Their method was genuinely buildable. A **dual directional coupler** taps a known fraction of
-the incident and reflected signals, and the VNA recovers the load's full complex reflection
-coefficient from the ratio $b_{\text{REF}}/b_{\text{FWD}}$, without ever interrupting the RF
-system. That became the template for AtomCraft's diagnostic.
+Their method was something we could actually build. A **dual directional coupler** taps a known
+fraction of the incident and reflected signals, and a VNA recovers the load's complex reflection
+coefficient from the ratio $b_{\text{REF}}/b_{\text{FWD}}$ without interrupting the RF system. I
+used it as the template for AtomCraft's diagnostic.
 
 <Figure
   src="/projects/rf-coupler-coax/reference-measurement-setup.png"
@@ -55,16 +52,16 @@ system. That became the template for AtomCraft's diagnostic.
   wide
 />
 
-Working from that reference, the diagnostic resolves into three components:
+Based on that paper, the diagnostic needs three parts:
 
-1. **A directional coupler** that peels off a small known fraction of the power (~40 dB down
+1. **A directional coupler** that takes off a small known fraction of the power (~40 dB down
    from 1 kW) and separates forward and reflected waves into different ports.
 2. **A waveguide-to-coax transition** that gets the sampled power out of the WR340 waveguide
-   and onto standard 50 Ω coaxial cable so it can reach the detector.
-3. **A power measurement PCB** that rectifies the 2.45 GHz coaxial signal into a DC voltage
-   proportional to power using a logarithmic detector IC, read by a Raspberry Pi.
+   and onto 50 Ω coax so it can reach the detector.
+3. **A power measurement PCB** that converts the 2.45 GHz signal into a DC voltage using a
+   logarithmic detector IC, which a Raspberry Pi reads.
 
-The final system architecture is shown below:
+The final system architecture:
 
 <Figure
   src="/projects/rf-coupler-coax/system-block-diagram.png"
@@ -75,39 +72,37 @@ The final system architecture is shown below:
   wide
 />
 
-### The design journey
+### How the architecture changed
 
-The architecture didn't arrive fully formed. It took a few iterations, and the most useful one
-came from getting stuck.
+It took a few iterations to get to that diagram.
 
-- **Setup 1** was the obvious build: a coupler, a coax transition and a tuner in series. It hit a
-  wall I hadn't seen coming. One line can't match the plasma and the measurement probe at once, so
-  every time the three-stub tuner moved to track the plasma, it de-tuned the probe and shifted the
-  coupling factor.
-- **Setups 2–3** were me working the problem from the other side. Instead of chasing a perfect
-  match I'd never hold, I redefined the **coupling factor** as the ratio of waveguide power to the
-  power actually delivered to the detector, folding every mismatch into one constant. On paper,
-  putting **two identical coupler-to-coax stages in series** lets you read both and solve that
-  constant out directly, with no dedicated measurement tuner at all.
-- **Setup 4** carried the thinking into HFSS, and that's where the design settled. I didn't build
-  the two-stage version in the end: a single, well-toleranced coupler was simpler, and HFSS let me
-  pin the coupling factor down in simulation, then check it on the bench by VNA. Working through
-  the two-coupler idea is still what told me the measurement tuner was the real constraint, and
-  that a tight single coupler removed it.
+- **Setup 1** was a coupler, a coax transition and a tuner in series. The problem was that one
+  line can't be matched to the plasma and the measurement probe at the same time. Every time the
+  three-stub tuner moved to follow the plasma, it de-tuned the probe and changed the coupling
+  factor.
+- **Setups 2–3** worked around that. Instead of trying to hold a perfect match, I redefined the
+  **coupling factor** as the ratio of waveguide power to the power actually delivered to the
+  detector, so every mismatch is folded into one constant. With **two identical coupler-to-coax
+  stages in series**, you can read both and solve for that constant directly, without a separate
+  measurement tuner.
+- **Setup 4** moved into HFSS, and that's where the design settled. I didn't build the two-stage
+  version in the end. A single, well-toleranced coupler was simpler, and HFSS let me pin down the
+  coupling factor in simulation, with a VNA check on the bench to follow. Working through the
+  two-coupler idea is what showed me the measurement tuner was the real constraint, and that a
+  tight single coupler removed it.
 
 ---
 
 ## Directional coupler
 
-A directional coupler is a four-port device that samples a fixed fraction of main-line power
-into a secondary port. The property I actually cared about is **directivity**: because of how
-the coupling apertures combine in phase, forward and reflected waves come out of *different*
-ports. That's what lets me read reflected power on its own, which is the signal the three-stub
-tuner needs to drive itself toward minimum reflection.
+A directional coupler is a four-port device that samples a fixed fraction of the main-line power
+into a secondary port. The key property is **directivity**: because of how the coupling
+apertures add in phase, forward and reflected waves come out of different ports. That's what
+lets us read reflected power on its own, which is what the three-stub tuner needs.
 
-At WR340 and kilowatt power my options were narrow. Stripline and ferrite designs would simply
-be destroyed at these power levels, so the only practical class is a **waveguide-aperture
-coupler** machined straight into the guide wall. I evaluated three geometries:
+At WR340 and kilowatt power the options are limited. Stripline and ferrite designs can't handle
+the power, so the only practical type is a **waveguide-aperture coupler** cut into the guide
+wall. I looked at three geometries:
 
 <Figure
   src="/projects/rf-coupler-coax/coupler-types.png"
@@ -117,15 +112,14 @@ coupler** machined straight into the guide wall. I evaluated three geometries:
   height={420}
 />
 
-Of the three, the **cross-guide** geometry had the most to go on. A cross-guide coupler places its
-coupling apertures in the common wall between two perpendicularly-crossed waveguides, spaced λg/4
-apart so the coupled signals add in the forward direction and cancel in the reverse. Paul Wade's
-(W1GHZ) work on CNC-machined cross-guide couplers builds and measures two versions of it: a
-three-hole round-aperture coupler, and an X-slot version known as a **Moreno coupler**. Both are
-machinable on nothing more than a CNC mill, the same fabrication path AtomCraft has, with the
-round-aperture design reaching 35+ dB directivity in WR-42 and WR-19. That left me two proven
-aperture shapes to weigh, round holes or the crossed slots of a Moreno, and I handed the choice to
-simulation:
+The **cross-guide** geometry had the most published work behind it. It puts the coupling
+apertures in the shared wall between two perpendicular waveguides, spaced λg/4 apart so the
+coupled signals add in the forward direction and cancel in the reverse. Paul Wade (W1GHZ) built
+and measured two versions using CNC machining: a three-hole round-aperture coupler, and an X-slot
+version called a **Moreno coupler**. Both can be made on a CNC mill, which is what AtomCraft has
+access to, and the round-aperture design reached 35+ dB directivity in WR-42 and WR-19. That left
+two aperture shapes to choose between, round holes or crossed slots, and I used simulation to
+decide:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-schematic.png"
@@ -138,16 +132,15 @@ simulation:
 ### HFSS simulation
 
 HFSS (High Frequency Structure Simulator) solves Maxwell's equations with the finite element
-method across a 3D model of the coupler, giving me S-parameters at every frequency across the
-band. That let me numerically sweep the geometry (aperture cross-width, arm length, aperture
-separation, probe depth) and hunt for a shape that meets the targets without cutting any
-metal first. What I was chasing: flat −40 dB coupling with more than 25 dB directivity at
-2.45 GHz, and crucially, a design that *stays* there across realistic machining tolerances.
+method over a 3D model of the coupler and gives S-parameters across the band. I used it to sweep
+the geometry (aperture cross-width, arm length, aperture separation and probe depth) to find a
+shape that met the targets before cutting any metal. The targets were flat −40 dB coupling and
+more than 25 dB directivity at 2.45 GHz, and the design had to stay there across realistic
+machining tolerances.
 
-I didn't try values by hand for long. The parameter space is too coupled (move one dimension
-and three others shift), so I drove it with a sequence of search-based and gradient-based
-optimisers instead. The sweep below is representative of what that process was up against, with
-each variable dragging the S-parameter response around:
+The parameters all affect each other, so trying values by hand didn't get far. Instead I ran a
+sequence of search-based and gradient-based optimisers. The sweep below is a typical example of
+how each variable shifts the S-parameter response:
 
 <Figure
   src="/projects/rf-coupler-coax/coupler-bs-sweep.png"
@@ -158,15 +151,14 @@ each variable dragging the S-parameter response around:
   wide
 />
 
-Starting from Wade's round apertures, the optimiser converged on a geometry with coupling flat
-at −40 dB and directivity above 25 dB across the band. The catch showed up off the nominal point:
-the best round-aperture combinations sat on a knife-edge optimum, sharp in simulation and
-impossible to hold through machining. A coupler that's only in spec at exactly its nominal
-dimensions is no use if the shop floor can't hit them, which pushed me toward both a Monte Carlo
-tolerance study and a more forgiving aperture.
+Starting from Wade's round apertures, the optimiser found a geometry with coupling flat at
+−40 dB and directivity above 25 dB across the band. The problem was that the best round-aperture
+designs only worked at exactly their nominal dimensions, and small changes dropped performance
+quickly. The workshop can't hold dimensions that tightly, so I ran a Monte Carlo tolerance study
+and switched to a more forgiving aperture.
 
-That aperture was the **X-slot**. It trades a little peak performance for a flatter, far more
-robust response across the machining tolerance band, and it became the final geometry:
+That aperture was the **X-slot**. It gives up a little peak performance for a flatter response
+across the machining tolerance range, and it became the final geometry:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-hfss-model.png"
@@ -177,9 +169,9 @@ robust response across the machining tolerance band, and it became the final geo
   wide
 />
 
-The final simulated S-parameters show flat −40 dB coupling across the band (S(3,1), red) with
-isolation (S(4,1), green) dipping below −77 dB at 2.45 GHz, giving over 37 dB directivity
-at the design frequency:
+The final simulated S-parameters show flat −40 dB coupling across the band (S(3,1), red), with
+isolation (S(4,1), green) dropping below −77 dB at 2.45 GHz. That gives over 37 dB directivity at
+the design frequency:
 
 <Figure
   src="/projects/rf-coupler-coax/moreno-sparams.png"
@@ -190,9 +182,8 @@ at the design frequency:
   wide
 />
 
-The E-field magnitude at 2.45 GHz confirms the coupling mechanism. Energy in the main
-waveguide couples through the X-apertures into the secondary arm, with both coaxial
-output ports visible at the top:
+The E-field plot at 2.45 GHz shows energy in the main waveguide coupling through the
+X-apertures into the secondary arm, with both coax output ports at the top:
 
 <Figure
   src="/projects/rf-coupler-coax/coupler-efield.png"
@@ -205,9 +196,9 @@ output ports visible at the top:
 
 ### Tolerance analysis
 
-A Monte Carlo study randomised the key machining dimensions (hole size, wall thickness,
+The Monte Carlo study randomised the key machining dimensions (hole size, wall thickness and
 aperture placement) within realistic CNC tolerances and re-ran the simulation 60 times. The
-histograms below show the spread in coupling and isolation at 2.45 GHz:
+histograms show the spread in coupling and isolation at 2.45 GHz:
 
 <FigureGrid cols={2}>
   <Figure
@@ -226,11 +217,10 @@ histograms below show the spread in coupling and isolation at 2.45 GHz:
   />
 </FigureGrid>
 
-Coupling stays tightly controlled (±0.5 dB) because it depends mostly on hole area, which is
-easy to machine accurately. Isolation is the nervous one: it's sensitive to hole placement and
-wall thickness, and it spans a 25 dB range across trials. The number I cared about was the
-worst case, and the worst case still clears 25 dB directivity, which is enough to cleanly
-separate forward from reverse power at the level this diagnostic needs.
+Coupling stays within ±0.5 dB because it mostly depends on hole area, which is easy to machine
+accurately. Isolation varies a lot more, over a 25 dB range, because it's sensitive to hole
+placement and wall thickness. The worst case still gives more than 25 dB directivity, which is
+enough to separate forward and reflected power for this diagnostic.
 
 <Callout title="Headline results (simulated)">
 The final Moreno cross-guide coupler in WR340 achieves **−40 dB coupling** and **≥25 dB
@@ -238,12 +228,12 @@ directivity** across machining tolerances, with **37 dB peak directivity** at 2.
 variation across 60 Monte Carlo trials is ±0.5 dB. These are HFSS simulation results.
 </Callout>
 
-### Physical design and construction
+### Physical design and manufacturing
 
-Once the geometry was locked, I handed it to a mechanical engineering team member who turned it
-into a full CAD model and manufacturing plan for the WR340 coupler. The design uses aluminium
-L-sections and sheet stock, with the X-apertures laser-cut or CNC-milled into the common broad
-wall, then welded and faced. CONN003-W coaxial connectors thread into the top face:
+Once the geometry was fixed, a mechanical engineering team member turned it into a CAD model and
+manufacturing plan. The coupler is made from aluminium L-sections and sheet, with the
+X-apertures laser-cut or CNC-milled into the shared broad wall, then welded and faced.
+CONN003-W coaxial connectors mount on the top face:
 
 <Figure
   src="/projects/rf-coupler-coax/coupler-cad-render.png"
@@ -253,16 +243,16 @@ wall, then welded and faced. CONN003-W coaxial connectors thread into the top fa
   height={1046}
 />
 
-The manufacturing steps trace straight back to the tolerance study: laser-cut or CNC-milled
-X-apertures; a CNC-slotted joint where the two waveguide bodies cross; 11.7 mm connector holes
-drilled to drawing; sheet sections folded and TIG-welded; and the step the Monte Carlo runs told
-me mattered most, milling the weld faces at the aperture region flat to ±0.2 mm, the tolerance
-the simulation said I had to hold to stay inside the coupling spread.
+The manufacturing steps come straight from the tolerance study: laser-cut or CNC-milled
+X-apertures, a CNC-slotted joint where the two waveguide bodies cross, 11.7 mm connector holes
+drilled to the drawing, and sheet sections folded and TIG-welded. The step the Monte Carlo runs
+showed mattered most was milling the weld faces at the aperture region flat to ±0.2 mm, since
+that's the tolerance needed to stay inside the simulated coupling spread.
 
-One thing we worked out with the manufacturer was to run the welds along the centre of each face
-rather than at the corners. A corner weld pulls as it cools and takes the 90° bend with it,
-whereas a centre weld leaves the folded corners intact, so the internal cross-section stays much
-closer to the WR340 dimensions the simulation assumed.
+We also worked out with the manufacturer to run the welds along the centre of each face instead
+of at the corners. A corner weld pulls as it cools and distorts the 90° bend, while a centre weld
+leaves the folded corners alone, so the internal cross-section stays closer to the WR340
+dimensions the simulation assumed.
 
 <Figure
   src="/projects/rf-coupler-coax/coupler-prototype.png"
@@ -273,34 +263,32 @@ closer to the WR340 dimensions the simulation assumed.
   wide
 />
 
-The photos below show it further along: the X-apertures cut into the common wall and the two
-N-type coaxial connectors mounted. The waveguide flanges still have to go on before it can be
-characterised. It's satisfying to see a shape I'd only ever rotated in HFSS turn into actual
-aluminium.
+The coupler has now been manufactured, with the X-apertures cut and both N-type connectors
+mounted. It hasn't been measured on the VNA yet.
 
 <FigureGrid cols={2}>
   <Figure
     src="/projects/rf-coupler-coax/coupler-built-connectors.jpg"
     alt="Manufactured aluminium WR340 cross-guide coupler held in one hand, showing the centre welds along each face and two N-type coaxial connectors mounted on the top face"
     caption="The manufactured coupler. The welds run along the centre of each face rather than the corners, and the two N-type coaxial connectors are mounted on the top."
-    width={1600}
-    height={1200}
+    width={1200}
+    height={1600}
   />
   <Figure
     src="/projects/rf-coupler-coax/coupler-built-apertures.jpg"
     alt="View down the bore of the manufactured WR340 coupler showing the two X-shaped coupling apertures cut into the common broad wall"
-    caption="Looking down the guide at the common broad wall. The two X-shaped apertures set the coupling and the directional cancellation."
-    width={1600}
-    height={1200}
+    caption="Looking down the guide at the shared broad wall. The two X-shaped apertures set the coupling and the directional cancellation."
+    width={1200}
+    height={1600}
   />
 </FigureGrid>
 
-### VNA characterisation
+### VNA characterisation plan
 
-The simulation is a prediction, so the final stage of the design is a plan to verify the built
-coupler against the −40 dB target. A directional coupler is a four-port device while a standard
-VNA measures only two ports at a time, so the unused ports are terminated in matched 50 Ω loads
-and several two-port measurements are combined to cover all four port combinations.
+The simulation is only a prediction, so the next step is to measure the built coupler against
+the −40 dB target. A directional coupler has four ports but a standard VNA measures two at a
+time, so the unused ports are terminated in matched 50 Ω loads and several two-port measurements
+are combined to cover every port pair.
 
 <Figure
   src="/projects/rf-coupler-coax/vna-coupler-under-test.png"
@@ -313,11 +301,11 @@ and several two-port measurements are combined to cover all four port combinatio
 
 #### De-embedding the test fixtures
 
-Those two adapters are part of every measurement, and each one adds its own loss, phase shift and
-reflection. Removing their effect takes two steps.
+The two adapters are part of every measurement, and each one adds its own loss, phase shift and
+reflection. Removing them takes two steps.
 
-**SOLT calibration** (Short, Open, Load, Thru) comes first. It shifts the VNA reference planes out
-to the ends of the coax cables, so the cables and connectors drop out of the measurement:
+**SOLT calibration** (Short, Open, Load, Thru) comes first. It moves the VNA reference planes to
+the ends of the coax cables, so the cables and connectors drop out of the measurement:
 
 <Figure
   src="/projects/rf-coupler-coax/vna-calibration-plane.png"
@@ -328,9 +316,9 @@ to the ends of the coax cables, so the cables and connectors drop out of the mea
   wide
 />
 
-**De-embedding** then removes the adapters. A single adapter can't be measured on its own, because
-one side of it is waveguide rather than coax. Instead the two adapters are joined back-to-back
-through their WR340 flanges and the pair is measured as one two-port network:
+**De-embedding** then removes the adapters. A single adapter can't be measured by itself because
+one side is waveguide, not coax. Instead the two adapters are bolted back-to-back through their
+WR340 flanges and measured as one two-port network:
 
 <Figure
   src="/projects/rf-coupler-coax/vna-adapter-deembed.png"
@@ -348,8 +336,8 @@ $$
 M_{AB} = M_T \cdot M_T
 $$
 
-where $M_T$ is one adapter. Since the two are identical, a single adapter is recovered as the
-matrix square root:
+where $M_T$ is one adapter. Since the two are identical, a single adapter is the matrix square
+root:
 
 $$
 M_T = \sqrt{M_{AB}}
@@ -363,9 +351,9 @@ $$
 M_{\text{DUT}} = M_T^{-1} \, M_{\text{meas}} \, M_T^{-1}
 $$
 
-A coupling or isolation measurement has an adapter on only the driven port and drops one of the
-two factors. Converting $M_{\text{DUT}}$ back to S-parameters gives the coupler referenced at its
-own ports.
+A coupling or isolation measurement only has an adapter on the driven port, so one of the two
+factors drops out. Converting $M_{\text{DUT}}$ back to S-parameters gives the coupler referenced
+at its own ports.
 
 #### Target parameters
 
@@ -378,25 +366,22 @@ The four parameters that define the coupler's performance:
 | S(2,1) | Through-path insertion loss | < 0.1 dB |
 | S(1,1) | Input return loss | < −25 dB |
 
-Lining the measured values up against the HFSS predictions is what closes the loop on the whole
-project. If they land inside the Monte Carlo tolerance bands the simulation model is validated,
-and I then know the coupling factor precisely enough to turn a detector voltage back into
+If the measured values fall inside the Monte Carlo tolerance bands, the simulation model is
+validated, and we know the coupling factor well enough to convert a detector voltage back into
 main-line watts.
 
 ---
 
 ## Waveguide-to-coax transition
 
-The sampled power leaves the coupler's coupled port still trapped in WR340 waveguide,
-propagating as the **TE₁₀** mode, but the attenuator and detector IC downstream speak coax.
-So I needed a transition that converts the waveguide TE₁₀ mode into the **TEM** mode that a
-50 Ω coaxial cable carries.
+The sampled power leaves the coupler's coupled port still in WR340 waveguide, travelling in the
+**TE₁₀** mode, but the attenuator and detector after it use coax. The transition converts the
+waveguide TE₁₀ mode into the **TEM** mode that 50 Ω coax carries.
 
-The geometry I used is a **broad-wall probe**: the coax centre conductor reaches into the
-waveguide through a Teflon insulator in the broad wall. A **back-short**, a short-circuit
-termination sitting behind the probe, bounces the incident wave back so both contributions
-hit the probe tip in phase. Tune the probe depth and the back-short distance together, and the
-coax-port input impedance lands on 50 Ω at 2.45 GHz.
+I used a **broad-wall probe**: the coax centre conductor goes into the waveguide through a Teflon
+insulator in the broad wall. A **back-short** (a short-circuit wall behind the probe) reflects the
+incident wave back so both contributions reach the probe tip in phase. Tuning the probe depth and
+back-short distance together brings the coax-port input impedance to 50 Ω at 2.45 GHz.
 
 <Figure
   src="/projects/rf-coupler-coax/transition-cross-section.png"
@@ -409,12 +394,12 @@ coax-port input impedance lands on 50 Ω at 2.45 GHz.
 
 ### HFSS simulation
 
-I built the HFSS model on the same WR340 dimensions and CONN003-W connector geometry as the
-coupler, so the two pieces would mate cleanly. Then I swept probe depth $d$ and back-short
-length $b_s$ across 2.2–2.7 GHz, targeting S11 < −25 dB with insertion loss < 0.1 dB, and
-narrowed in with three passes: a coarse parametric sweep, a screening search, then a
-quasi-Newton gradient step to polish the design point. The optimised geometry lands S11 below
-−34 dB at 2.45 GHz with S21 flat near 0 dB, comfortably past the target:
+I built the HFSS model with the same WR340 dimensions and CONN003-W connector geometry as the
+coupler so the two parts would mate properly. I swept probe depth $d$ and back-short length
+$b_s$ across 2.2–2.7 GHz, targeting S11 < −25 dB with insertion loss < 0.1 dB, and narrowed it
+down in three passes: a coarse parametric sweep, a screening search, then a quasi-Newton gradient
+step to fine-tune. The optimised geometry gets S11 below −34 dB at 2.45 GHz with S21 flat near
+0 dB:
 
 <Figure
   src="/projects/rf-coupler-coax/transition-sparams.png"
@@ -425,9 +410,8 @@ quasi-Newton gradient step to polish the design point. The optimised geometry la
   wide
 />
 
-The E-field at 2.45 GHz shows the probe efficiently coupling to the TE₁₀ field, with
-high field concentration at the probe tip and the back-short creating the standing-wave
-maximum that maximises coupling:
+The E-field at 2.45 GHz shows the probe coupling to the TE₁₀ field, with the field concentrated
+at the probe tip and the back-short creating a standing-wave maximum at the probe:
 
 <Figure
   src="/projects/rf-coupler-coax/transition-efield.png"
@@ -441,8 +425,8 @@ maximum that maximises coupling:
 ### Tolerance analysis
 
 Same approach as the coupler: I randomised probe depth and back-short within CNC tolerances over
-60 trials. S11 stays between −36 and −28 dB across every trial, clearing the −25 dB threshold even
-in the worst case, and insertion loss wanders by less than 0.006 dB:
+60 trials. S11 stays between −36 and −28 dB in every trial, so it clears the −25 dB target even in
+the worst case, and insertion loss varies by less than 0.006 dB:
 
 <FigureGrid cols={2}>
   <Figure
@@ -461,11 +445,11 @@ in the worst case, and insertion loss wanders by less than 0.006 dB:
   />
 </FigureGrid>
 
-### Physical design
+### Physical design and manufacturing
 
-The transition was drawn as a sub-assembly by a mechanical engineering team member (School
-of Mechanical and Manufacturing Engineering, UNSW). It uses the CONN003-W connector, a
-Teflon probe insulator, a back-plate short circuit, and standard WR340 flanges:
+The transition was drawn as a sub-assembly by a mechanical engineering team member (School of
+Mechanical and Manufacturing Engineering, UNSW). It uses the CONN003-W connector, a Teflon probe
+insulator, a back-plate short and standard WR340 flanges:
 
 <Figure
   src="/projects/rf-coupler-coax/transition-assembly-drawing.png"
@@ -476,55 +460,156 @@ Teflon probe insulator, a back-plate short circuit, and standard WR340 flanges:
   wide
 />
 
+Both transitions have been manufactured. Having two identical ones is what makes the
+back-to-back de-embedding measurement above possible. Like the coupler, they haven't been
+measured on the VNA yet.
+
+<FigureGrid cols={2}>
+  <Figure
+    src="/projects/rf-coupler-coax/transition-built-pair.jpg"
+    alt="Two manufactured aluminium WR340 waveguide-to-coax transitions sitting on a workbench, each with a single N-type connector on the top face"
+    caption="The two manufactured transitions. Each has one N-type connector on the broad wall, with the probe going through into the guide."
+    width={1200}
+    height={1600}
+  />
+  <Figure
+    src="/projects/rf-coupler-coax/transition-built-bore.jpg"
+    alt="End-on view into the open end of the two manufactured waveguide-to-coax transitions on a workbench"
+    caption="The open waveguide ends of both transitions. The back-short closes the other end of each one."
+    width={1200}
+    height={1600}
+  />
+</FigureGrid>
+
 ---
 
 ## Power measurement PCB
 
-At the end of the chain, that coaxial signal still has to become a number a computer can read.
-A Schottky diode rectifier would technically work, but its dynamic range is narrow and it
-drifts with temperature, not what you want feeding a control loop. The part that fit was the
-**AD8317 logarithmic detector IC**: it takes RF from 1 MHz to 10 GHz and puts out a DC voltage
-that's linear in dBm across a 50 dB dynamic range, to ±1 dB, on about 150 mW.
+The last step is turning the coax signal into a number a computer can read. A Schottky diode
+detector would work, but its dynamic range is narrow and it drifts with temperature, which isn't
+good for something feeding a control loop. We used the **AD8317 logarithmic detector IC**
+instead. It works from 1 MHz to 10 GHz and outputs a DC voltage that's linear in dBm across a
+50 dB range, to within ±1 dB.
 
-The reason the log-linear part matters is downstream simplicity. Because $V_{\text{out}}$ is
-proportional to $P_{\text{in}}$ in dBm, the Raspberry Pi can read the ADC and convert straight
-to power with one linear equation, no lookup table, no calibration curve baked into firmware.
+The log-linear output keeps the software simple. Because $V_{\text{out}}$ is linear in
+$P_{\text{in}}$ (dBm), the Raspberry Pi can convert an ADC reading to power with one straight-line
+equation instead of a lookup table.
 
-Ahead of the AD8317 sits a **15 dB inline attenuator** to drop the coupled power (around
-−10 dBm at 1 kW main-line power with −40 dB coupling) into the IC's sweet spot. The **ADL5330**
-variable attenuator was on the table as an active alternative, but for this job the fixed passive
-part won on simplicity and predictable loss at 2.45 GHz.
+A **15 dB inline attenuator** sits before the AD8317 to bring the coupled power (around −10 dBm
+at 1 kW main-line power with −40 dB coupling) into the IC's best range. We also considered the
+**ADL5330** variable attenuator, but the fixed passive attenuator was simpler and has predictable
+loss at 2.45 GHz.
 
-### Circuit design
+### Version 1
 
-A team member turned the detector requirements into the schematic below. The
-AD8317 runs from a 3.3 V supply (VPOS), with a 52.3 Ω input resistor and an 8 kΩ feedback
-resistor setting the output slope and bypass capacitors setting the output bandwidth. SMA female
-50 Ω connectors handle all the RF; VOUT feeds straight to the Raspberry Pi ADC, with an on-board
-3.3 V regulator (VREG) for supply flexibility:
-
-<Figure
-  src="/projects/rf-coupler-coax/pcb-ad8317-schematic.png"
-  alt="KiCad schematic of the AD8317 logarithmic detector circuit showing differential RF input, VPOS supply, VOUT through feedback resistor, and bypass capacitors"
-  caption="AD8317 measurement circuit schematic (designed by a team member). The differential input (INHI/INLO) accepts the attenuated RF signal; VOUT is the log-linear DC power reading."
-  width={485}
-  height={280}
-/>
-
-### PCB layout
-
-The first revision (V1.0, October 2025) was laid out in KiCad: VIN and VOUT SMA connectors at
-opposite ends of the RF trace, a barrel-jack supply (VSUP), the AD8317 and its passive network,
-and test points so we can actually probe it on the bench. It's designed to drop into a shielded
-enclosure, since at −10 dBm the board picking up its own radiated signal would matter:
+The first board (V1.0, October 2025) was designed by a team member in KiCad. It had SMA
+connectors for VIN and VOUT at opposite ends of the RF trace, a barrel-jack supply (VSUP), the
+AD8317 and its passives, and test points for probing on the bench.
 
 <Figure
   src="/projects/rf-coupler-coax/pcb-board-render.png"
   alt="KiCad 3D render of the RF Heating 2025 October V1.0 Power Measurement Board showing AtomCraft logo, VIN and VOUT SMA connectors top and bottom, AD8317 IC, and VSUP barrel jack"
-  caption="KiCad 3D render of Power Measurement Board V1.0 (Oct 2025). VIN (top) and VOUT (bottom) are SMA connectors; VSUP is the DC barrel jack. The board is currently in fabrication."
+  caption="KiCad 3D render of Power Measurement Board V1.0 (Oct 2025). VIN (top) and VOUT (bottom) are SMA connectors; VSUP is the DC barrel jack."
   width={590}
   height={792}
 />
+
+V1 didn't work at all. The routing was wrong: the RF paths weren't laid out as proper
+controlled-impedance lines, and one capacitor was placed in the wrong position in the circuit.
+
+### Version 2
+
+A teammate redesigned the board, building on the V1 design. The
+circuit is the standard AD8317 measurement-mode setup. The RF input is terminated with a 52.3 Ω
+resistor (R1) and AC-coupled into INHI/INLO through two 47 nF capacitors (C1, C2). VSET is tied
+back to VOUT so the chip works as a power detector. R7 (8.2 kΩ) on TADJ sets the temperature
+compensation, close to the 8 kΩ the datasheet recommends around 2.2 GHz. The 3.3 V supply is
+decoupled with 100 nF and 100 pF (C4, C5), and VOUT goes out through a 100 Ω / 10 nF filter
+(R6, CL).
+
+<Figure
+  src="/projects/rf-coupler-coax/pcb-v2-schematic.png"
+  alt="Schematic of the version 2 AD8317 power detector: RF input terminated by a 52.3 ohm resistor and AC-coupled through 47 nF capacitors to INHI and INLO, VSET tied to VOUT, 8.2 kilohm resistor on TADJ, 3.3 V supply decoupling, and a 100 ohm and 10 nF output filter to the VOUT header"
+  caption="V2 schematic. RFin is terminated by R1 and AC-coupled into the differential input; VSET is tied to VOUT for measurement mode; R7 sets the temperature compensation."
+  width={1476}
+  height={1146}
+/>
+
+The main changes from V1 are in the layout:
+
+- **Grounded coplanar waveguide (GCPW) RF input.** The trace from the edge-mount SMA to the chip
+  has ground on both sides and on the layer below. The calculated impedance is 50.61 Ω, which was
+  the closest to 50 Ω the stackup allowed.
+- **Via fences** along both sides of the RF trace, plus via stitching across the whole ground
+  pour, to keep RF noise from coupling in or out.
+- **FR-4 dielectric**, the same as V1. FR-4 has higher loss at high frequency but is still
+  usable up to about 3 GHz, and the board is small enough that the trace loss isn't noticeable.
+  Rogers and Teflon boards from JLCPCB and PCBWay have lower loss, but they cost around AU$140
+  and AU$100, they're limited to 2 layers, and they have other size limits. That wasn't worth it
+  for a trace this short.
+- **No RF shield can** over the chip. My teammate couldn't find a suitable size sold separately,
+  so it's something to add in a future version.
+
+<FigureGrid cols={2}>
+  <Figure
+    src="/projects/rf-coupler-coax/pcb-v2-layout.png"
+    alt="PCB layout of the version 2 detector board showing the grounded coplanar RF input trace from the left edge, the AD8317 in the centre, and a ground pour stitched with a grid of vias"
+    caption="V2 layout. The RF input comes in from the left edge as a grounded coplanar waveguide, and the ground pour is stitched with vias."
+    width={1468}
+    height={1196}
+  />
+  <Figure
+    src="/projects/rf-coupler-coax/pcb-v2-render.png"
+    alt="Rendered view of the version 2 detector board showing the edge-mount SMA pads, the GCPW trace with via fences, the AD8317 and passives, and the 3V3, VOUT and GND header pads"
+    caption="V2 board render, with the via fence along the RF trace and the 3V3, VOUT and GND headers on the right."
+    width={880}
+    height={662}
+  />
+</FigureGrid>
+
+<Figure
+  src="/projects/rf-coupler-coax/pcb-v2-built.jpg"
+  alt="The assembled version 2 AD8317 detector board held between two fingers, about the size of a fingertip, with the edge SMA pads on the left"
+  caption="The assembled V2 board."
+  width={787}
+  height={1400}
+/>
+
+### Bench test
+
+We tested V2 using a **tinySA Ultra** as a signal generator. It output a 2.45 GHz CW signal into
+the board's RF input, and we stepped the level in 10 dB steps while reading VOUT on a bench
+multimeter. The AD8317 output goes down as input power goes up, so a working board should show
+VOUT dropping by about 22 mV for every 1 dB increase.
+
+<Video
+  src="/projects/rf-coupler-coax/pcb-v2-test.mp4"
+  poster="/projects/rf-coupler-coax/pcb-v2-test-poster.jpg"
+  caption="The bench test: the tinySA set to 2.45 GHz at −48.5, −38.5, −28.5 and −18.5 dBm, with VOUT on the multimeter at each step."
+/>
+
+| tinySA output | Measured VOUT | Datasheet typical (2.2 GHz) |
+|---------------|---------------|-----------------------------|
+| −48.5 dBm | 1.281 V | 1.375 V |
+| −38.5 dBm | 1.034 V | 1.155 V |
+| −28.5 dBm | 0.800 V | 0.935 V |
+| −18.5 dBm | 0.655 V | 0.715 V |
+
+The datasheet doesn't list 2.45 GHz, so the comparison line uses the closest specified frequency,
+2.2 GHz, where the typical slope is −22 mV/dB and the intercept is 14 dBm
+($V_{\text{out}} = -0.022\,(P_{\text{in}} - 14)$).
+
+<DetectorChart caption="Measured VOUT against the AD8317 typical transfer function at 2.2 GHz. Hover a point for its values." />
+
+The board works. Between −48.5 and −28.5 dBm the output falls by 24.0 mV/dB on average, close to
+the 22 mV/dB typical slope, so the detector is responding the way it should. The measured
+voltages sit 0.06–0.14 V below the datasheet line. The datasheet intercept is a typical value at
+a different frequency, and the tinySA's output level isn't calibrated, so an offset like this is
+expected. The last step (−28.5 to −18.5 dBm) only dropped 14.5 mV/dB. We haven't worked out yet
+whether that's the board or the tinySA.
+
+For the real system we'll calibrate the board against a known reference source at 2.45 GHz and
+use that line instead of the datasheet numbers.
 
 ---
 
@@ -537,6 +622,8 @@ enclosure, since at −10 dBm the board picking up its own radiated signal would
   [w1ghz.org](https://www.w1ghz.org)
 - P. Wade (W1GHZ), "Rectangular Waveguide to Coax Transition Design," *QEX/ARRL*.
   [w1ghz.org](https://www.w1ghz.org)
+- Analog Devices, "AD8317: 1 MHz to 10 GHz, 55 dB Log Detector/Controller," data sheet.
+  [analog.com](https://www.analog.com/en/products/ad8317.html)
 - Keysight Technologies, "Fundamentals of RF and Microwave Power Measurements," Application
   Note 64-1B.
 - C. R. Valenta and G. D. Durgin, "Harvesting Wireless Power: Survey of Energy-Harvester

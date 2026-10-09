@@ -7,27 +7,27 @@ date: 2024-08
 status: published
 ---
 
-UNSW SumoBots is exactly what it sounds like: autonomous robots shoving each other around a
-white-bordered ring, last one inside the line wins. It's harder than it sounds, because your robot
-has to find the opponent, commit to a push, and *not* drive itself out of the ring in the process,
-all with no human input once the match starts. The advanced stream runs more capable hardware and
-gives you enough room to actually have a strategy.
-
-I won the advanced stream in August 2024, mostly off the back of the sixteen chassis revisions
-that came before it.
+UNSW SumoBots is a competition where autonomous robots try to push each other out of a ring.
+Once the match starts there's no human input, so the robot has to find the opponent, push it,
+and stay inside the white boundary line by itself. I entered the advanced stream, which allows
+more capable hardware, and won it in August 2024. The chassis went through 16 revisions before
+the final version.
 
 <Callout title="Competition result">
-**Advanced stream winner**, UNSW SumoBots, August 2024. The robot ran fully autonomously,
-no remote control, no human input after the start signal.
+**Advanced stream winner**, UNSW SumoBots, August 2024. The robot ran fully autonomously, with no
+remote control and no human input after the start signal.
 </Callout>
+
+Sorry for the image quality on this page. The competition was a while ago and I no longer have
+access to the original files and photos.
 
 ## Mechanical design
 
-I designed the chassis in Fusion 360, and it took 16 revisions to get right. The early ones were
-about nailing the basic layout: a low-profile wedge with just enough floor area to mount three
-ultrasonic sensors at the front *without* letting them poke past the robot's outline, because
-anything sticking out is something an opponent can catch and snap off mid-match. A lot of those
-revisions were me learning that lesson the hard way and tucking things back in.
+I designed the chassis in Fusion 360 over 16 revisions. The early ones were about getting the
+basic layout right: a low wedge with enough floor area to mount three ultrasonic sensors at the
+front without them sticking out past the robot's outline. Anything that sticks out can get
+caught by the opponent and snapped off during a match, and a lot of the revisions were me
+learning that and moving parts back inside the body.
 
 <FigureGrid cols={2}>
   <Figure
@@ -46,70 +46,57 @@ revisions were me learning that lesson the hard way and tucking things back in.
   />
 </FigureGrid>
 
-Key manufacturing decisions:
-- **Laser-cut acrylic** produced the five flat structural panels (floor, two sides, back, roof)
-  with precise tab-and-slot joints for self-fixturing during assembly.
-- **3D printing** handled the sensor bracket at the front: the geometry needed to hold three
-  ultrasonic sensors at specific outward angles, which was too complex for flat sheet work.
-- **Low centre of mass**: the battery and Arduino were positioned as low as possible in the
-  chassis to reduce the risk of the robot tipping backward when pushing hard.
-- **Wedge profile**: the angled front face makes it harder for the opponent to get underneath,
-  which was the most common failure mode observed in earlier competition rounds.
+The main manufacturing decisions were:
+- **Laser-cut acrylic** for the five flat structural panels (floor, two sides, back and roof),
+  with tab-and-slot joints so the panels hold themselves in place during assembly.
+- **3D printing** for the front sensor bracket, which had to hold three ultrasonic sensors at
+  specific outward angles. That shape was too complex to make from flat sheet.
+- **Low centre of mass.** The battery and Arduino sit as low as possible so the robot doesn't tip
+  backwards when pushing hard.
+- **Wedge profile.** The angled front makes it harder for the opponent to get underneath, which
+  was the most common way robots lost in earlier rounds.
 
 ## Electronics and sensors
 
-I gave it three ultrasonic distance sensors covering the forward, front-right and front-left
-arcs. That spread is enough for the robot to spot an opponent and lean its turn toward the
-strongest return, so instead of charging blindly forward it homes in on a target it can only
-half-see. That homing behaviour won most of the matches.
+The robot has three ultrasonic distance sensors covering the front, front-right and front-left.
+With that spread it can see an opponent off to one side and turn toward it, instead of only
+driving straight ahead. That turning behaviour won most of the matches.
 
-Under the chassis, IR line sensors watch for the white boundary. The moment one trips, the robot
-drops whatever it was doing, runs an escape manoeuvre, and only then goes back to hunting.
+IR line sensors underneath watch for the white boundary. When one triggers, the robot stops what
+it's doing, reverses and turns away from the edge, then goes back to searching.
 
-I wired the sensors on separate trigger/echo pin pairs (A, B, C) so I could read all three in a
-single loop pass instead of blocking on one ultrasonic ping at a time. A slow sensor loop costs
-you the match.
-
-<Figure
-  src="/projects/sumobot-chassis/sumo-internals.png"
-  alt="The SumoBot with its top panel removed, showing the Arduino, motor driver, battery, and the ultrasonic and motor wiring packed inside the chassis"
-  caption="The build with the lid off. Everything had to fit inside the wedge profile and sit low: the Arduino, the motor driver, the battery, and the sensor and motor wiring all packed into the floor of the chassis."
-  width={278}
-  height={339}
-/>
+Each sensor has its own trigger/echo pin pair (A, B, C), so all three are read in a single pass
+of the main loop. A slow sensor loop means the robot reacts late, which loses matches.
 
 ## Control logic
 
-The firmware juggles two jobs that are constantly in tension: staying inside the ring and catching
-the opponent. I hard-coded the priority order into the main loop so the robot never has to work
-out which matters more mid-match:
+The firmware has to balance staying inside the ring with going after the opponent. I hard-coded
+the priority order into the main loop so the robot never has to decide which matters more:
 
 1. Read the IR sensor. If the boundary line is detected, reverse then turn away from the
    edge before doing anything else.
 2. Read all three ultrasonic sensors in sequence.
 3. If the front sensor reads an opponent within range, drive forward.
 4. If a side sensor reads an opponent, turn toward the stronger return.
-5. If no opponent is detected, execute a slow rotation search to sweep the arena.
+5. If no opponent is detected, rotate slowly to search the arena.
 
-That `DISTANCE_TRIGGER` constant, 70 cm in the final firmware, was pure trial and error during
-practice runs. Set it too low and the robot ignores an opponent sitting in its peripheral sensor;
-too high and it starts twitching at the arena walls from the neutral zone. 70 cm was where it
-reacted to opponents and not to the room.
+The `DISTANCE_TRIGGER` constant (70 cm in the final firmware) was set by trial and error during
+practice runs. Too low and the robot ignored opponents at the edge of its side sensors' range.
+Too high and it started reacting to the arena walls. At 70 cm it reacted to opponents but not to
+the room.
 
-I drive each side's motors independently over PWM, which lets the robot turn gradually by mixing
-forward and stop instead of having to slam into reverse to change heading. The 5-second startup
-delay runs as a one-shot flag on the first loop pass, so it satisfies the competition rule without
-freezing the serial monitor I was using to debug.
+Each side's motors are driven separately with PWM, so the robot can turn gradually by running one
+side forward and stopping the other instead of reversing to change direction. The competition
+requires a 5-second delay at the start, which runs as a one-shot flag on the first loop pass so it
+doesn't block the serial monitor I used for debugging.
 
-## What the build demonstrated
+## What I learned
 
-The main thing SumoBots taught me is how much the mechanical, electronic and firmware decisions
-reach into each other. Chassis geometry dictates where the sensors can sit, sensor positions
-dictate the firmware logic, and how aggressive that firmware is decides whether the chassis
-survives a hard hit.
-
-So the work wasn't perfecting any one of those layers. It was iterating on all three together,
-revision after revision, until they stopped fighting each other.
+The mechanical, electronics and firmware decisions all depended on each other. The chassis shape
+decided where the sensors could go, the sensor positions decided how the firmware worked, and how
+aggressive the firmware was decided whether the chassis survived a hit. Because of that I ended up
+changing all three together across the revisions, rather than finishing one before moving to the
+next.
 
 ---
 

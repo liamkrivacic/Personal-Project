@@ -13,7 +13,6 @@ const mdxFiles = existsSync(CONTENT_DIR)
 const hiddenProjectSlugs = [
   "nas-infrastructure",
   "wordpress-marketing",
-  "atomcraft-rf-leadership",
 ];
 
 describe("case studies", () => {

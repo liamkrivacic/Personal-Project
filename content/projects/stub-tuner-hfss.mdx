@@ -7,16 +7,16 @@ date: 2025-09
 status: published
 ---
 
-A plasma load won't hold still. Its impedance drifts as the operating conditions change, and a
-fixed-tuned waveguide circuit has no way to follow it: reflected power climbs, efficiency
-falls, and the magnetron starts taking a beating. A three-stub tuner fixes that by adjusting the
-line impedance on the fly, but it comes with its own problem: there are three stub depths to set,
-and finding the right combination by hand means searching a three-dimensional space one slow
-simulation at a time. Under live conditions that's a non-starter.
+A plasma load's impedance changes as the operating conditions change, and a fixed-tuned
+waveguide circuit can't follow it. When the match drifts, reflected power goes up, efficiency
+drops and the magnetron takes more stress. A three-stub tuner fixes this by adjusting the line
+impedance, but it has three stub depths to set, and finding the right combination by hand means
+searching a three-dimensional space one slow simulation at a time. That isn't practical during
+live operation.
 
-So I stopped tuning it by hand. This project wraps an IronPython script around ANSYS HFSS that
-turns the simulator into a gradient-descent loop (perturb the stubs, watch the reflected power,
-step downhill, repeat) running unattended against a simulated plasma load.
+So I automated it. I wrote an IronPython script that runs inside ANSYS HFSS as a gradient-descent
+loop: move the stubs slightly, check the reflected power, step in the direction that lowers it,
+and repeat. It runs unattended against a simulated plasma load.
 
 <Callout title="Key result (simulated)">
 In one test case the script pulled the load reflection coefficient from roughly **0.88 down to
@@ -26,17 +26,16 @@ results, not measurements on a live system.
 
 ## Choosing an approach
 
-Before writing any code I had to decide *what* the loop would actually measure, and I went back
-and forth between two options.
+Before writing any code I had to decide what the loop would measure. There were two options.
 
 **Method 1: phase-based direct computation.** An AD8302 gain/phase detector reads both the
-magnitude *and* phase of the reflected signal relative to the incident wave. With the full
-complex reflection coefficient in hand at every step, you can in principle just *solve* for the
-stub positions from the impedance-transformation equations: no searching, no iteration.
+magnitude and phase of the reflected signal relative to the incident wave. With the full complex
+reflection coefficient at every step, you can solve for the stub positions directly from the
+impedance-transformation equations, without searching or iterating.
 
-**Method 2: gradient search on reflected power only.** A log power detector reads one scalar:
-reflected power. You nudge the stubs, watch which way the power moves, and step in the direction
-that makes it smaller. No phase measurement anywhere.
+**Method 2: gradient search on reflected power only.** A log power detector reads one value,
+reflected power. You move the stubs slightly, see which way the power changes, and step in the
+direction that lowers it. There's no phase measurement.
 
 <FigureGrid cols={2}>
   <Figure
@@ -55,31 +54,48 @@ that makes it smaller. No phase measurement anywhere.
   />
 </FigureGrid>
 
-I went with the gradient search. Method 1 is elegant on paper, but it leans on accurate phase
-data, and accurate phase means a known reference plane right at the plasma face plus careful
-AD8302 calibration. Both of those get fragile once you move from simulation to a real, slightly
-wrong installation. The gradient approach only ever needs scalar power, so it's simpler to
-instrument and much more forgiving of cable-length and reference errors. The price is more
-simulation steps per tuning cycle, which for an automated loop I was happy to pay.
+I went with the gradient search. Method 1 works well on paper, but it needs accurate phase data,
+which means a known reference plane right at the plasma face and careful AD8302 calibration. Both
+are hard to get right on a real installation. The gradient approach only needs power, so it's
+simpler to instrument and much less sensitive to cable-length and reference errors. The downside
+is more simulation steps per tuning cycle, which is fine for an automated loop.
 
 ## Why a three-stub tuner
 
-The three-stub tuner is the standard choice for high-power WR340 because it shrugs off the
-kilowatt power levels that would vaporise a thin-film or ferrite matching network. Each stub is
-just a short-circuit plunger pushed into the broad wall of the waveguide; how far it goes in sets
-the susceptance at that point on the line. Space three of them a quarter-wavelength apart and the
-tuner can reach any load impedance inside its range.
+The three-stub tuner is the standard choice for high-power WR340 because it can handle kilowatt
+power levels that would destroy a thin-film or ferrite matching network. Each stub is a
+short-circuit plunger pushed into the broad wall of the waveguide, and how far it goes in sets the
+susceptance at that point on the line. With three stubs spaced a quarter-wavelength apart, the
+tuner can reach any load impedance within its range.
 
-It also fit my constraints. A four-probe reflectometer with full phase measurement would have
-needed more instrumentation than AtomCraft had at the design stage, whereas the three-stub
-gradient approach asks for almost nothing: perturb the stubs, read the reflected power, step
-toward the minimum.
+It also suited what we had. A four-probe reflectometer with full phase measurement would have
+needed more instrumentation than AtomCraft had at the design stage, while the three-stub gradient
+approach only needs a reflected power reading.
+
+The tuner has since been manufactured. The photos show the three stubs going through the broad
+wall into the guide.
+
+<FigureGrid cols={2}>
+  <Figure
+    src="/projects/stub-tuner-hfss/tuner-built-bore.jpg"
+    alt="End-on view into the manufactured WR340 three-stub tuner, showing a cylindrical stub reaching down from the broad wall into the guide, with three bolts on top"
+    caption="Looking into the manufactured tuner. The stubs come down through the broad wall; the bolts on top set how far each one goes in."
+    width={1200}
+    height={1600}
+  />
+  <Figure
+    src="/projects/stub-tuner-hfss/tuner-built-side.jpg"
+    alt="Side view of the manufactured aluminium three-stub tuner with three stub adjustment bolts along the top"
+    caption="Side view of the tuner, with the three stub adjustment bolts along the top."
+    width={1200}
+    height={1600}
+  />
+</FigureGrid>
 
 ## The gradient descent algorithm
 
-The IronPython script reaches into HFSS through its COM scripting interface, setting stub depths
-and reading reflected-power results back out with nobody touching the mouse. Stripped to its
-bones, the loop is:
+The IronPython script controls HFSS through its COM scripting interface, setting stub depths and
+reading reflected-power results back without any manual input. The loop is:
 
 1. Simulate the current stub configuration and record reflected power.
 2. Perturb each stub depth by a small step and re-simulate.
@@ -88,21 +104,18 @@ bones, the loop is:
 5. Repeat until the reflection coefficient falls below a target threshold or the step
    count is reached.
 
-The tuning constant sets how aggressively each step moves, and the main thing the simulation runs
-taught me is that overshoot is real. Crank the tuning constant up and the algorithm flies past the
-minimum and starts oscillating around it instead of settling, which is the same failure mode as
-setting a learning rate too high, except here it's stub plungers hunting back and forth. So before
-this loop ever runs on live hardware, the tuning constant has to be calibrated to the sensitivity
-of each load profile.
+The tuning constant sets how big each step is. The simulation runs showed that if it's too high,
+the algorithm overshoots the minimum and oscillates around it instead of settling, the same
+problem as a learning rate that's too high. Before this loop runs on real hardware, the tuning
+constant has to be calibrated to the sensitivity of each load profile.
 
 ## The reflected power landscape
 
-Before turning the optimiser loose on the full three-dimensional search, I wanted to understand
-the terrain it would be walking over. The clearest picture of it isn't mine: it's from
-Chtcherbakov and Swart's 1997 automatic three-stub tuner for plasma deposition, which drives the
-stubs by steepest descent on reflected power alone, the same method my script uses. Their measured
-contour map, with real minimization tracks drawn over it, is almost exactly the landscape my own
-gradient has to cross:
+Before running the optimiser on the full three-dimensional search, I wanted to know what the
+reflected-power surface looks like. The clearest picture of it is from Chtcherbakov and Swart's
+1997 automatic three-stub tuner for plasma deposition, which moves the stubs by steepest descent
+on reflected power alone, the same method my script uses. Their measured contour map, with real
+minimisation paths drawn over it, is the same kind of surface my script has to search:
 
 <Figure
   src="/projects/stub-tuner-hfss/gradient-contour-plot.png"
@@ -113,18 +126,17 @@ gradient has to cross:
   wide
 />
 
-That single basin is what makes a gradient approach viable. Because the reflected-power surface
-has one minimum rather than many, steepest descent funnels into the true match instead of stalling
-in a local pocket, which is what those four tracks show. If the landscape had been lumpy with
-several minima the whole strategy would have needed rethinking, so confirming the shape was a
-go/no-go check before I committed to building my own loop in HFSS.
+The single minimum is what makes a gradient approach work. Because the surface has one minimum
+instead of several, steepest descent ends up at the true match instead of getting stuck in a
+local minimum, which is what the four paths show. If there had been several minima I would have
+needed a different approach, so I checked this before building my own loop in HFSS.
 
 ## Convergence on the Smith chart
 
-My favourite way to watch the algorithm work is on a Smith chart, where the load reflection
-coefficient traces a path through the normalised impedance plane as the loop iterates. Starting
-from a badly mismatched load way out at the edge, every tuning step nudges the impedance closer
-to the centre, the point where $|\Gamma| = 0$ and the match is perfect:
+The easiest way to see the algorithm working is on a Smith chart, where the load reflection
+coefficient traces a path through the normalised impedance plane as the loop runs. Starting from
+a badly mismatched load near the edge, each tuning step moves the impedance closer to the centre,
+where $|\Gamma| = 0$ and the match is perfect:
 
 <Figure
   src="/projects/stub-tuner-hfss/smith-chart-300-180i.png"
@@ -134,13 +146,13 @@ to the centre, the point where $|\Gamma| = 0$ and the match is perfect:
   height={505}
 />
 
-A clean inward spiral like this one means the step size and tuning constant were well-matched to
-the load. Run the same load with a higher tuning constant and the trajectory orbits the centre and
-oscillates instead of landing on it, which is the overshoot failure made visible.
+A smooth inward path like this means the step size and tuning constant suit the load. With a
+higher tuning constant on the same load, the path circles the centre and oscillates instead of
+reaching it, which is the overshoot problem described above.
 
-The bigger takeaway for me was that IronPython can turn HFSS from a single-shot solver into an
-active search loop, which is what any future automated matching workflow in the AtomCraft RF
-system would be built on.
+The main thing I learned is that IronPython scripting can turn HFSS from a one-off solver into a
+search loop, and a future automated matching system for AtomCraft would be built on the same
+idea.
 
 ---
 

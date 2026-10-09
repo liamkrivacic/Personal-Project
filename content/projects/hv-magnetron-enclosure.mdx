@@ -7,38 +7,34 @@ date: 2025-09
 status: published
 ---
 
-A magnetron needs a few kilovolts of DC to sustain the crossed-field electron emission that
-makes microwave power in the first place. For AtomCraft's RF heating system that supply sits
-around 4 kV, which is enough that the brief stops being "make the voltage" and starts being "make
-the voltage in a box a tired student can open at 9 pm without dying". This page covers the circuit
-design and simulation, the physical packaging, and the safety framework around them.
+A magnetron needs a few kilovolts of DC to run. For AtomCraft's RF heating system that's around
+4 kV, so the supply had to be safe for students to work on as well as hitting the right voltage.
+This page covers the circuit design and simulation, the enclosure, and the safety procedures.
 
 <Callout title="Design scope">
-To be upfront, this is **simulation and design work**: LTspice circuit exploration, the Fusion
-360 enclosure, and the safety procedure planning. It's the full design of the supply, not a
-commissioned, validated build.
+This is **simulation and design work**: LTspice circuit simulation, the Fusion 360 enclosure and
+the safety procedure planning. It's the full design of the supply, not a commissioned and
+validated build.
 </Callout>
 
 ## Circuit design
 
-The goal was roughly 4 kV DC starting from a standard mains input. I chose a voltage-multiplying
-rectifier after the high-voltage transformer because it lets a roughly 2 kV transformer secondary
-reach the target DC voltage, instead of needing the transformer alone to supply the full 4 kV.
-On a student project that gets carried around a lab, the weight and cost of the transformer
-matters.
+The goal was roughly 4 kV DC from a standard mains input. I used a voltage-multiplying rectifier
+after the high-voltage transformer, which lets a roughly 2 kV transformer secondary reach the
+target voltage instead of needing a transformer that supplies the full 4 kV by itself. On a
+student project that gets moved around a lab, the weight and cost of the transformer matter.
 
 ### The voltage doubler
 
-I started by modelling the post-transformer side of the supply as a 2 kV peak AC source in
-LTspice. In other words, the schematic begins after the step-up transformer; the mains input and
-transformer are upstream of this simulation. The first circuit was a half-wave voltage doubler:
-on one half-cycle the capacitor charges from the transformer secondary, and on the opposite
-half-cycle the stored capacitor voltage stacks with the source, pushing the output toward roughly
-twice the 2 kV peak before load, diode drop, and ripple are accounted for.
+I modelled the post-transformer side of the supply in LTspice as a 2 kV peak AC source, so the
+schematic starts after the step-up transformer and the mains input and transformer aren't part of
+this simulation. The first circuit was a half-wave voltage doubler. On one half-cycle the
+capacitor charges from the transformer secondary, and on the other half-cycle the capacitor
+voltage adds to the source, pushing the output toward roughly twice the 2 kV peak (before load,
+diode drop and ripple).
 
-Before I committed to any component values, I modelled the charge and discharge behaviour in
-LTspice, since it's much cheaper to be wrong in a simulator than with a charged capacitor bank in
-front of you:
+I simulated the charge and discharge behaviour before choosing any component values, since
+mistakes are much cheaper to find in a simulator than on a charged capacitor bank:
 
 <Figure
   src="/projects/hv-magnetron-enclosure/psu-halfwave-ltspice.png"
@@ -52,7 +48,7 @@ front of you:
 <Figure
   src="/projects/hv-magnetron-enclosure/psu-halfwave-waveform.png"
   alt="LTspice transient waveform of the half-wave voltage doubler output node, swinging between approximately +0.4 kV and −4.4 kV at 60 Hz"
-  caption="Transient simulation of the half-wave doubler output node. In steady state the voltage swings between near zero on the positive half-cycle and approximately −4.4 kV on the negative half-cycle — the capacitor's stored charge stacks with the source peak to drive the output to roughly twice the 2 kV secondary voltage."
+  caption="Transient simulation of the half-wave doubler output node. In steady state the voltage swings between near zero on the positive half-cycle and approximately −4.4 kV on the negative half-cycle. The capacitor's stored charge adds to the source peak, driving the output to roughly twice the 2 kV secondary voltage."
   width={988}
   height={253}
   wide
@@ -60,13 +56,12 @@ front of you:
 
 ### Full-wave voltage doubler
 
-The half-wave doubler works, but its ripple is heavier than I wanted and it draws current in
-lumps. So the second circuit I modelled was a full-wave voltage doubler. It still starts from the
-same 2 kV peak transformer-secondary model, but now two diodes conduct on alternate half-cycles,
-each charging its own capacitor. The output is taken from the stacked capacitor voltage, which
-gives a more continuous charge path than the half-wave circuit. The simulation showed exactly
-what I was after: lower ripple and a faster charge than the half-wave case at the same filter
-capacitance:
+The half-wave doubler works, but the ripple was higher than I wanted and it draws current in
+pulses. The second circuit I modelled was a full-wave voltage doubler. It uses the same 2 kV peak
+transformer-secondary model, but two diodes conduct on alternate half-cycles, each charging its
+own capacitor. The output is taken across both capacitors in series, which charges more
+continuously than the half-wave circuit. The simulation showed lower ripple and faster charging
+than the half-wave case with the same filter capacitance:
 
 <Figure
   src="/projects/hv-magnetron-enclosure/psu-fullwave-ltspice.png"
@@ -86,29 +81,28 @@ capacitance:
   wide
 />
 
-The thing that kept nagging at me through all of this was the energy parked in the capacitor bank.
-At 4 kV those capacitors hold enough stored energy to kill someone long after the mains has been
-switched off and the supply "looks" dead, which is why the safety framework later treats capacitor
-discharge as a verified, enforced step.
+The main hazard here is the energy stored in the capacitor bank. At 4 kV the capacitors hold
+enough energy to kill someone long after the mains has been switched off and the supply looks
+dead, which is why the safety framework treats capacitor discharge as a verified, enforced step.
 
 ## RF control circuit
 
-Running a 1 kW magnetron out of a university lab means the operator can't be allowed to talk to
-the high-voltage supply directly: there has to be something in between that refuses to do
-anything dangerous. I led the research that set the architecture for that interlock chain, built
-around an **ESP32-WROOM-32E** as the central commander. It takes operator commands over USB
-serial, checks the interlock state, and only asserts the high-voltage enable when every condition
-is satisfied. A teammate then designed the control-system PCB from that research.
+Running a 1 kW magnetron in a university lab means the operator shouldn't control the
+high-voltage supply directly. There needs to be a controller in between that blocks anything
+unsafe. I led the research that set the architecture for that interlock chain, built around an
+**ESP32-WROOM-32E** as the main controller. It takes operator commands over USB serial, checks the
+interlock state, and only turns on the high-voltage enable when every condition is met. A
+teammate then designed the control-system PCB based on that research.
 
-The rule the design couldn't break is that there's no conductive path between the low-voltage
-control side and the 4 kV rail, anywhere. Every signal that crosses between the two worlds goes
-through **optical isolation rated to 5000 V**: each interlock input and the enable output passes
-through an optocoupler, so a fault on the high-voltage side physically cannot climb back into the
-ESP32 or the operator's laptop on the other end of the USB cable.
+The main rule is that there's no conductive path anywhere between the low-voltage control side
+and the 4 kV rail. Every signal that crosses between them goes through **optical isolation rated
+to 5000 V**. Each interlock input and the enable output goes through an optocoupler, so a fault
+on the high-voltage side can't reach the ESP32 or the operator's laptop on the other end of the
+USB cable.
 
-For the actual switching the architecture uses **solid-state relays** instead of mechanical
-contactors. No moving parts, no contact bounce, and no spark: a mechanical contactor slamming shut
-on a capacitively-loaded high-voltage rail is an arc waiting to happen.
+The switching uses **solid-state relays** instead of mechanical contactors. They have no moving
+parts, no contact bounce and no spark, whereas a mechanical contactor closing onto a capacitively
+loaded high-voltage rail can arc.
 
 ### I/O summary
 
@@ -122,9 +116,9 @@ on a capacitively-loaded high-voltage rail is an arc waiting to happen.
 | Temperature | Input | Isolated ADC | Transformer thermal monitor |
 | Serial | I/O | USB (galvanic) | Operator command interface |
 
-Underneath, the ESP32 runs a small state machine with one rule: HV Enable is asserted only while
-all five interlock inputs are active at once, and the instant any one of them drops the enable
-trips immediately, no matter what the operator just typed.
+The ESP32 runs a small state machine with one rule: HV Enable is only on while all five
+interlock inputs are active, and if any one of them drops, the enable turns off immediately,
+regardless of what the operator has entered.
 
 ### Reflected power interlock
 
@@ -133,26 +127,26 @@ and reflected power on the transmission line (covered in the RF coupler case stu
 of that system is a voltage proportional to reflected power, and that signal feeds into the
 ESP32 interlock chain as **Interlock 4**.
 
-If the plasma load becomes severely mismatched — because the stub tuner hasn't compensated yet,
-because the vessel is outside its expected operating range, or because of a fault anywhere on the
-line — reflected power spikes. A threshold comparator on the detector board drives Interlock 4
-low, the ESP32 sees the trip, and HV Enable clears immediately. The magnetron de-energises before
-sustained reflected power can heat its output waveguide, damage its internal vanes, or drive RF
-leakage out of a mismatched section of the line.
+If the plasma load becomes badly mismatched (because the stub tuner hasn't caught up, the vessel
+is outside its expected operating range, or there's a fault on the line), reflected power
+spikes. A threshold comparator on the detector board pulls Interlock 4 low, the ESP32 sees the
+trip, and HV Enable turns off. The magnetron shuts down before sustained reflected power can heat
+its output waveguide, damage its internal vanes or cause RF leakage from a mismatched section of
+the line.
 
-This closes the loop between the monitoring system and the power supply, so the directional
-coupler ends up being part of the safety chain as well as a diagnostic.
+This connects the monitoring system to the power supply, so the directional coupler is part of
+the safety chain as well as a diagnostic.
 
 ## Enclosure design in Fusion 360
 
-I designed the enclosure in Fusion 360 as a stainless-steel sheet-metal part, complete with the
-flat/net pattern for fabrication, ventilation cutouts sized for the transformer and capacitor heat
-load, a power-entry cutout, and removable access panels for inspection and maintenance.
+I designed the enclosure in Fusion 360 as a stainless-steel sheet-metal part, including the
+flat pattern for fabrication, ventilation cutouts sized for the transformer and capacitor heat,
+a power-entry cutout, and removable access panels for inspection and maintenance.
 
-Where things sit inside was driven by the safety case: transformer at the base so the centre of
-mass is low and the unit is stable, capacitor bank kept away from the access-panel side so you're
-not reaching past stored energy to do routine work, and cabling routed clear of hot surfaces and
-sharp edges. I drew up a parts list alongside it so it could actually be procured and built.
+The internal layout was based on safety. The transformer sits at the base so the centre of mass
+is low and the unit is stable, the capacitor bank is kept away from the access panel so you don't
+reach past stored energy during routine work, and cabling is routed away from hot surfaces and
+sharp edges. I also put together a parts list so it could be ordered and built.
 
 <Figure
   src="/projects/hv-magnetron-enclosure/enclosure-cad-labeled.png"
@@ -165,7 +159,7 @@ sharp edges. I drew up a parts list alongside it so it could actually be procure
 <Figure
   src="/projects/hv-magnetron-enclosure/enclosure-cad-interior.png"
   alt="Fusion 360 cross-section of the enclosure interior showing transformer with washer mounts, internal component arrangement, and the access panel location on the right side"
-  caption="Interior view with the front panel removed. The transformer is raised on washers so a tripod can bolt to the underside without fouling the transformer mount. The access panel on the right sits away from the capacitor bank — you're not reaching past stored energy to service the control circuitry."
+  caption="Interior view with the front panel removed. The transformer is raised on washers so a tripod can bolt to the underside without fouling the transformer mount. The access panel on the right sits away from the capacitor bank, so you don't reach past stored energy to service the control circuitry."
   width={513}
   height={320}
 />
@@ -181,8 +175,8 @@ sharp edges. I drew up a parts list alongside it so it could actually be procure
 
 ## Safety framework
 
-Most of the decisions above were already safety decisions, so writing the framework out was mostly
-a matter of stating them explicitly. In full, it covers:
+Most of the decisions above were already safety decisions, so the framework mostly writes them
+down explicitly. It covers:
 
 - **Mains isolation**: a lockable isolator on the incoming supply, so the cabinet cannot be
   energised while the access panel is open.
@@ -202,7 +196,6 @@ a matter of stating them explicitly. In full, it covers:
 - **Physical barriers**: the enclosure isolates all high-voltage conductors from the
   operator surface; no bare conductors are within reach of a standard access panel opening.
 
-The idea I kept coming back to is that you can't rely on people being careful when they're tired,
-so the safe path has to also be the easy one. The enclosure is laid out so that every step an
-operator takes to get the cabinet open routes them through a safe state first, and skipping the
-procedure ends up being more work than following it.
+The general approach was to not rely on people being careful, and to make the safe way of doing
+things also the easiest. The enclosure is laid out so that opening the cabinet takes the operator
+through a safe state first, and skipping the procedure is more work than following it.

@@ -7,51 +7,43 @@ date: 2024-06
 status: draft
 ---
 
-Small businesses usually can't justify managed cloud hosting for every service, and they
-definitely can't keep a specialist infrastructure engineer on hand. That sets the constraint for
-a job like this: whatever I build has to stay up with almost no babysitting, and it has to be
-understandable by whoever walks in after me. Anything clever is a liability.
+This was for a small business client that couldn't justify managed cloud hosting for every
+service or keep an infrastructure engineer on hand. So the setup had to keep running with very
+little maintenance, and be easy to understand for whoever looks after it after me.
 
-So for this client I built the whole NAS and hosting stack (redundant file storage, remote
-access for staff, and WordPress hosting) on a single Synology NAS rather than a rented server
-farm, and designed it around that maintainability constraint.
+I built the whole stack (redundant file storage, remote access for staff and WordPress hosting)
+on a single Synology NAS instead of rented servers.
 
 ## Storage and redundancy
 
-I set the NAS up with a RAID volume so a single dead disk doesn't take the business's files with
-it, and configured file shares for different access tiers, some open across the organisation,
-others locked to specific staff roles, with Synology DSM handling the permissions.
+I set the NAS up with a RAID volume so a single failed disk doesn't lose the business's files,
+and configured file shares with different access levels, some open to everyone and others
+limited to specific staff roles, with Synology DSM handling the permissions.
 
-For remote access I used Synology's QuickConnect alongside a VPN configuration, so authorised
-staff get consistent access to shared files from outside the office without ever exposing the NAS
-management interface to the open internet.
+For remote access I used Synology's QuickConnect with a VPN, so staff can reach shared files from
+outside the office without the NAS management interface being exposed to the internet.
 
 ## Hosting and reverse proxy
 
-The same NAS doubles as the web-hosting stack. I run the WordPress sites behind Synology's
-built-in reverse proxy, which terminates HTTPS with Let's Encrypt certificates and routes inbound
-traffic to the right virtual host by domain name, so several sites happily share one public IP.
+The same NAS also hosts the websites. The WordPress sites run behind Synology's built-in reverse
+proxy, which handles HTTPS with Let's Encrypt certificates and routes traffic to the right site by
+domain name, so several sites share one public IP.
 
-I pointed each domain at the NAS's public IP with DNS at the registrar, and leaned on Let's
-Encrypt's automatic renewal so SSL keeps working without anyone having to remember to touch it.
-On a site meant to run for years with minimal intervention, that's worth more than any performance
-tweak.
+Each domain points at the NAS's public IP through DNS at the registrar, and Let's Encrypt's
+automatic renewal keeps SSL working without anyone needing to renew it manually.
 
 ## Design decisions
 
-The decision I thought hardest about was centralising everything on the NAS rather than splitting
-file storage and web hosting across the NAS and a separate hosted VPS. Centralising is cheaper and
-simpler, but it does couple the two: a disk failure during a RAID rebuild would dent both at
-once. I walked the client through that trade-off, and for their workload and risk tolerance
-centralising was the right call.
+The main decision was putting everything on the NAS instead of splitting file storage and web
+hosting between the NAS and a separate VPS. One box is cheaper and simpler, but it ties the two
+together: a disk failure during a RAID rebuild would affect both. I explained that trade-off to
+the client, and for their workload and risk tolerance one box made sense.
 
-The other big one was WordPress for every public site. It's not the fastest option and I knew
-that going in, but it's the one a non-technical staff member can update without phoning a
-developer, which mattered more here than any benchmark.
+The other was using WordPress for every public site. It isn't the fastest option, but
+non-technical staff can update it without needing a developer, which mattered more here.
 
-## What this demonstrates
+## What I learned
 
-End to end, this covers DNS, TLS, the reverse proxy, file-share permissions, remote access and
-application hosting. None of those pieces is hard on its own. The work was in wiring them together
-so they interact correctly and stay maintainable by someone who had nothing to do with the
-original build, which is what decides whether a setup is still running a year later.
+This covered DNS, TLS, the reverse proxy, file-share permissions, remote access and application
+hosting. None of those are hard individually. Most of the work was getting them to work together
+and keeping the setup simple enough for someone else to maintain.

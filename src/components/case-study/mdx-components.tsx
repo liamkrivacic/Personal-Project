@@ -4,6 +4,8 @@ import { Figure } from "./figure";
 import { FigureGrid } from "./figure-grid";
 import { SpecTable } from "./spec-table";
 import { CodeBlock } from "./code-block";
+import { DetectorChart } from "./detector-chart";
+import { Video } from "./video";
 
 export const mdxComponents = {
   h2: (props: ComponentPropsWithoutRef<"h2">) => <h2 className="cs-h2" {...props} />,
@@ -25,4 +27,6 @@ export const mdxComponents = {
   FigureGrid,
   SpecTable,
   CodeBlock,
+  DetectorChart,
+  Video,
 };

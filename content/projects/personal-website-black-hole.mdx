@@ -7,87 +7,81 @@ date: 2026-04
 status: published
 ---
 
-This portfolio had to do two things that pull in opposite directions. It has to present the work
-clearly, which argues for simplicity, and it has to *be* a piece of work itself, which argues for
-something more ambitious. I wanted to see if I could get both.
+This is the site you're on. I wanted it to show my projects clearly, but I also wanted the site
+itself to be a real software project rather than a template, so it has an interactive WebGL
+landing page that scrolls into the project list.
 
-What came out is a single-page scroll experience that starts as an interactive visual interface
-and resolves into a project catalogue, backed by case-study pages, a typed and validated data
-layer, and a test suite covering everything from unit behaviour to end-to-end navigation. The page
-you're reading is one of those case studies.
+It's built as a single-page scroll that starts on the black-hole visual and ends on the project
+list, with a case-study page for each project, a typed data layer, and tests covering everything
+from unit behaviour to end-to-end navigation.
 
 ## Architecture
 
-I built the app on **Next.js 16 with the App Router**, React 19, TypeScript in strict mode, and
-Tailwind CSS 3. Every piece of project content comes from one typed data file
+The app uses **Next.js 16 with the App Router**, React 19, TypeScript in strict mode and Tailwind
+CSS 3. All project content comes from one typed data file
 ([src/data/projects.ts](src/data/projects.ts)) and the MDX case-study files in
-`content/projects/`, so the content is data, not markup buried in components. Static params are
-generated at build time, which means every case-study page ships as pre-rendered HTML.
+`content/projects/`, so the content is kept separate from the components. Pages are generated at
+build time, so every case study ships as pre-rendered HTML.
 
-Fonts are self-hosted through `next/font/google` (Archivo for display, Inter for body,
-JetBrains Mono for code), and images are served in AVIF/WebP through `next/image` with Sharp
-conversion during the asset pipeline.
+Fonts are self-hosted through `next/font/google` (Archivo for headings, Inter for body text and
+JetBrains Mono for code), and images are served as AVIF/WebP through `next/image`, with Sharp
+doing the conversion.
 
 ## The scroll journey
 
-The heart of it lives in [src/components/scroll-journey.tsx](src/components/scroll-journey.tsx).
-A `useEffect` loop takes a smoothed virtual scroll position and drives a handful of CSS custom
-properties (`--dive`, `--veil`, `--bg-fade`, `--reveal-col`, `--reveal-list`). Everything that
-moves on the page (the black-hole zoom, the veil fade, the heading reveal, the staggered
-project cards) is just CSS reacting to those few numbers. I like this approach because the
-animation logic stays in one place and the browser does the heavy lifting.
+The main logic is in [src/components/scroll-journey.tsx](src/components/scroll-journey.tsx). A
+`useEffect` loop takes a smoothed scroll position and sets a few CSS custom properties (`--dive`,
+`--veil`, `--bg-fade`, `--reveal-col` and `--reveal-list`). Everything that moves on the page,
+including the black-hole zoom, the fade, the heading reveal and the staggered project cards, is
+CSS reacting to those values. I did it this way so the animation logic stays in one place and the
+browser does most of the work.
 
-The black hole itself runs in a sandboxed `<iframe>` that I feed scroll progress over
-`postMessage`, and the cursor-lighting effect rides in a separate canvas overlay injected once
-per page load. Keeping them isolated means one can break or get swapped out without taking the
-rest of the page with it.
+The black hole runs in a sandboxed `<iframe>` that gets the scroll progress over `postMessage`,
+and the cursor-lighting effect is a separate canvas overlay added once per page load. Keeping them
+separate means I can change or replace one without breaking the rest of the page.
 
 ## WebGL shader
 
-The black hole is a custom WebGL fragment shader I wrote that combines gravitational lensing
-distortion, an accretion disk, and per-frame "heat" that follows the cursor. It lives in
-`public/black-hole-tsbxw3/` as a fully self-contained page, so I can iterate on the shader or
-replace it entirely without rebuilding the main app bundle.
+The black hole is a WebGL fragment shader I wrote. It combines gravitational lensing distortion,
+an accretion disk, and a "heat" effect that follows the cursor. It lives in
+`public/black-hole-tsbxw3/` as a self-contained page, so I can change or replace the shader
+without rebuilding the main app.
 
-On top of that sits a separate cursor-streamlets layer
-(`public/black-hole-cursor-streamlets/`), a small fluid simulation that chases the pointer. I
-built it to be compositionally independent from the shader, so the two effects can coexist
-without either knowing the other exists.
+On top of that is a separate cursor-streamlets layer (`public/black-hole-cursor-streamlets/`), a
+small fluid simulation that follows the pointer. It's independent of the shader, so the two
+effects don't need to know about each other.
 
 ## Testing
 
-I treated this like production code, which means it has tests. The suite covers three layers:
+The site has tests at three levels:
 
-- **Vitest unit tests** verify the data layer (every project has a slug and valid `imgAlt`;
-  image files exist), the case-study frontmatter (required fields, valid dates, slug-to-
-  project matching), and source invariants in the component files (no empty alt attributes,
-  correct image sizing attributes).
-- **Playwright end-to-end tests** verify the scroll journey in a real browser: that the
-  black-hole renders, that project cards appear after scrolling, that filters work, and that
-  the back-navigation from a case-study page lands on the revealed projects view rather than
-  mid-dive.
-- **Layout source tests** read raw component source files and assert structural invariants
-  that should never regress regardless of refactoring.
+- **Vitest unit tests** check the data layer (every project has a slug and a valid `imgAlt`, and
+  its image files exist), the case-study frontmatter (required fields, valid dates, and slugs
+  that match a project), and rules in the component source (no empty alt attributes and correct
+  image sizing).
+- **Playwright end-to-end tests** check the scroll journey in a real browser: the black hole
+  renders, project cards appear after scrolling, filters work, and going back from a case-study
+  page lands on the project list instead of partway through the dive.
+- **Layout source tests** read the component source files and check structural rules that
+  shouldn't change when the code is refactored.
 
 ## Working with AI
 
-I built this site with Claude, and I'd rather be upfront about how that worked than leave people
-guessing.
+I built this site with Claude, and I'd rather say how that worked than leave people guessing.
 
-The setup I ended up with was a stronger model acting as an advisor at decision points (reviewing
-architecture, flagging tradeoffs, catching assumptions before they became bugs), and cheaper
-subagents doing bounded work like searching the codebase, checking for regressions, or drafting
-content. Splitting it that way only works if you understand the job well enough to specify it, so
-I was always the one holding the system-level view.
+I used a stronger model as an advisor at decision points (reviewing architecture, flagging
+tradeoffs and catching wrong assumptions before they turned into bugs), and cheaper subagents for
+bounded tasks like searching the codebase, checking for regressions or drafting content. That
+only works if you understand the project well enough to describe each task properly, so I kept
+the overall picture of the system myself.
 
 I learned this stack a lot faster than I would have otherwise. When the shader broke on
-back-navigation, or the MDX pipeline silently dropped tables, or the Vercel alias didn't update,
-fixing those took understanding the architecture rather than better prompting.
+back-navigation, when the MDX pipeline silently dropped tables, or when the Vercel alias didn't
+update, fixing them took understanding the architecture rather than better prompting.
 
-## What this demonstrates
+## What I learned
 
-The best part of making my portfolio a real software project is the feedback loop. If the
-architecture is good, adding a new case study is trivial; if it's fragile, the test suite tells me
-before a recruiter ever sees it. The MDX case-study system, the typed data layer and the
-scroll-animation architecture are the kind of decisions that come up in production work rather
-than in a university assignment, and this site is where I've had to actually make them.
+Treating the portfolio as a real software project means adding a new case study is easy, and if
+something breaks the tests catch it before it's deployed. It also meant making decisions I
+hadn't needed to make in uni assignments, like how to structure content as data, how to keep
+animation logic in one place, and what's worth testing.
