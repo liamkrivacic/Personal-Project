@@ -17,15 +17,15 @@ test("homepage presents the black-hole portfolio interface", async ({ page }) =>
   await expect(page.getByRole("heading", { name: /my projects/i })).toBeVisible({
     timeout: 10000,
   });
-  await expect(page.getByRole("heading", { name: /HFSS Directional Coupler/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /RF Power Diagnostic/i })).toBeVisible();
   await expect(page.getByText(/View case study/i).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Software & Computer Science" }).click();
-  await expect(page.getByRole("heading", { name: /Automated Stub-Tuner Optimisation/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /HFSS Directional Coupler/i })).toBeHidden();
+  await expect(page.getByRole("heading", { name: /Automating Three-Stub Tuning/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /RF Power Diagnostic/i })).toBeHidden();
 
   await page.getByRole("button", { name: "All" }).click();
-  await expect(page.getByRole("heading", { name: /HFSS Directional Coupler/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /RF Power Diagnostic/i })).toBeVisible();
 
   expect(pageErrors).toEqual([]);
 });
@@ -34,13 +34,13 @@ test("the RF coupler row links to its case study and back", async ({ page }) => 
   await page.goto(homeUrl);
 
   await page.mouse.wheel(0, 3600);
-  const couplerHeading = page.getByRole("heading", { name: /HFSS Directional Coupler/i });
+  const couplerHeading = page.getByRole("heading", { name: /RF Power Diagnostic/i });
   await expect(couplerHeading).toBeVisible({ timeout: 10000 });
   await couplerHeading.click();
 
   await expect(page).toHaveURL(/\/projects\/rf-coupler-coax$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: /HFSS Directional Coupler/i }),
+    page.getByRole("heading", { level: 1, name: /RF Power Diagnostic/i }),
   ).toBeVisible();
 
   await page.getByRole("link", { name: /All projects/i }).click();

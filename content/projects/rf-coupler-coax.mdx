@@ -602,14 +602,10 @@ The datasheet doesn't list 2.45 GHz, so the comparison line uses the closest spe
 <DetectorChart caption="Measured VOUT against the AD8317 typical transfer function at 2.2 GHz. Hover a point for its values." />
 
 The board works. Between −48.5 and −28.5 dBm the output falls by 24.0 mV/dB on average, close to
-the 22 mV/dB typical slope, so the detector is responding the way it should. The measured
-voltages sit 0.06–0.14 V below the datasheet line. The datasheet intercept is a typical value at
-a different frequency, and the tinySA's output level isn't calibrated, so an offset like this is
-expected. The last step (−28.5 to −18.5 dBm) only dropped 14.5 mV/dB. We haven't worked out yet
-whether that's the board or the tinySA.
-
-For the real system we'll calibrate the board against a known reference source at 2.45 GHz and
-use that line instead of the datasheet numbers.
+the 22 mV/dB typical slope. The measured voltages sit 0.06–0.14 V below the datasheet line, which
+is about 3–6 dB. The tinySA's output level hasn't been checked against a calibrated source, so we
+can't yet say how much of that offset comes from the source and how much from the board. The last
+step (−28.5 to −18.5 dBm) only dropped 14.5 mV/dB.
 
 ---
 
