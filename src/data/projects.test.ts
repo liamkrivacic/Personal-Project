@@ -48,8 +48,8 @@ describe("projects data", () => {
     expect(projects.map((project) => project.id)).toEqual([
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
-      "hv-magnetron-supply",
       "hv-capacitor-monitor",
+      "hv-magnetron-supply",
       "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",
@@ -65,8 +65,8 @@ describe("projects data", () => {
     expect(publicProjects?.map((project) => project.id)).toEqual([
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
-      "hv-magnetron-supply",
       "hv-capacitor-monitor",
+      "hv-magnetron-supply",
       "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",

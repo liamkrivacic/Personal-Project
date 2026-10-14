@@ -103,6 +103,26 @@ are exposed metal sitting a few millimetres above a grounded chassis. To deal wi
 mounts on nylon standoffs above an acrylic insulating sheet, with Kapton tape over the
 high-voltage joints.
 
+## Extending it to current and power
+
+The same board can also measure current. TI's AMC3301 has the same pinout as the AMC3330 and the
+same integrated DC/DC converter, but it's made for shunt resistors, with a ±250 mV input range
+instead of ±1 V. Swapping the chip and replacing the divider with a shunt resistor in the
+magnetron's high-voltage return path turns the board into an isolated current sensor.
+
+With one board measuring voltage and another measuring current, we could work out the DC power
+going into the magnetron. Comparing that with the RF power from the directional coupler would
+give the magnetron's efficiency, which is a useful health check, since a drop in efficiency over
+time can show the magnetron is wearing out. Two details matter for this to work:
+
+- **The voltage board has to measure across the magnetron, not the capacitor.** In the
+  half-wave doubler, the magnetron sees the capacitor voltage plus the transformer secondary,
+  so it peaks at about 4 kV, while the capacitor sits around 2 kV. The ±6.2 kV range still
+  covers that.
+- **The magnetron only conducts on one half of each mains cycle**, so both signals need to be
+  sampled fast enough to multiply voltage and current point by point and then average.
+  Multiplying the average voltage by the average current would give the wrong answer.
+
 ## What I learned
 
 Designing for high voltage changed how I approached the board. The layout was driven more by
@@ -115,6 +135,8 @@ several came with wrongly sized footprints.
 
 ## References
 
+- Texas Instruments, "AMC3301 Precision, ±250-mV Input, Reinforced Isolated Amplifier With
+  Integrated DC/DC Converter," data sheet. [ti.com](https://www.ti.com/product/AMC3301)
 - Texas Instruments, "AMC3330 Precision, ±1-V Input, Reinforced Isolated Amplifier With
   Integrated DC/DC Converter," data sheet SBASA34B.
   [ti.com](https://www.ti.com/product/AMC3330)
