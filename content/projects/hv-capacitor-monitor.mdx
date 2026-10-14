@@ -15,7 +15,7 @@ it keeps the high-voltage side electrically isolated from the low-voltage contro
 
 <Callout title="Design status">
 This page covers the schematic and PCB layout, done in Altium Designer. The board hasn't been
-built or tested yet.
+tested yet.
 </Callout>
 
 | Parameter | Value |
@@ -54,8 +54,9 @@ tolerance and voltage coefficient.
 The divided signal goes through ferrite beads and a small filter capacitor into a TI AMC3330
 isolated amplifier. I picked the AMC3330 because it has an integrated isolated DC/DC converter,
 so the high-voltage side is powered from the low-voltage side and doesn't need its own isolated
-supply. Its differential output and diagnostic pin go to a 6-pin connector that feeds our PLC,
-which uses the reading to control the door interlock and status indicators.
+supply. Its differential output and diagnostic pin go to a 6-pin connector that connects to an STM32
+microcontroller. The STM32 relays the reading to our central PLC, which handles the door
+interlock, and turns on a light that shows whether the capacitor has discharged.
 
 ## Layout and safety
 
