@@ -94,8 +94,9 @@ unsafe. I led the research that set the architecture for that interlock chain, b
 interlock state, and only turns on the high-voltage enable when every condition is met. A
 teammate then designed the control-system PCB based on that research.
 
-I'm currently designing a high-voltage op-amp board that measures the supply's output voltage and
-provides isolation between the high-voltage side and mains.
+I also designed an isolated board that measures the high-voltage capacitor's voltage directly, so
+capacitor discharge is confirmed by a measurement rather than assumed. It's written up separately:
+[Isolated High-Voltage Capacitor Monitor](/projects/hv-capacitor-monitor).
 
 The main rule is that there's no conductive path anywhere between the low-voltage control side
 and the 4 kV rail. Every signal that crosses between them goes through **optical isolation rated

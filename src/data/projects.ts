@@ -43,6 +43,10 @@ const skillLogos = {
     logo: "/skill-logos/ltspice.svg",
     logoAlt: "LTspice logo",
   },
+  "Altium Designer": {
+    logo: "/skill-logos/altium.svg",
+    logoAlt: "Altium Designer logo",
+  },
   "Fusion 360": {
     logo: "/skill-logos/fusion360.svg",
     logoAlt: "Fusion 360 logo",
@@ -158,8 +162,26 @@ export const projects: Project[] = [
     imageFit: "contain",
   },
   {
-    id: "atomcraft-rf-leadership",
+    id: "hv-capacitor-monitor",
     num: "04",
+    slug: "hv-capacitor-monitor",
+    focus: "electrical",
+    focusLabel: "Electrical Engineering",
+    cat: "engineering",
+    catLabel: "PCB Design",
+    title: "Isolated High-Voltage Capacitor Monitor",
+    signal:
+      "Designed an isolated board in Altium that measures the magnetron supply's capacitor voltage up to ±6.2 kV for a discharge interlock, using a 100 MΩ divider, a TI AMC3330 isolated amplifier and IPC-2221 high-voltage clearances.",
+    hard: [hardSkill("Altium Designer")],
+    soft: ["Safety-first design", "Standards research", "Component selection"],
+    img: "/projects/hv-capacitor-monitor.webp",
+    imgAlt: "3D render of the isolated high-voltage capacitor monitor PCB with divider resistors, AMC3330 isolated amplifier and output connector",
+    imagePosition: "center center",
+    imageFit: "contain",
+  },
+  {
+    id: "atomcraft-rf-leadership",
+    num: "05",
     slug: "atomcraft-rf-leadership",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
@@ -176,7 +198,7 @@ export const projects: Project[] = [
   },
   {
     id: "personal-website-black-hole",
-    num: "05",
+    num: "06",
     slug: "personal-website-black-hole",
     focus: "software",
     focusLabel: "Software & Computer Science",
@@ -198,7 +220,7 @@ export const projects: Project[] = [
   },
   {
     id: "visual-arts-portfolio",
-    num: "06",
+    num: "07",
     slug: "artwork-collection",
     focus: "personal",
     focusLabel: "Personal & Creative",
@@ -216,7 +238,7 @@ export const projects: Project[] = [
   },
   {
     id: "sumobot-winner",
-    num: "07",
+    num: "08",
     slug: "sumobot-chassis",
     focus: "electrical",
     focusLabel: "Electrical Engineering",
@@ -233,7 +255,7 @@ export const projects: Project[] = [
   },
   {
     id: "nas-infrastructure",
-    num: "08",
+    num: "09",
     slug: "nas-infrastructure",
     focus: "software",
     focusLabel: "Software & Computer Science",
@@ -253,7 +275,7 @@ export const projects: Project[] = [
   },
   {
     id: "wordpress-marketing",
-    num: "09",
+    num: "10",
     slug: "wordpress-marketing",
     focus: "software",
     focusLabel: "Software & Computer Science",

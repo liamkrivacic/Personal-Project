@@ -1,0 +1,122 @@
+---
+slug: hv-capacitor-monitor
+title: Isolated High-Voltage Capacitor Monitor
+summary: "An isolated measurement board I designed in Altium for AtomCraft's magnetron power supply. It reads the high-voltage capacitor across a ±6.2 kV range through a 100 MΩ divider and a TI AMC3330 isolated amplifier, so the control system can confirm the capacitor has discharged before the enclosure is opened. The layout follows IPC-2221 high-voltage clearances."
+heroImage: /projects/hv-capacitor-monitor.webp
+date: 2026-10
+status: published
+---
+
+As part of the RF team at AtomCraft, I designed a small board that measures the voltage on the
+high-voltage capacitor in our magnetron power supply. It's a safety part. Before anyone opens the
+enclosure, the control system needs to know the capacitor has actually discharged, rather than
+assuming the bleed resistors did their job. The board turns that check into a measurement, and
+it keeps the high-voltage side electrically isolated from the low-voltage control side.
+
+<Callout title="Design status">
+This page covers the schematic and PCB layout, done in Altium Designer. The board hasn't been
+built or tested yet.
+</Callout>
+
+| Parameter | Value |
+|-----------|-------|
+| Measurement range | ±6.2 kV at the capacitor |
+| Divider | 2 × 50 MΩ (Stackpole HVA12) + 16.2 kΩ (0.1%), ratio ≈ 1/6174 |
+| Divider current | about 20 µA at 2 kV |
+| Isolated amplifier | TI AMC3330, ±1 V input, 6 kV peak reinforced isolation |
+| Isolation gap | at least 8 mm between the high- and low-voltage sides |
+| HV clearance (IPC-2221) | 25 mm at the full-voltage input, 12.5 mm at the divider midpoint |
+| Board size | 85 × 95 mm, 2 layers |
+
+## How it works
+
+The capacitor voltage is scaled down by a resistive divider made of two 50 MΩ resistors in series
+with a 16.2 kΩ resistor. That gives a ratio of about 1/6174, so the ±1 V input range of the
+amplifier corresponds to about ±6.2 kV at the capacitor. That leaves plenty of headroom above the
+roughly 2 kV the capacitor sits at in normal operation, and the divider only draws about 20 µA.
+
+<Figure
+  src="/projects/hv-capacitor-monitor/schematic.png"
+  alt="Schematic of the capacitor monitor: a divider of two 50 megohm resistors and a 16.2 kilohm resistor from HV_VCC to HV_GND, ferrite beads and a 1 nF capacitor into the AMC3330 isolated amplifier, decoupling on both sides, and a 6-pin output connector carrying DIAG, VDD, OUTP and OUTN"
+  caption="Schematic. The divider (R2, R3, R4) feeds the AMC3330 (U1) through ferrite beads FB1–FB3 and filter capacitor C10. The left side of U1 is on the high-voltage ground (H_GND), the right side on the low-voltage ground (DC_GND), and J1 carries the differential output and DIAG pin out."
+  width={1474}
+  height={1125}
+/>
+
+For the top of the divider I used Stackpole HVA12 resistors, which are rated to 8 kV each. My
+first plan was ordinary 0.25 W resistors, until I realised that at high voltage the limit is the
+resistor's voltage rating, not its power. At 20 µA the power is tiny, but a standard resistor
+would arc across long before it got warm. Splitting the top of the divider across two resistors
+also halves the voltage each one sees, which keeps them well within their rating. The bottom
+(sense) resistor is a 0.1% part, and the board gets a one-off calibration to account for resistor
+tolerance and voltage coefficient.
+
+The divided signal goes through ferrite beads and a small filter capacitor into a TI AMC3330
+isolated amplifier. I picked the AMC3330 because it has an integrated isolated DC/DC converter,
+so the high-voltage side is powered from the low-voltage side and doesn't need its own isolated
+supply. Its differential output and diagnostic pin go to a 6-pin connector that feeds our PLC,
+which uses the reading to control the door interlock and status indicators.
+
+## Layout and safety
+
+The board is split into a high-voltage side and a low-voltage side, with the AMC3330 bridging the
+isolation barrier. The two grounds are kept completely separate, no copper crosses under the chip,
+and there's at least 8 mm between the two sides.
+
+<FigureGrid cols={2}>
+  <Figure
+    src="/projects/hv-capacitor-monitor/layout.png"
+    alt="Altium PCB layout of the capacitor monitor showing the long-body divider resistors stepping down from the high-voltage terminal MP1, the second terminal MP2 far away, the AMC3330 in the lower middle and the ground pour limited to the low-voltage output corner"
+    caption="PCB layout. The divider steps down from the HV input terminal (MP1) toward the amplifier, the second terminal (MP2) sits well away from it, and the ground pour (blue) only covers the low-voltage output side."
+    width={1729}
+    height={1653}
+  />
+  <Figure
+    src="/projects/hv-capacitor-monitor/render.png"
+    alt="3D render of the 85 by 95 millimetre capacitor monitor board with chamfered corners, two large high-voltage terminals, the long divider resistor outlines, the AMC3330 and a 6-pin output connector"
+    caption="3D render of the board. Most of the area is empty on purpose: it's there to give the high-voltage parts their clearance."
+    width={1752}
+    height={1653}
+  />
+</FigureGrid>
+
+I set the high-voltage clearances using the IPC-2221 guideline for uncoated external conductors,
+which works out to about 0.005 mm per volt above 500 V. That gave 25 mm of clearance around the
+full-voltage input and 12.5 mm around the divider's midpoint. Air itself breaks down at roughly 1
+to 3 kV per mm, but distances across a board surface need a lot more margin, because dust and
+moisture can slowly build up a conductive track. To fit these clearances I made the board
+85 × 95 mm, which still fits in the cheapest 100 × 100 mm fabrication tier.
+
+The rest of the layout follows the same idea:
+
+- The divider resistors are long-body through-hole parts laid out in a line, stepping down in
+  voltage away from the input.
+- The high-voltage input uses two separate single-pole terminals placed far apart, instead of a
+  standard two-pin block where the pins would be a few millimetres from each other.
+- The ground pour is limited to the low-voltage output side instead of flooding the whole board,
+  so there's no grounded copper near the high-voltage parts.
+- The mounting holes are non-plated and kept well away from the high-voltage parts.
+
+The PCB material insulates well, but the solder joints on the bottom of the high-voltage parts
+are exposed metal sitting a few millimetres above a grounded chassis. To deal with that, the board
+mounts on nylon standoffs above an acrylic insulating sheet, with Kapton tape over the
+high-voltage joints.
+
+## What I learned
+
+Designing for high voltage changed how I approached the board. The layout was driven more by
+spacing and insulation than by the circuit itself, and the main risks came from physical details
+like exposed solder joints and the board surface between parts. On the tooling side, I learned to
+use standard IPC footprints and generic passives instead of trusting downloaded parts, after
+several came with wrongly sized footprints.
+
+---
+
+## References
+
+- Texas Instruments, "AMC3330 Precision, ±1-V Input, Reinforced Isolated Amplifier With
+  Integrated DC/DC Converter," data sheet SBASA34B.
+  [ti.com](https://www.ti.com/product/AMC3330)
+- Stackpole Electronics, "HVA Series High Voltage Axial Leaded Resistors," data sheet.
+  [seielect.com](https://www.seielect.com)
+- IPC-2221, *Generic Standard on Printed Board Design*, Table 6-1 (electrical conductor spacing).

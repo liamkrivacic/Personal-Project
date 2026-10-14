@@ -9,6 +9,7 @@ const approvedHardSkills = new Set([
   "Python",
   "LTspice",
   "Fusion 360",
+  "Altium Designer",
   "Arduino",
   "C/C++",
   "Synology DSM",
@@ -43,11 +44,12 @@ const removedHardSkillLabels = [
 ];
 
 describe("projects data", () => {
-  it("orders the nine refined project cards with project work first", () => {
+  it("orders the ten refined project cards with project work first", () => {
     expect(projects.map((project) => project.id)).toEqual([
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
       "hv-magnetron-supply",
+      "hv-capacitor-monitor",
       "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",
@@ -64,6 +66,7 @@ describe("projects data", () => {
       "hfss-coupler-coax",
       "stub-tuner-optimisation",
       "hv-magnetron-supply",
+      "hv-capacitor-monitor",
       "atomcraft-rf-leadership",
       "personal-website-black-hole",
       "visual-arts-portfolio",
